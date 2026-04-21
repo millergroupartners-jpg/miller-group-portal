@@ -163,7 +163,7 @@ export function DashboardScreen() {
       </div>
 
       {/* Property cards */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="property-grid" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
 
         {/* ── Monday investor properties ── */}
         {isMondayMode && mondayProps.map((p, i) => (

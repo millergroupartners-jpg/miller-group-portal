@@ -351,6 +351,24 @@ html, body {
   background: linear-gradient(90deg, rgba(201,168,76,0.4), transparent);
 }
 
+/* ── Property card grid (dashboard) ──────────────────────────── */
+.property-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+@media (min-width: 900px) {
+  .property-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+    align-content: start;
+  }
+  .property-grid .gold-card {
+    max-width: 100%;
+  }
+}
+
 /* ── Photo grid ──────────────────────────────────────────────── */
 .photo-grid {
   display: grid;
