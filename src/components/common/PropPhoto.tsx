@@ -16,7 +16,7 @@ export function PropPhoto({ index = 0, heightRatio = 56, photoUrl }: PropPhotoPr
   const [bg, accent, dark] = PALETTES[index % PALETTES.length];
 
   return (
-    <div style={{ position: 'relative', width: '100%', paddingTop: `${heightRatio}%`, background: bg, flexShrink: 0 }}>
+    <div style={{ position: 'relative', width: '100%', paddingTop: `${heightRatio}%`, maxHeight: 220, background: bg, flexShrink: 0 }}>
       {photoUrl ? (
         <img
           src={photoUrl}
