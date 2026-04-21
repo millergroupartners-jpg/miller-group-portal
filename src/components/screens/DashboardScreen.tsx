@@ -97,6 +97,14 @@ export function DashboardScreen() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
+      {/* Desktop title */}
+      <div className="desktop-page-title">
+        <div>
+          <div className="subtitle">שלום, {user.fullNameHe}</div>
+        </div>
+        <h1>הנכסים שלי</h1>
+      </div>
+
       {/* Header */}
       <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />

@@ -30,6 +30,7 @@ export interface CCPhoto {
   tags: string[];
   thumb: string;
   web: string;
+  original: string;
   isVideo: boolean;
 }
 
@@ -140,7 +141,13 @@ export async function fetchCCPhotos(projectId: string, perPage = 50): Promise<CC
     capturedAt: p.captured_at ?? 0,
     tags: (p.tags ?? []).map((t: any) => t.label ?? '').filter(Boolean),
     thumb: p.uris?.find((u: any) => u.type === 'thumbnail')?.uri ?? '',
-    web:   p.uris?.find((u: any) => u.type === 'web')?.uri ?? p.uris?.[0]?.uri ?? '',
+    web:
+      p.uris?.find((u: any) => u.type === 'web')?.uri ??
+      p.uris?.find((u: any) => u.type === 'original')?.uri ??
+      p.uris?.[0]?.uri ?? '',
+    original:
+      p.uris?.find((u: any) => u.type === 'original')?.uri ??
+      p.uris?.find((u: any) => u.type === 'web')?.uri ?? '',
     isVideo: p.photo_type === 'video',
   }));
 }

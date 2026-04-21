@@ -24,7 +24,9 @@ export function PropPhoto({ index = 0, heightRatio = 56, photoUrl }: PropPhotoPr
           style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block',
+            objectFit: 'cover',
+            objectPosition: 'center 65%',
+            display: 'block',
           }}
         />
       ) : (

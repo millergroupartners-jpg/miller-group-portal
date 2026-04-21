@@ -33,6 +33,12 @@ export function DocumentsScreen() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
+      {/* Desktop title */}
+      <div className="desktop-page-title">
+        <div className="subtitle">חוזים, דוחות וקבצים</div>
+        <h1>מסמכים</h1>
+      </div>
+
       {/* Header */}
       <div className="screen-header" style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />

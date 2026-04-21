@@ -89,6 +89,12 @@ export function MediaScreen() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
+      {/* Desktop title */}
+      <div className="desktop-page-title">
+        <div className="subtitle">תיעוד חזותי של ההתקדמות</div>
+        <h1>עדכוני התקדמות</h1>
+      </div>
+
       {/* Header */}
       <div className="screen-header" style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />
@@ -199,7 +205,7 @@ export function MediaScreen() {
                         onClick={() => setLightbox({ photo, address: activeMedia.address })}
                       >
                         <img
-                          src={photo.thumb}
+                          src={photo.web || photo.thumb}
                           alt=""
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                           loading="lazy"
@@ -289,7 +295,7 @@ export function MediaScreen() {
           </button>
 
           <img
-            src={lightbox.photo.web}
+            src={lightbox.photo.original || lightbox.photo.web}
             alt=""
             style={{ width: '90%', maxHeight: '65vh', objectFit: 'contain', borderRadius: 10, border: `1px solid ${GOLD}44` }}
             onClick={e => e.stopPropagation()}
