@@ -11,16 +11,21 @@ import { InvestorDetailScreen } from './components/screens/admin/InvestorDetailS
 import { AddInvestorScreen } from './components/screens/admin/AddInvestorScreen';
 import { AddPropertyScreen } from './components/screens/admin/AddPropertyScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
+import { DesktopSidebar } from './components/common/DesktopSidebar';
+
+// Screens that show the sidebar on desktop
+const SIDEBAR_SCREENS = ['dashboard','property-detail','documents','media','settings'];
 
 export default function App() {
   const { navState } = useNavigation();
   const { screen, selectedPropertyId, selectedInvestorId, investorName } = navState;
 
-  return (
+  const showSidebar = SIDEBAR_SCREENS.includes(screen);
+
+  const content = (
     <div
       key={screen}
-      className="screen-enter-forward"
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      className="screen-enter-forward app-content"
     >
       {screen === 'login'               && <LoginScreen />}
       {screen === 'dashboard'           && <DashboardScreen />}
@@ -48,4 +53,15 @@ export default function App() {
       )}
     </div>
   );
+
+  if (showSidebar) {
+    return (
+      <div className="app-layout">
+        <DesktopSidebar active={screen} />
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }
