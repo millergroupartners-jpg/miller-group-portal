@@ -10,8 +10,9 @@ export type Screen =
   | 'admin-dashboard'
   | 'admin-investors'
   | 'admin-investor-detail'
-  | 'admin-add-investor'
-  | 'admin-add-property'
+  | 'admin-properties'
+  | 'admin-mg-deals'
+  | 'admin-closings'
   | 'set-password';
 
 export type BadgeType = 'gold' | 'green' | 'blue';

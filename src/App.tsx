@@ -8,13 +8,17 @@ import { SettingsScreen } from './components/screens/SettingsScreen';
 import { AdminDashboardScreen } from './components/screens/admin/AdminDashboardScreen';
 import { InvestorsListScreen } from './components/screens/admin/InvestorsListScreen';
 import { InvestorDetailScreen } from './components/screens/admin/InvestorDetailScreen';
-import { AddInvestorScreen } from './components/screens/admin/AddInvestorScreen';
-import { AddPropertyScreen } from './components/screens/admin/AddPropertyScreen';
+import { AdminPropertiesScreen } from './components/screens/admin/AdminPropertiesScreen';
+import { AdminMGDealsScreen } from './components/screens/admin/AdminMGDealsScreen';
+import { AdminClosingsScreen } from './components/screens/admin/AdminClosingsScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 
 // Screens that show the sidebar on desktop
-const SIDEBAR_SCREENS = ['dashboard','property-detail','documents','media','settings'];
+const SIDEBAR_SCREENS = [
+  'dashboard','property-detail','documents','media','settings',
+  'admin-dashboard','admin-investors','admin-investor-detail','admin-properties','admin-mg-deals','admin-closings',
+];
 
 export default function App() {
   const { navState } = useNavigation();
@@ -42,8 +46,9 @@ export default function App() {
       {screen === 'admin-investor-detail' && selectedInvestorId && (
         <InvestorDetailScreen investorId={selectedInvestorId} />
       )}
-      {screen === 'admin-add-investor'  && <AddInvestorScreen />}
-      {screen === 'admin-add-property'  && <AddPropertyScreen />}
+      {screen === 'admin-properties'    && <AdminPropertiesScreen />}
+      {screen === 'admin-mg-deals'      && <AdminMGDealsScreen />}
+      {screen === 'admin-closings'      && <AdminClosingsScreen />}
 
       {screen === 'set-password' && selectedInvestorId && (
         <SetPasswordScreen

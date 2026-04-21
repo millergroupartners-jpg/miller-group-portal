@@ -10,12 +10,15 @@ export const PROPERTIES_BOARD_ID = 1997938102;
 export const INVESTORS_BOARD_ID = 1997938105;
 /** Group: "עסקאות של משקיעים" */
 const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
+/** Group: "עסקאות Miller Group" — the company's own deals */
+const MG_DEALS_GROUP = 'group_mkw9are4';
 
 // Column IDs on the properties board
 const COL = {
   investor:       'board_relation_mkrzrtny', // "משקיע" — board_relation, use linked_items fragment
   rentalStatus:   'color_mm1fv8p0',          // "סטטוס השכרה"
   loanStatus:     'color_mkvj438f',           // "סטטוס הלוואה"
+  closingDate:    'date_mkrz2xsg',            // "תאריך סגירה"
   purchaseClient: 'numeric_mkrzmmy',          // "רכישה ללקוח ($)"
   renovClient:    'numeric_mkrzk78b',         // "שיפוץ ללקוח ($)"
   closingCosts:   'numeric_mks3rebm',         // "עלויות סגירה ($)"
@@ -70,6 +73,7 @@ export interface MondayProperty {
   arvRaw: number;
   progress: number;
   loanStatus: string;       // "סטטוס הלוואה" raw label
+  closingDate: string;      // ISO "YYYY-MM-DD" or ''
   investorMondayId: string;
   investorName: string;
   docsUrl: string;          // Google Drive folder link from "מסמכים" column
@@ -227,6 +231,7 @@ function transformRawProperty(item: RawItem): MondayProperty {
     arvRaw,
     progress: progressFromStatus(rawStatus),
     loanStatus: cols[COL.loanStatus]?.text ?? '',
+    closingDate: cols[COL.closingDate]?.text ?? '',
     investorMondayId,
     investorName,
     docsUrl,
@@ -266,7 +271,8 @@ function buildInvestorFromProperties(
 // ─── API queries ───────────────────────────────────────────────────────────
 
 const PROPERTY_COLUMN_IDS = [
-  COL.investor, COL.rentalStatus, COL.loanStatus, COL.purchaseClient, COL.renovClient,
+  COL.investor, COL.rentalStatus, COL.loanStatus, COL.closingDate,
+  COL.purchaseClient, COL.renovClient,
   COL.closingCosts, COL.arv, COL.rent, COL.docs,
 ].map(id => `"${id}"`).join(', ');
 
@@ -484,4 +490,10 @@ export async function fetchMondayData(): Promise<MondayBoardData> {
   investors.sort((a, b) => b.totalAllIn - a.totalAllIn);
 
   return { properties, investors };
+}
+
+/** Fetch Miller Group's own deals (group "עסקאות Miller Group") */
+export async function fetchMillerGroupProperties(): Promise<MondayProperty[]> {
+  const raw = await fetchAllItemsFromGroup(PROPERTIES_BOARD_ID, MG_DEALS_GROUP, PROPERTY_COLUMN_IDS);
+  return raw.map(transformRawProperty);
 }

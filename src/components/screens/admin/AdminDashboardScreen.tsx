@@ -2,190 +2,295 @@ import { useNavigation } from '../../../context/NavigationContext';
 import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
-import { GoldDivider } from '../../common/GoldDivider';
-import { AdminTabBar } from './AdminTabBar';
-import { INVESTORS } from '../../../data/investors'; // fallback
 
 const GOLD = '#C9A84C';
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="gold-card" style={{ padding: '14px 12px', flex: 1, textAlign: 'center' }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: GOLD }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 3 }}>{label}</div>
-      {sub && <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
+/** Ordered pipeline stages (aligns with progressFromStatus in mondayApi) */
+const PIPELINE_STAGES = [
+  { label: 'על חוזה',               color: '#64B5F6' },
+  { label: 'בשלבי הלוואה וחתימות',  color: '#9575CD' },
+  { label: 'בשיפוץ',                color: GOLD },
+  { label: 'מעבר לניהול',           color: '#4DB6AC' },
+  { label: 'מרקט',                  color: '#81C784' },
+  { label: 'מושכר',                 color: '#4CAF50' },
+] as const;
+
+function fmtUSD(n: number): string {
+  if (!n) return '$0';
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)     return '$' + Math.round(n / 1000) + 'K';
+  return '$' + n.toLocaleString('en-US');
 }
 
 export function AdminDashboardScreen() {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
-  const { properties, investors, loading, error, hasToken } = useMondayData();
+  const { investors, properties, loading, hasToken } = useMondayData();
 
-  // Use live Monday data when available, else fall back to mock data
-  const liveMode = hasToken && (properties.length > 0 || loading);
-  const allProps   = liveMode ? properties : [];
-  const allInvestors = liveMode ? investors : INVESTORS;
+  // Aggregate metrics
+  const totalAllIn   = properties.reduce((s, p) => s + p.allIn, 0);
+  const totalArv     = properties.reduce((s, p) => s + p.arvRaw, 0);
+  const totalEquity  = totalArv - totalAllIn;
+  const roi          = totalAllIn > 0 ? ((totalEquity / totalAllIn) * 100).toFixed(1) + '%' : '—';
 
-  const totalAUM = liveMode
-    ? '$' + allProps.reduce((s, p) => s + p.allIn, 0).toLocaleString('en-US')
-    : '$1,438,000';
+  // Pipeline breakdown
+  const stageCounts = PIPELINE_STAGES.map(stage => ({
+    ...stage,
+    count: properties.filter(p => p.status === stage.label).length,
+  }));
 
-  const totalProperties  = liveMode ? allProps.length : 8;
-  const activeInvestors  = allInvestors.length;
-  const rented  = liveMode ? allProps.filter(p => p.statusType === 'green').length : 3;
-  const inReno  = liveMode ? allProps.filter(p => p.statusType === 'gold').length  : 3;
-  const inReview= liveMode ? allProps.filter(p => p.statusType === 'blue').length  : 2;
+  // Top investors by portfolio size (ARV)
+  const topInvestors = [...investors]
+    .sort((a, b) => {
+      const aArv = a.properties.reduce((s, p) => s + p.arvRaw, 0);
+      const bArv = b.properties.reduce((s, p) => s + p.arvRaw, 0);
+      return bArv - aArv;
+    })
+    .slice(0, 5);
 
-  const safeTotal = totalProperties || 1;
+  // Next closing (earliest future date)
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const upcomingClosings = properties
+    .filter(p => p.closingDate)
+    .map(p => ({ p, d: new Date(p.closingDate) }))
+    .filter(({ d }) => !isNaN(d.getTime()) && d.getTime() >= today.getTime())
+    .sort((a, b) => a.d.getTime() - b.d.getTime());
+  const nextClosing = upcomingClosings[0];
+  const daysToNext  = nextClosing ? Math.round((nextClosing.d.getTime() - today.getTime()) / 86400000) : null;
 
-  // Yield across all properties
-  const avgYield = (() => {
-    if (!liveMode) return '9.8%';
-    const yields = allProps
-      .filter(p => p.rentYield !== '—')
-      .map(p => parseFloat(p.rentYield));
-    if (!yields.length) return '—';
-    return (yields.reduce((a, b) => a + b, 0) / yields.length).toFixed(1) + '%';
-  })();
+  // Health alerts
+  const investorsWithoutPassword = investors.filter(i => !i.password && i.email);
+  const closingsThisWeek = upcomingClosings.filter(x => {
+    const d = Math.round((x.d.getTime() - today.getTime()) / 86400000);
+    return d <= 7;
+  }).length;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      {/* Desktop title */}
+      <div className="desktop-page-title">
+        <div className="subtitle">ניהול Miller Group</div>
+        <h1>לוח בקרה</h1>
+      </div>
+
+      {/* Mobile header */}
+      <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>פאנל ניהול</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{currentUser?.fullNameHe}</div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>מערכת ניהול</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{currentUser?.fullNameHe}</div>
         </div>
       </div>
-      <GoldDivider />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-        {/* Loading / error banner */}
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '10px 0', color: 'var(--text-secondary)', fontSize: 12, marginBottom: 12 }}>
-            ⏳ טוען נתונים מ-Monday...
-          </div>
-        )}
-        {error && (
-          <div style={{ background: 'rgba(255,59,48,0.12)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#ff3b30', textAlign: 'right' }}>
-            {error}
-          </div>
-        )}
         {!hasToken && (
-          <div style={{ background: 'rgba(201,168,76,0.12)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: GOLD, textAlign: 'right' }}>
-            הוסף <strong>VITE_MONDAY_API_TOKEN</strong> לקובץ .env לחיבור ל-Monday
+          <div style={{
+            background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)',
+            borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#ff6b6b',
+          }}>
+            ⚠️ VITE_MONDAY_API_TOKEN חסר — לא ניתן לטעון נתונים חיים
           </div>
         )}
 
-        {/* AUM banner */}
-        <div className="gold-card" style={{ padding: '16px', marginBottom: 14, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>סך נכסים תחת ניהול (AUM)</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: GOLD, letterSpacing: -1 }}>{totalAUM}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
-            תשואה ממוצעת כלל-תיקית: <span style={{ color: GOLD, fontWeight: 600 }}>{avgYield}</span>
+        {loading && (
+          <div style={{ fontSize: 12, color: GOLD, textAlign: 'center' }}>⏳ טוען נתונים מ-Monday...</div>
+        )}
+
+        {/* KPI row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+          {[
+            { label: 'AUM',           value: fmtUSD(totalArv),     color: GOLD },
+            { label: 'Equity כולל',   value: fmtUSD(totalEquity),  color: '#4CAF50' },
+            { label: 'ROI ממוצע',     value: roi,                  color: '#4CAF50' },
+            { label: 'משקיעים',       value: String(investors.length),    color: 'var(--text-primary)' },
+            { label: 'נכסים פעילים',  value: String(properties.length),   color: 'var(--text-primary)' },
+          ].map(s => (
+            <div key={s.label} className="gold-card" style={{ padding: '16px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Health alerts */}
+        {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0) && (
+          <div className="gold-card" style={{ padding: '14px 18px', borderRight: '3px solid #ff9800' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexDirection: 'row-reverse' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" strokeWidth="2" strokeLinecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>דורש טיפול</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {closingsThisWeek > 0 && (
+                <div
+                  onClick={() => navigate('admin-closings')}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,
+                    cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                  }}
+                >
+                  <span style={{ color: '#ff9800', fontWeight: 700 }}>{closingsThisWeek}</span>
+                  <span>סגירות השבוע →</span>
+                </div>
+              )}
+              {investorsWithoutPassword.length > 0 && (
+                <div
+                  onClick={() => navigate('admin-investors')}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,
+                    cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                  }}
+                >
+                  <span style={{ color: '#ff9800', fontWeight: 700 }}>{investorsWithoutPassword.length}</span>
+                  <span>משקיעים ללא סיסמת פורטל →</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Next closing */}
+        {nextClosing && (
+          <div
+            className="gold-card"
+            onClick={() => navigate('property-detail', { propertyId: nextClosing.p.mondayId })}
+            style={{
+              padding: '16px 18px', cursor: 'pointer',
+              background: `linear-gradient(90deg, ${GOLD}08, transparent)`,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <button
+                onClick={e => { e.stopPropagation(); navigate('admin-closings'); }}
+                style={{ background: 'none', border: 'none', color: GOLD, fontSize: 12, cursor: 'pointer' }}
+              >יומן מלא →</button>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>סגירה הבאה</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
+              <div style={{
+                width: 64, minWidth: 64, textAlign: 'center',
+                padding: '10px 6px', borderRadius: 10,
+                background: `${GOLD}15`, border: `1px solid ${GOLD}44`,
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: GOLD, lineHeight: 1 }}>
+                  {daysToNext === 0 ? 'היום' : daysToNext}
+                </div>
+                {daysToNext !== 0 && (
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>ימים</div>
+                )}
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
+                  {nextClosing.p.address}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                  {nextClosing.p.city}
+                  {nextClosing.p.investorName && ` · ${nextClosing.p.investorName}`}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pipeline breakdown */}
+        <div className="gold-card" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{properties.length} נכסים</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>פייפליין</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {stageCounts.map(s => {
+              const pct = properties.length > 0 ? (s.count / properties.length) * 100 : 0;
+              return (
+                <div key={s.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
+                    <span style={{ color: s.color, fontWeight: 700 }}>{s.count}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--progress-track)', borderRadius: 100, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: s.color, borderRadius: 100, transition: 'width 0.8s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <StatCard label="נכסים" value={String(totalProperties)} />
-          <StatCard label="משקיעים" value={String(activeInvestors)} />
-          <StatCard label="מושכרים" value={String(rented)} sub={`${Math.round(rented / safeTotal * 100)}%`} />
-        </div>
-
-        {/* Portfolio status bars */}
-        <div className="gold-card" style={{ padding: '14px', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right', marginBottom: 12 }}>סטטוס תיק</div>
-          {[
-            { label: 'מושכר',  count: rented,   color: '#34c759', pct: Math.round(rented   / safeTotal * 100) },
-            { label: 'בשיפוץ', count: inReno,   color: GOLD,      pct: Math.round(inReno   / safeTotal * 100) },
-            { label: 'בתהליך', count: inReview, color: '#0a84ff', pct: Math.round(inReview / safeTotal * 100) },
-          ].map(s => (
-            <div key={s.label} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: s.color, fontWeight: 600 }}>{s.count} נכסים · {s.pct}%</span>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{s.label}</span>
-              </div>
-              <div className="progress-track" style={{ height: 5 }}>
-                <div className="progress-fill" style={{ width: `${s.pct}%`, background: s.color }} />
-              </div>
+        {/* Top investors */}
+        <div className="gold-card" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <button
+              onClick={() => navigate('admin-investors')}
+              style={{ background: 'none', border: 'none', color: GOLD, fontSize: 12, cursor: 'pointer' }}
+            >הכל →</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Top משקיעים</span>
+          </div>
+          {topInvestors.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>
+              אין משקיעים להצגה
             </div>
-          ))}
-        </div>
-
-        {/* Quick actions */}
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', marginBottom: 8 }}>פעולות מהירות</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-          {[
-            { label: 'הוסף משקיע',    icon: '👤', screen: 'admin-add-investor' as const, color: 'rgba(201,168,76,0.15)' },
-            { label: 'הוסף נכס',      icon: '🏠', screen: 'admin-add-property' as const, color: 'rgba(52,199,89,0.12)' },
-            { label: 'כל המשקיעים',   icon: '📋', screen: 'admin-investors' as const,    color: 'rgba(10,132,255,0.12)' },
-            { label: 'דוח כספי',      icon: '📊', screen: null as any,                   color: 'rgba(255,149,0,0.12)' },
-          ].map(a => (
-            <div
-              key={a.label}
-              onClick={() => a.screen && navigate(a.screen)}
-              className="gold-card"
-              style={{ padding: '14px 10px', textAlign: 'center', cursor: a.screen ? 'pointer' : 'default', background: a.color }}
-            >
-              <div style={{ fontSize: 22, marginBottom: 6 }}>{a.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{a.label}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {topInvestors.map((inv, i) => {
+                const arv = inv.properties.reduce((s, p) => s + p.arvRaw, 0);
+                return (
+                  <div
+                    key={inv.mondayId}
+                    onClick={() => navigate('admin-investor-detail', { investorId: inv.mondayId })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 0', cursor: 'pointer',
+                      borderBottom: i < topInvestors.length - 1 ? '1px solid var(--divider)' : 'none',
+                      flexDirection: 'row-reverse',
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: `${GOLD}22`, border: `1px solid ${GOLD}44`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0,
+                    }}>{inv.initials}</div>
+                    <div style={{ flex: 1, textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{inv.fullName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{inv.properties.length} נכסים</div>
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{fmtUSD(arv)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ARV</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
         </div>
 
-        {/* Recent investors */}
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', marginBottom: 8 }}>
-          משקיעים אחרונים
-          {liveMode && <span style={{ color: GOLD, marginRight: 6, fontSize: 10 }}>● Live</span>}
-        </div>
-        <div className="gold-card" style={{ overflow: 'hidden' }}>
-          {(liveMode ? investors.slice(0, 4) : INVESTORS.slice(0, 3)).map((inv, i) => {
-            const isMonday = 'mondayId' in inv;
-            const id       = isMonday ? (inv as any).mondayId : (inv as any).id;
-            const name     = isMonday ? (inv as any).fullName : (inv as any).fullNameHe;
-            const initials = inv.initials;
-            const propCount = isMonday ? (inv as any).properties.length : (inv as any).propertyIds.length;
-            const portfolio = inv.portfolioValue;
-            const last      = liveMode ? i < investors.slice(0,4).length - 1 : i < 2;
-            return (
-              <div
-                key={id}
-                onClick={() => navigate('admin-investor-detail', { investorId: id })}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                  borderBottom: last ? '1px solid var(--divider)' : 'none',
-                  cursor: 'pointer', flexDirection: 'row-reverse',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface-hover)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
-              >
-                <div style={{
-                  width: 38, height: 38, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #C9A84C, #8a6a28)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>{initials}</span>
-                </div>
-                <div style={{ flex: 1, textAlign: 'right' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{propCount} נכסים · {portfolio}</div>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round">
-                  <path d="M9 18l-6-6 6-6" />
-                </svg>
-              </div>
-            );
-          })}
-        </div>
+        {/* Open Monday board button */}
+        <a
+          href="https://real-estate-usa-eden.monday.com/boards/1997938102"
+          target="_blank" rel="noopener noreferrer"
+          style={{ textDecoration: 'none' }}
+        >
+          <div className="gold-card" style={{
+            padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 10, border: `1px solid ${GOLD}44`, background: `${GOLD}08`,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: GOLD }}>פתח בלוח Monday להוספה/עריכה</span>
+          </div>
+        </a>
 
       </div>
-
-      <AdminTabBar active="admin-dashboard" />
     </div>
   );
 }
