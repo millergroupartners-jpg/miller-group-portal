@@ -55,13 +55,13 @@
 html, body {
   direction: rtl;
   font-family: var(--font-ui);
-  background: #111;
+  background: #0a0a0a;
   color: var(--text-primary);
   height: 100%;
   overflow: hidden;
 }
 
-/* ── App shell — mobile centered ─────────────────────────────── */
+/* ── App shell ────────────────────────────────────────────────── */
 #root {
   max-width: 430px;
   margin: 0 auto;
@@ -72,6 +72,29 @@ html, body {
   background: var(--bg-base);
   display: flex;
   flex-direction: column;
+}
+
+/* ── Desktop: phone-in-browser look ──────────────────────────── */
+@media (min-width: 600px) {
+  html, body {
+    background: #080808;
+    overflow: auto;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 0;
+  }
+  #root {
+    max-width: 420px;
+    width: 420px;
+    height: min(860px, calc(100vh - 48px));
+    border-radius: 32px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
 }
 
 /* ── Scrollbar hide ──────────────────────────────────────────── */

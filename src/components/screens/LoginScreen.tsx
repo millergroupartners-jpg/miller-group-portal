@@ -127,7 +127,7 @@ export function LoginScreen() {
 
       {/* Logo */}
       <div style={{ paddingTop: 24, paddingBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-        <MGLogo size={64} />
+        <MGLogo size={90} />
         <GoldDivider />
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-ui)', fontSize: 30, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 8 }}>
@@ -180,15 +180,9 @@ export function LoginScreen() {
             </button>
           </div>
 
-          {/* Hint */}
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px', marginTop: 4 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>כניסה:</div>
-              <div>👤 משקיע: האימייל שלך + הסיסמה מ-Monday</div>
-              <div>🔑 אדמין: <span style={{ direction: 'ltr', display: 'inline-block' }}>admin@millergroup.com / Admin2026!</span></div>
-              {mondayLoading && <div style={{ color: GOLD, marginTop: 4 }}>⏳ טוען נתוני משקיעים...</div>}
-            </div>
-          </div>
+          {mondayLoading && (
+            <div style={{ fontSize: 12, color: GOLD, textAlign: 'center' }}>⏳ טוען נתוני משקיעים...</div>
+          )}
         </div>
       )}
 
