@@ -36,7 +36,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
     const mp = mondayProperty;
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{ position: 'relative', flexShrink: 0, maxHeight: 180, overflow: 'hidden' }}>
           <PropPhoto index={0} heightRatio={38} />
           <button onClick={goBack} style={{
             position: 'absolute', top: 12, right: 12,
@@ -143,8 +143,8 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
       {/* Hero */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <PropPhoto index={propIndex} heightRatio={55} />
+      <div style={{ position: 'relative', flexShrink: 0, maxHeight: 180, overflow: 'hidden' }}>
+        <PropPhoto index={propIndex} heightRatio={38} />
         {/* Back button */}
         <button
           onClick={goBack}
