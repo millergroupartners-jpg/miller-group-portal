@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { BottomTabBar } from '../common/BottomTabBar';
@@ -40,8 +40,9 @@ export function MediaScreen() {
   const [mediaList, setMediaList] = useState<PropertyMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lightbox, setLightbox] = useState<{ photo: CCPhoto; address: string } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (!mondayInvestor) return;
@@ -86,6 +87,32 @@ export function MediaScreen() {
   }, [mondayInvestor?.mondayId]);
 
   const activeMedia = mediaList.find(m => m.address === selectedProperty) ?? mediaList[0];
+
+  // Lightbox navigation
+  const closeLightbox = () => setLightboxIndex(null);
+  const nextPhoto = () => {
+    if (!activeMedia || lightboxIndex === null) return;
+    setLightboxIndex((lightboxIndex + 1) % activeMedia.photos.length);
+  };
+  const prevPhoto = () => {
+    if (!activeMedia || lightboxIndex === null) return;
+    setLightboxIndex((lightboxIndex - 1 + activeMedia.photos.length) % activeMedia.photos.length);
+  };
+
+  // Keyboard navigation when lightbox open
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      // RTL-aware: ArrowLeft goes forward visually, ArrowRight goes back
+      else if (e.key === 'ArrowLeft') nextPhoto();
+      else if (e.key === 'ArrowRight') prevPhoto();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIndex, activeMedia?.photos.length]);
+
+  const lightboxPhoto = (lightboxIndex !== null && activeMedia) ? activeMedia.photos[lightboxIndex] : null;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
@@ -202,7 +229,7 @@ export function MediaScreen() {
                         key={photo.id}
                         className="photo-thumb"
                         style={{ position: 'relative', overflow: 'hidden', background: '#111' }}
-                        onClick={() => setLightbox({ photo, address: activeMedia.address })}
+                        onClick={() => setLightboxIndex(activeMedia.photos.findIndex(p => p.id === photo.id))}
                       >
                         <img
                           src={photo.web || photo.thumb}
@@ -222,11 +249,32 @@ export function MediaScreen() {
                         )}
                         {photo.tags.length > 0 && (
                           <div style={{
-                            position: 'absolute', bottom: 4, left: 4,
-                            background: 'rgba(0,0,0,0.6)', borderRadius: 4,
-                            padding: '1px 5px', fontSize: 8, color: '#fff',
+                            position: 'absolute', bottom: 4, left: 4, right: 4,
+                            display: 'flex', gap: 3, flexWrap: 'wrap',
                           }}>
-                            {photo.tags[0]}
+                            {photo.tags.slice(0, 3).map(tag => (
+                              <span key={tag} style={{
+                                background: 'rgba(0,0,0,0.7)',
+                                border: `1px solid ${GOLD}66`,
+                                borderRadius: 4,
+                                padding: '2px 6px',
+                                fontSize: 9,
+                                fontWeight: 600,
+                                color: GOLD,
+                                lineHeight: 1.2,
+                              }}>
+                                {tag}
+                              </span>
+                            ))}
+                            {photo.tags.length > 3 && (
+                              <span style={{
+                                background: 'rgba(0,0,0,0.7)',
+                                borderRadius: 4, padding: '2px 6px',
+                                fontSize: 9, color: '#fff', lineHeight: 1.2,
+                              }}>
+                                +{photo.tags.length - 3}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -273,46 +321,99 @@ export function MediaScreen() {
       <BottomTabBar active="media" />
 
       {/* Lightbox */}
-      {lightbox && (
+      {lightboxPhoto && activeMedia && (
         <div
-          onClick={() => setLightbox(null)}
+          onClick={closeLightbox}
+          onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={e => {
+            if (touchStartX.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchStartX.current;
+            touchStartX.current = null;
+            if (Math.abs(dx) < 50) return;
+            // RTL-aware swipe: swipe right → prev, swipe left → next
+            if (dx > 0) prevPhoto();
+            else nextPhoto();
+          }}
           style={{
-            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.96)',
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.96)',
             zIndex: 999, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 14,
           }}
         >
+          {/* Close */}
           <button
-            onClick={() => setLightbox(null)}
+            onClick={e => { e.stopPropagation(); closeLightbox(); }}
             style={{
-              position: 'absolute', top: 52, right: 16,
+              position: 'absolute', top: 24, right: 24,
               background: 'rgba(255,255,255,0.12)', border: 'none',
-              color: '#fff', fontSize: 18, cursor: 'pointer',
-              width: 34, height: 34, borderRadius: '50%',
+              color: '#fff', fontSize: 22, cursor: 'pointer',
+              width: 40, height: 40, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 2,
+            }}
+          >×</button>
+
+          {/* Counter */}
+          <div style={{
+            position: 'absolute', top: 32, left: 24,
+            fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-ui)',
+            zIndex: 2,
+          }}>
+            {(lightboxIndex ?? 0) + 1} / {activeMedia.photos.length}
+          </div>
+
+          {/* Prev (right side in RTL visually, but navigates backward) */}
+          <button
+            onClick={e => { e.stopPropagation(); prevPhoto(); }}
+            style={{
+              position: 'absolute', top: '50%', right: 16, transform: 'translateY(-50%)',
+              background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
+              width: 44, height: 44, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 2,
             }}
           >
-            ×
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          {/* Next */}
+          <button
+            onClick={e => { e.stopPropagation(); nextPhoto(); }}
+            style={{
+              position: 'absolute', top: '50%', left: 16, transform: 'translateY(-50%)',
+              background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
+              width: 44, height: 44, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 2,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
 
           <img
-            src={lightbox.photo.original || lightbox.photo.web}
+            src={lightboxPhoto.original || lightboxPhoto.web}
             alt=""
-            style={{ width: '90%', maxHeight: '65vh', objectFit: 'contain', borderRadius: 10, border: `1px solid ${GOLD}44` }}
+            style={{ width: '85%', maxWidth: 1100, maxHeight: '70vh', objectFit: 'contain', borderRadius: 10, border: `1px solid ${GOLD}44` }}
             onClick={e => e.stopPropagation()}
           />
 
           {/* Meta */}
-          <div style={{ textAlign: 'center', paddingBottom: 8 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
-              {formatDate(lightbox.photo.capturedAt)} · {lightbox.address.split(',')[0]}
+          <div style={{ textAlign: 'center', paddingBottom: 8, maxWidth: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+              {formatDate(lightboxPhoto.capturedAt)} · {activeMedia.address.split(',')[0]}
             </div>
-            {lightbox.photo.tags.length > 0 && (
+            {lightboxPhoto.tags.length > 0 && (
               <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {lightbox.photo.tags.map(tag => (
+                {lightboxPhoto.tags.map(tag => (
                   <span key={tag} style={{
                     background: `${GOLD}22`, border: `1px solid ${GOLD}44`,
-                    borderRadius: 20, padding: '3px 10px',
-                    fontSize: 11, color: GOLD,
+                    borderRadius: 20, padding: '4px 12px',
+                    fontSize: 11, fontWeight: 600, color: GOLD,
+                    fontFamily: 'var(--font-ui)',
                   }}>
                     {tag}
                   </span>
