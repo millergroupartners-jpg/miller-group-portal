@@ -15,6 +15,7 @@ const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
 const COL = {
   investor:       'board_relation_mkrzrtny', // "משקיע" — board_relation, use linked_items fragment
   rentalStatus:   'color_mm1fv8p0',          // "סטטוס השכרה"
+  loanStatus:     'color_mkvj438f',           // "סטטוס הלוואה"
   purchaseClient: 'numeric_mkrzmmy',          // "רכישה ללקוח ($)"
   renovClient:    'numeric_mkrzk78b',         // "שיפוץ ללקוח ($)"
   closingCosts:   'numeric_mks3rebm',         // "עלויות סגירה ($)"
@@ -68,6 +69,7 @@ export interface MondayProperty {
   allIn: number;          // raw number for calculations
   arvRaw: number;
   progress: number;
+  loanStatus: string;       // "סטטוס הלוואה" raw label
   investorMondayId: string;
   investorName: string;
   docsUrl: string;          // Google Drive folder link from "מסמכים" column
@@ -224,6 +226,7 @@ function transformRawProperty(item: RawItem): MondayProperty {
     allIn,
     arvRaw,
     progress: progressFromStatus(rawStatus),
+    loanStatus: cols[COL.loanStatus]?.text ?? '',
     investorMondayId,
     investorName,
     docsUrl,

@@ -37,7 +37,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <PropPhoto index={0} heightRatio={55} />
+          <PropPhoto index={0} heightRatio={38} />
           <button onClick={goBack} style={{
             position: 'absolute', top: 12, right: 12,
             width: 36, height: 36, borderRadius: '50%',
@@ -79,6 +79,18 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
               </div>
             ))}
           </div>
+
+          {/* Loan status */}
+          {mp.loanStatus && (
+            <div style={{
+              background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 10,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#C9A84C' }}>{mp.loanStatus}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>סטטוס הלוואה</span>
+            </div>
+          )}
 
           {/* ROI + Equity chips side by side */}
           {(() => {

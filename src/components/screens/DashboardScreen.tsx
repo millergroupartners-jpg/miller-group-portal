@@ -46,8 +46,10 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
             <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.arv}</div>
           </div>
           <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>שכ"ד</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.rentMonthly}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>Equity</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>
+              {p.arvRaw > 0 && p.allIn > 0 ? '$' + (p.arvRaw - p.allIn).toLocaleString('en-US') : '—'}
+            </div>
           </div>
         </div>
         {p.statusType !== 'blue' && (
