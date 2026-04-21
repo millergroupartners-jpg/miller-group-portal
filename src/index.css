@@ -65,8 +65,8 @@ html, body {
 #root {
   max-width: 430px;
   margin: 0 auto;
-  height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   position: relative;
   overflow: hidden;
   background: var(--bg-base);
@@ -233,7 +233,7 @@ html, body {
   align-items: center;
   background: var(--bg-tab);
   border-top: 1px solid var(--border);
-  padding: 10px 0 4px;
+  padding: 10px 0 calc(4px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
 }
 
