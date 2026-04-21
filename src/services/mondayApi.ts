@@ -147,10 +147,16 @@ function mapRentalStatus(text: string): { status: string; statusType: 'gold' | '
   }
 }
 
-function progressFromStatus(statusType: 'gold' | 'green' | 'blue'): number {
-  if (statusType === 'green') return 100;
-  if (statusType === 'gold') return 60;
-  return 10;
+function progressFromStatus(rawStatus: string): number {
+  switch (rawStatus) {
+    case 'על חוזה':                return 15;
+    case 'בשלבי הלוואה וחתימות':   return 30;
+    case 'בשיפוץ':                 return 50;
+    case 'מעבר לניהול':            return 70;
+    case 'מרקט':                   return 85;
+    case 'מושכר':                  return 100;
+    default:                       return 0;
+  }
 }
 
 function fmtCurrency(n: number): string {
@@ -178,7 +184,8 @@ function formatDate(iso: string): string {
 function transformRawProperty(item: RawItem): MondayProperty {
   const cols = toColMap(item.column_values);
   const { address, city } = parseAddress(item.name);
-  const { status, statusType } = mapRentalStatus(cols[COL.rentalStatus]?.text ?? '');
+  const rawStatus = cols[COL.rentalStatus]?.text ?? '';
+  const { status, statusType } = mapRentalStatus(rawStatus);
 
   // Board relation uses linked_items inline fragment (text/value are null from API)
   const investorLinked = cols[COL.investor]?.linked_items?.[0];
@@ -216,7 +223,7 @@ function transformRawProperty(item: RawItem): MondayProperty {
     rentYield: yieldPct,
     allIn,
     arvRaw,
-    progress: progressFromStatus(statusType),
+    progress: progressFromStatus(rawStatus),
     investorMondayId,
     investorName,
     docsUrl,
