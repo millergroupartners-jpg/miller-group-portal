@@ -88,7 +88,11 @@ async function _doFetchProjects(): Promise<CCProject[]> {
         name: p.name ?? null,
         street: p.address?.street_address_1 ?? null,
         photoCount: p.photo_count ?? 0,
-        featureThumb: p.feature_image?.find((i: any) => i.type === 'thumbnail')?.url ?? null,
+        featureThumb:
+          p.feature_image?.find((i: any) => i.type === 'original')?.url ??
+          p.feature_image?.find((i: any) => i.type === 'web')?.url ??
+          p.feature_image?.find((i: any) => i.type === 'thumbnail')?.url ??
+          null,
         publicUrl: p.public_url ?? '',
       });
     }
