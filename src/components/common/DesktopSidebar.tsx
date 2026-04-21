@@ -1,5 +1,6 @@
 import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
+import { useTheme } from '../../context/ThemeContext';
 import { MGLogo } from './MGLogo';
 import type { Screen } from '../../types';
 
@@ -59,6 +60,7 @@ const TABS = [
 export function DesktopSidebar({ active }: { active: Screen }) {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <aside className="desktop-sidebar">
@@ -99,6 +101,42 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           );
         })}
       </nav>
+
+      {/* Theme toggle */}
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)' }}>
+        <button
+          onClick={toggleTheme}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: 'transparent', width: '100%', textAlign: 'right',
+            transition: 'background 0.15s',
+          }}
+          onMouseOver={e => (e.currentTarget.style.background = `${GOLD}10`)}
+          onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          {theme === 'dark' ? (
+            /* Sun icon (click to go light) */
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="var(--tab-icon)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+            </svg>
+          ) : (
+            /* Moon icon (click to go dark) */
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="var(--tab-icon)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+          <span style={{
+            fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 500,
+            color: 'var(--text-secondary)',
+          }}>
+            {theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
+          </span>
+        </button>
+      </div>
 
       {/* User */}
       {currentUser && (
