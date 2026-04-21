@@ -35,7 +35,7 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
           </div>
         </div>
       </div>
-      <div style={{ padding: '10px 14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
             <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
@@ -53,12 +53,12 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
           </div>
         </div>
         {p.statusType !== 'blue' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+          <div style={{ marginTop: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>התקדמות</span>
             </div>
-            <ProgressBar target={p.progress} />
+            <ProgressBar target={p.progress} height={8} />
           </div>
         )}
       </div>
@@ -209,7 +209,7 @@ export function DashboardScreen() {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '10px 14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
