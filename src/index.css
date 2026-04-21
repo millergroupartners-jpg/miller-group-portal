@@ -170,7 +170,6 @@ html, body {
   border-radius: var(--radius-card);
   border: 1px solid var(--border);
   position: relative;
-  overflow: hidden;
   flex-shrink: 0;
 }
 .gold-card::before {
@@ -180,6 +179,12 @@ html, body {
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--gold), #f0d080, var(--gold), transparent);
   z-index: 1;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+/* Photo wrapper inside card — rounds top corners and clips image */
+.gold-card > div:first-of-type {
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  overflow: hidden;
 }
 
 /* ── Inputs ──────────────────────────────────────────────────── */
@@ -404,12 +409,10 @@ html, body {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 18px;
     align-content: start;
-    align-items: start;
+    grid-auto-rows: max-content;
   }
   .property-grid .gold-card {
     max-width: 100%;
-    height: auto;
-    min-height: 0;
   }
 }
 
