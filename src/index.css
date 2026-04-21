@@ -404,9 +404,12 @@ html, body {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 18px;
     align-content: start;
+    align-items: start;
   }
   .property-grid .gold-card {
     max-width: 100%;
+    height: auto;
+    min-height: 0;
   }
 }
 
