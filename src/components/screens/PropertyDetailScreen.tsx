@@ -7,6 +7,7 @@ import { BottomTabBar } from '../common/BottomTabBar';
 import { PROPERTIES } from '../../data/properties';
 import { FOLDERS } from '../../data/documents';
 import { useMondayData } from '../../context/MondayDataContext';
+import { useCCThumbnail } from '../../hooks/useCCThumbnail';
 
 const GOLD = '#C9A84C';
 
@@ -31,13 +32,16 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
     ? mondayProperties.find(p => p.mondayId === propertyId)
     : null;
 
+  // Fetch real CompanyCam photo (hook must be called unconditionally)
+  const ccThumb = useCCThumbnail(mondayProperty?.address);
+
   // If it's a Monday property, render a simplified detail view
   if (!staticProperty && mondayProperty) {
     const mp = mondayProperty;
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
-        <div style={{ position: 'relative', flexShrink: 0, maxHeight: 180, overflow: 'hidden' }}>
-          <PropPhoto index={0} heightRatio={38} />
+        <div style={{ position: 'relative', flexShrink: 0, maxHeight: 220, overflow: 'hidden' }}>
+          <PropPhoto index={0} heightRatio={45} photoUrl={ccThumb} />
           <button onClick={goBack} style={{
             position: 'absolute', top: 12, right: 12,
             width: 36, height: 36, borderRadius: '50%',
@@ -143,8 +147,8 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden', position: 'relative' }}>
       {/* Hero */}
-      <div style={{ position: 'relative', flexShrink: 0, maxHeight: 180, overflow: 'hidden' }}>
-        <PropPhoto index={propIndex} heightRatio={38} />
+      <div style={{ position: 'relative', flexShrink: 0, maxHeight: 220, overflow: 'hidden' }}>
+        <PropPhoto index={propIndex} heightRatio={45} />
         {/* Back button */}
         <button
           onClick={goBack}
