@@ -266,7 +266,7 @@ function buildInvestorFromProperties(
 // ─── API queries ───────────────────────────────────────────────────────────
 
 const PROPERTY_COLUMN_IDS = [
-  COL.investor, COL.rentalStatus, COL.purchaseClient, COL.renovClient,
+  COL.investor, COL.rentalStatus, COL.loanStatus, COL.purchaseClient, COL.renovClient,
   COL.closingCosts, COL.arv, COL.rent, COL.docs,
 ].map(id => `"${id}"`).join(', ');
 
