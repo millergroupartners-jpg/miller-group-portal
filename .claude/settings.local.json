@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"/Users/tuvalsaccount/.claude/projects/-Users-tuvalsaccount-Desktop-miller-group-investors-portal/7f4f9a2a-648f-4cf3-bfbd-2727425a1866/tool-results/webfetch-1776743927593-szdt4d.bin\" /tmp/design.bin)",
+      "Bash(gunzip -c /tmp/design.bin)",
+      "Bash(npm create *)",
+      "Bash(npm --version)",
+      "Bash(npx create-vite@4 . --template react-ts)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__202ab40d-0a21-4e58-a9b6-b04f9d683e6e__search",
+      "mcp__202ab40d-0a21-4e58-a9b6-b04f9d683e6e__get_board_info",
+      "mcp__202ab40d-0a21-4e58-a9b6-b04f9d683e6e__get_board_items_page",
+      "mcp__202ab40d-0a21-4e58-a9b6-b04f9d683e6e__get_user_context",
+      "Bash(pkill -f \"vite\")",
+      "Read(//Users/tuvalsaccount/Desktop/**)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
