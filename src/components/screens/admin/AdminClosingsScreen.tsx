@@ -75,6 +75,13 @@ export function AdminClosingsScreen() {
       });
   }, [properties, mgProps]);
 
+  // For 'week' mode: only the single closest item flashes
+  const weekFlashId = useMemo(() => {
+    if (highlightMode !== 'week') return null;
+    const first = allWithDates.find(x => x.days !== null && x.days >= 0 && x.days <= 7);
+    return first?.p.mondayId ?? null;
+  }, [highlightMode, allWithDates]);
+
   // Scroll to first highlighted item after the list renders
   useEffect(() => {
     if (!highlightMode || loadingMg) return;
@@ -88,9 +95,9 @@ export function AdminClosingsScreen() {
   }, [highlightMode, loadingMg, allWithDates.length]);
 
   const STALE_STATUSES = ['על חוזה', 'בשלבי הלוואה וחתימות'];
-  const isFlashTarget = (days: number | null, status?: string): boolean => {
+  const isFlashTarget = (days: number | null, status?: string, mondayId?: string): boolean => {
     if (!highlightMode || days === null) return false;
-    if (highlightMode === 'week')    return days >= 0 && days <= 7;
+    if (highlightMode === 'week')    return mondayId === weekFlashId;
     if (highlightMode === 'overdue') return days < 0 && STALE_STATUSES.includes(status ?? '');
     return false;
   };
@@ -139,7 +146,7 @@ export function AdminClosingsScreen() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map(({ p, days }: any) => {
                   const color = days === null ? 'var(--text-secondary)' : days === 0 ? '#ff6b6b' : days < 0 ? 'var(--text-muted)' : days <= 7 ? '#ff9800' : GOLD;
-                  const flash = isFlashTarget(days, p.status);
+                  const flash = isFlashTarget(days, p.status, p.mondayId);
                   return (
                     <div
                       key={p.mondayId}
