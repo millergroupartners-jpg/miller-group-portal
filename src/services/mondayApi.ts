@@ -8,6 +8,7 @@ const MONDAY_API_URL = 'https://api.monday.com/v2';
 
 export const PROPERTIES_BOARD_ID = 1997938102;
 export const INVESTORS_BOARD_ID = 1997938105;
+export const CONTACTS_BOARD_ID  = 1997938116;
 /** Group: "עסקאות של משקיעים" */
 const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
 /** Group: "עסקאות Miller Group" — the company's own deals */
@@ -26,6 +27,15 @@ const COL = {
   arv:            'numeric_mkrzjtsd',         // "ARV ($)"
   rent:           'numeric_mkrzdr4k',         // "שכ״ד חזוי ($)"
   docs:           'file_mkrzdfq3',            // "מסמכים" — Google Drive link
+  manager:        'board_relation_mm219qy1', // "מנהל הנכס" — board_relation → contacts board
+} as const;
+
+// Column IDs on the contacts board (1997938116)
+const CONTACT_COL = {
+  phone:   'contact_phone',    // "טלפון"
+  email:   'contact_email',    // "אימייל"
+  company: 'text_mks14ygk',    // "שם החברה"
+  role:    'title5',           // "תפקיד בחברה" (dropdown)
 } as const;
 
 // Column IDs on the investors board
@@ -77,6 +87,20 @@ export interface MondayProperty {
   investorMondayId: string;
   investorName: string;
   docsUrl: string;          // Google Drive folder link from "מסמכים" column
+
+  // ── Property management (from linked contact on contacts board 1997938116) ──
+  /** Internal: Monday item id of the linked manager contact (used to enrich below) */
+  managerContactId: string;
+  /** Contact name (item name on contacts board) */
+  managerContactName: string;
+  /** Contact role / title at the management company */
+  managerRole: string;
+  /** Contact phone */
+  managerPhone: string;
+  /** Contact email */
+  managerEmail: string;
+  /** Management company name */
+  managerCompanyName: string;
 }
 
 export interface MondayInvestor {
@@ -198,6 +222,11 @@ function transformRawProperty(item: RawItem): MondayProperty {
   const investorMondayId = investorLinked?.id ?? '';
   const investorName = investorLinked?.name ?? '';
 
+  // "מנהל הנכס" — linked contact on contacts board (fields enriched in a batch below)
+  const managerLinked = cols[COL.manager]?.linked_items?.[0];
+  const managerContactId   = managerLinked?.id   ?? '';
+  const managerContactName = managerLinked?.name ?? '';
+
   // allIn is computed manually (formula column returns null from the API)
   const purchaseRaw  = num(cols[COL.purchaseClient]);
   const renovRaw     = num(cols[COL.renovClient]);
@@ -235,6 +264,13 @@ function transformRawProperty(item: RawItem): MondayProperty {
     investorMondayId,
     investorName,
     docsUrl,
+    // Property management (role/phone/email/company filled later by enrichPropertiesWithManagers)
+    managerContactId,
+    managerContactName,
+    managerRole:        '',
+    managerPhone:       '',
+    managerEmail:       '',
+    managerCompanyName: '',
   };
 }
 
@@ -274,6 +310,7 @@ const PROPERTY_COLUMN_IDS = [
   COL.investor, COL.rentalStatus, COL.loanStatus, COL.closingDate,
   COL.purchaseClient, COL.renovClient,
   COL.closingCosts, COL.arv, COL.rent, COL.docs,
+  COL.manager,
 ].map(id => `"${id}"`).join(', ');
 
 const INVESTOR_COLUMN_IDS = [
@@ -322,6 +359,76 @@ async function fetchAllItemsFromGroup(
   } while (cursor);
 
   return items;
+}
+
+/**
+ * Batch-fetch contact details from the contacts board (1997938116) by item IDs.
+ * Returns a map: contactId → { name, phone, email, company, role }.
+ * Used to enrich each property with its manager contact details in a single query.
+ */
+interface ContactInfo {
+  name: string;
+  phone: string;
+  email: string;
+  company: string;
+  role: string;
+}
+async function fetchContactsByIds(ids: string[]): Promise<Record<string, ContactInfo>> {
+  if (ids.length === 0) return {};
+  const uniqueIds = Array.from(new Set(ids));
+  const query: string = `
+    query {
+      items(ids: [${uniqueIds.join(',')}]) {
+        id
+        name
+        column_values(ids: ["${CONTACT_COL.phone}", "${CONTACT_COL.email}", "${CONTACT_COL.company}", "${CONTACT_COL.role}"]) {
+          id
+          text
+        }
+      }
+    }
+  `;
+  try {
+    const data = await mondayQuery<{ items: RawItem[] }>(query);
+    const map: Record<string, ContactInfo> = {};
+    for (const item of data.items ?? []) {
+      const cols = toColMap(item.column_values);
+      map[item.id] = {
+        name:    item.name,
+        phone:   cols[CONTACT_COL.phone]?.text   ?? '',
+        email:   cols[CONTACT_COL.email]?.text   ?? '',
+        company: cols[CONTACT_COL.company]?.text ?? '',
+        role:    cols[CONTACT_COL.role]?.text    ?? '',
+      };
+    }
+    return map;
+  } catch {
+    // If the contacts board is inaccessible (private perms / token scope), skip enrichment
+    return {};
+  }
+}
+
+/**
+ * Enriches an array of properties with their manager contact details.
+ * Mutates each property in place — fields on `MondayProperty` are writable.
+ * Runs a single batched query for all unique manager IDs.
+ */
+async function enrichPropertiesWithManagers(properties: MondayProperty[]): Promise<MondayProperty[]> {
+  const ids = properties.map(p => p.managerContactId).filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return properties;
+  const contacts = await fetchContactsByIds(ids);
+  for (const p of properties) {
+    const c = p.managerContactId ? contacts[p.managerContactId] : null;
+    if (c) {
+      // Prefer canonical name from contacts board; fall back to the linked_items fragment name
+      p.managerContactName = c.name || p.managerContactName;
+      p.managerPhone       = c.phone;
+      p.managerEmail       = c.email;
+      p.managerCompanyName = c.company;
+      p.managerRole        = c.role;
+    }
+  }
+  return properties;
 }
 
 async function fetchInvestorDetails(): Promise<Record<string, { name: string; email: string; phone: string; investorSince: string; password: string }>> {
@@ -459,6 +566,9 @@ export async function fetchMondayData(): Promise<MondayBoardData> {
 
   const properties = rawItems.map(transformRawProperty);
 
+  // Enrich each property with its linked manager contact's details (company, phone, email, role)
+  await enrichPropertiesWithManagers(properties);
+
   // Group properties by investorMondayId
   const investorMap = new Map<string, { name: string; props: MondayProperty[] }>();
   for (const prop of properties) {
@@ -495,5 +605,7 @@ export async function fetchMondayData(): Promise<MondayBoardData> {
 /** Fetch Miller Group's own deals (group "עסקאות Miller Group") */
 export async function fetchMillerGroupProperties(): Promise<MondayProperty[]> {
   const raw = await fetchAllItemsFromGroup(PROPERTIES_BOARD_ID, MG_DEALS_GROUP, PROPERTY_COLUMN_IDS);
-  return raw.map(transformRawProperty);
+  const properties = raw.map(transformRawProperty);
+  await enrichPropertiesWithManagers(properties);
+  return properties;
 }

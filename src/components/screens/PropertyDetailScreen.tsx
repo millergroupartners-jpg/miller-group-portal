@@ -16,6 +16,32 @@ const COLOR_PAIRS: [string, string][] = [
   ['#3a1e2a', '#5a2a3d'], ['#2a2a1e', '#5a5a2a'], ['#1e2a3a', '#2a3d5a'],
 ];
 
+/** Single row inside the "חברת ניהול" card: RTL label on right, value on left (tappable if href). */
+function ManagementRow({ label, value, href }: { label: string; value: string; href?: string }) {
+  const valueNode = href ? (
+    <a
+      href={href}
+      style={{ color: GOLD, fontSize: 13, fontWeight: 600, textDecoration: 'none', direction: 'ltr' }}
+    >
+      {value}
+    </a>
+  ) : (
+    <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, direction: 'ltr' }}>
+      {value}
+    </span>
+  );
+  return (
+    <div style={{
+      background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      flexDirection: 'row-reverse',
+    }}>
+      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{label}</span>
+      {valueNode}
+    </div>
+  );
+}
+
 interface PropertyDetailScreenProps {
   propertyId: string;
 }
@@ -130,6 +156,39 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>התקדמות פרויקט</span>
               </div>
               <ProgressBar target={mp.progress} />
+            </div>
+          )}
+
+          {/* Property management contact (read-only, from linked contact on contacts board) */}
+          {(mp.managerContactName || mp.managerCompanyName || mp.managerPhone || mp.managerEmail) && (
+            <div className="gold-card" style={{ padding: '14px', marginBottom: 14 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                marginBottom: 12, flexDirection: 'row-reverse',
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>חברת ניהול</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {mp.managerCompanyName && (
+                  <ManagementRow label="שם החברה" value={mp.managerCompanyName} />
+                )}
+                {mp.managerContactName && (
+                  <ManagementRow label="איש קשר" value={mp.managerContactName} />
+                )}
+                {mp.managerRole && (
+                  <ManagementRow label="תפקיד" value={mp.managerRole} />
+                )}
+                {mp.managerPhone && (
+                  <ManagementRow label="טלפון" value={mp.managerPhone} href={`tel:${mp.managerPhone}`} />
+                )}
+                {mp.managerEmail && (
+                  <ManagementRow label="אימייל" value={mp.managerEmail} href={`mailto:${mp.managerEmail}`} />
+                )}
+              </div>
             </div>
           )}
 
