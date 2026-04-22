@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
@@ -13,9 +13,29 @@ function fmtUSD(n: number): string {
 }
 
 export function InvestorsListScreen() {
-  const { navigate } = useNavigation();
+  const { navigate, navState } = useNavigation();
+  const highlightMode = navState.highlightInvestorMode;
   const { investors, loading, hasToken } = useMondayData();
   const [search, setSearch] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // IDs of investors that should flash (those without a password, when arriving from the alert)
+  const flashIds = useMemo(() => {
+    if (highlightMode !== 'no-password') return new Set<string>();
+    return new Set(investors.filter(i => !i.password && i.email).map(i => i.mondayId));
+  }, [highlightMode, investors]);
+
+  // Scroll to first flash target after render
+  useEffect(() => {
+    if (flashIds.size === 0) return;
+    const timer = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const first = container.querySelector('[data-flash="true"]') as HTMLElement | null;
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [flashIds.size]);
 
   const filtered = investors
     .filter(inv => {
@@ -55,7 +75,7 @@ export function InvestorsListScreen() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
         {!hasToken && (
           <div style={{
             background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)',
@@ -80,10 +100,12 @@ export function InvestorsListScreen() {
             const allIn  = inv.properties.reduce((s, p) => s + p.allIn, 0);
             const equity = arv - allIn;
             const hasPassword = Boolean(inv.password);
+            const flash = flashIds.has(inv.mondayId);
             return (
               <div
                 key={inv.mondayId}
-                className="gold-card"
+                className={`gold-card interactive${flash ? ' flash-highlight' : ''}`}
+                data-flash={flash ? 'true' : undefined}
                 style={{ padding: '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 14 }}
                 onClick={() => navigate('admin-investor-detail', { investorId: inv.mondayId })}
               >

@@ -151,7 +151,7 @@ export function AdminDashboardScreen() {
               {investorsWithoutPassword.length > 0 && (
                 <div
                   className="interactive"
-                  onClick={() => navigate('admin-investors')}
+                  onClick={() => navigate('admin-investors', { highlightInvestorMode: 'no-password' })}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,

@@ -52,6 +52,8 @@ export interface NavState {
   direction: 'forward' | 'back';
   /** When navigating to admin-closings from an alert, highlight these entries */
   highlightClosingMode?: 'week' | 'overdue';
+  /** When navigating to admin-investors from an alert, highlight these investors */
+  highlightInvestorMode?: 'no-password';
 }
 
 export interface Investor {

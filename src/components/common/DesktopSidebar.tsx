@@ -2,6 +2,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 import { MGLogo } from './MGLogo';
+import { NotificationsPanel } from './NotificationsPanel';
 import type { Screen } from '../../types';
 
 const GOLD = '#C9A84C';
@@ -153,9 +154,14 @@ export function DesktopSidebar({ active }: { active: Screen }) {
 
   return (
     <aside className="desktop-sidebar">
-      {/* Logo */}
-      <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid var(--border)' }}>
+      {/* Logo + notifications bell */}
+      <div style={{
+        padding: '20px 16px 16px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
         <MGLogo size={40} />
+        {isAdmin && <NotificationsPanel />}
       </div>
 
       {/* "Back to admin menu" button — only when admin is in investor-style view */}
