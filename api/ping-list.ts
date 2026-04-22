@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQUIRIES_BOARD_ID } from './_lib/monday';
+import { mondayQuery, INQUIRIES_BOARD_ID } from './_lib/monday.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
