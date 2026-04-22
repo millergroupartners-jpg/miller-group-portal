@@ -129,16 +129,19 @@ export function AdminClosingsScreen() {
                       onClick={() => navigate('property-detail', { propertyId: p.mondayId })}
                     >
                       <div style={{
-                        minWidth: 64, textAlign: 'center',
+                        minWidth: 76, textAlign: 'center',
                         padding: '8px 6px', borderRadius: 8,
                         background: `${color === GOLD ? GOLD : color}15`,
                         border: `1px solid ${color}44`,
                       }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color, lineHeight: 1 }}>
-                          {days === null ? '—' : days === 0 ? 'היום' : days > 0 ? `+${days}` : days}
-                        </div>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          {days === null ? '' : days === 0 ? '' : 'ימים'}
+                        <div style={{ fontSize: 11, fontWeight: 700, color, lineHeight: 1.3, textAlign: 'center' }}>
+                          {days === null
+                            ? '—'
+                            : days === 0
+                            ? 'היום'
+                            : days > 0
+                            ? `בעוד ${days} ימים`
+                            : `עברו ${Math.abs(days)} ימים`}
                         </div>
                       </div>
                       <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden' }}>

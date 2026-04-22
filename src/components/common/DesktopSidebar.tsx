@@ -196,7 +196,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           return (
             <button
               key={tab.id}
-              onClick={() => navigate(tab.id)}
+              onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',

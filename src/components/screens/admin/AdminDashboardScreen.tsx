@@ -65,6 +65,15 @@ export function AdminDashboardScreen() {
     return d <= 7;
   }).length;
 
+  const STALE_STATUSES = ['על חוזה', 'בשלבי הלוואה וחתימות'];
+  const overdueProperties = properties.filter(p => {
+    if (!p.closingDate) return false;
+    const d = new Date(p.closingDate);
+    if (isNaN(d.getTime())) return false;
+    d.setHours(0, 0, 0, 0);
+    return d < today && STALE_STATUSES.includes(p.status);
+  });
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
       {/* Desktop title */}
@@ -114,7 +123,7 @@ export function AdminDashboardScreen() {
         </div>
 
         {/* Health alerts */}
-        {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0) && (
+        {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0 || overdueProperties.length > 0) && (
           <div className="gold-card" style={{ padding: '14px 18px', borderRight: '3px solid #ff9800' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexDirection: 'row-reverse' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" strokeWidth="2" strokeLinecap="round">
@@ -149,6 +158,19 @@ export function AdminDashboardScreen() {
                 >
                   <span style={{ color: '#ff9800', fontWeight: 700 }}>{investorsWithoutPassword.length}</span>
                   <span>משקיעים ללא סיסמת פורטל →</span>
+                </div>
+              )}
+              {overdueProperties.length > 0 && (
+                <div
+                  onClick={() => navigate('admin-properties')}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'rgba(255,77,77,0.08)', borderRadius: 8,
+                    cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                  }}
+                >
+                  <span style={{ color: '#ff4d4d', fontWeight: 700 }}>{overdueProperties.length}</span>
+                  <span>נכסים שעברו תאריך סגירה ועדיין בחוזה / הלוואה →</span>
                 </div>
               )}
             </div>
