@@ -48,14 +48,15 @@ interface PropertyDetailScreenProps {
 
 export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
-  const { properties: mondayProperties } = useMondayData();
+  const { properties: mondayProperties, mgProperties } = useMondayData();
   const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'media'>('details');
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  // Try static data first, then fall back to Monday
+  // Try static data first, then fall back to Monday (investor deals, then Miller Group deals)
   const staticProperty = PROPERTIES.find(p => p.id === propertyId);
   const mondayProperty = !staticProperty
-    ? mondayProperties.find(p => p.mondayId === propertyId)
+    ? (mondayProperties.find(p => p.mondayId === propertyId)
+       ?? mgProperties.find(p => p.mondayId === propertyId))
     : null;
 
   // Fetch real CompanyCam photo (hook must be called unconditionally)

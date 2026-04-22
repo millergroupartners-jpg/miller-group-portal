@@ -142,7 +142,9 @@ export function DesktopSidebar({ active }: { active: Screen }) {
   const { currentUser } = useUser();
   const { theme, toggleTheme } = useTheme();
 
-  const isAdminContext = active.startsWith('admin-');
+  // Admin users always see admin tabs — even on shared screens like 'property-detail'
+  // that are reused between investor and admin flows.
+  const isAdminContext = Boolean(currentUser?.isAdmin) || active.startsWith('admin-');
   const TABS = isAdminContext ? ADMIN_TABS : INVESTOR_TABS;
 
   return (

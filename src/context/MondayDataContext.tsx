@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { MondayBoardData, MondayInvestor, MondayProperty } from '../services/mondayApi';
-import { fetchMondayData } from '../services/mondayApi';
+import { fetchMondayData, fetchMillerGroupProperties } from '../services/mondayApi';
 
 interface MondayDataContextValue {
   properties: MondayProperty[];
+  /** Miller Group's own deals (group "עסקאות Miller Group") */
+  mgProperties: MondayProperty[];
   investors: MondayInvestor[];
   loading: boolean;
   error: string | null;
@@ -13,6 +15,7 @@ interface MondayDataContextValue {
 
 const MondayDataContext = createContext<MondayDataContextValue>({
   properties: [],
+  mgProperties: [],
   investors: [],
   loading: false,
   error: null,
@@ -22,6 +25,7 @@ const MondayDataContext = createContext<MondayDataContextValue>({
 
 export function MondayDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<MondayBoardData>({ properties: [], investors: [] });
+  const [mgProperties, setMgProperties] = useState<MondayProperty[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,8 +36,12 @@ export function MondayDataProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchMondayData();
+      const [result, mg] = await Promise.all([
+        fetchMondayData(),
+        fetchMillerGroupProperties().catch(() => [] as MondayProperty[]),
+      ]);
       setData(result);
+      setMgProperties(mg);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה בטעינת נתוני Monday');
     } finally {
@@ -49,6 +57,7 @@ export function MondayDataProvider({ children }: { children: React.ReactNode }) 
     <MondayDataContext.Provider
       value={{
         properties: data.properties,
+        mgProperties,
         investors: data.investors,
         loading,
         error,

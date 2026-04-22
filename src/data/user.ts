@@ -28,10 +28,10 @@ export const MOCK_USER: User = {
 
 export const ADMIN_USER: User = {
   id: 'admin',
-  firstNameHe: 'רון',
-  lastNameHe: 'מילר',
-  fullNameHe: 'רון מילר',
-  initials: 'ר',
+  firstNameHe: 'הנהלת',
+  lastNameHe: 'מילר גרופ',
+  fullNameHe: 'הנהלת מילר גרופ',
+  initials: 'מג',
   email: 'admin@millergroup.com',
   password: 'Admin2026!',
   phone: '+972-50-111-2222',
