@@ -6,6 +6,7 @@ export type Screen =
   | 'property-detail'
   | 'documents'
   | 'media'
+  | 'inquiries'
   | 'settings'
   | 'admin-dashboard'
   | 'admin-investors'
@@ -13,6 +14,7 @@ export type Screen =
   | 'admin-properties'
   | 'admin-mg-deals'
   | 'admin-closings'
+  | 'admin-inquiries'
   | 'set-password';
 
 export type BadgeType = 'gold' | 'green' | 'blue';
