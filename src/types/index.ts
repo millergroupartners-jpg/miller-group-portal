@@ -50,6 +50,8 @@ export interface NavState {
   selectedInvestorId: string | null;
   investorName?: string;
   direction: 'forward' | 'back';
+  /** When navigating to admin-closings from an alert, highlight these entries */
+  highlightClosingMode?: 'week' | 'overdue';
 }
 
 export interface Investor {

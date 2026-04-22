@@ -136,7 +136,8 @@ export function AdminDashboardScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {closingsThisWeek > 0 && (
                 <div
-                  onClick={() => navigate('admin-closings')}
+                  className="interactive"
+                  onClick={() => navigate('admin-closings', { highlightClosingMode: 'week' })}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,
@@ -149,6 +150,7 @@ export function AdminDashboardScreen() {
               )}
               {investorsWithoutPassword.length > 0 && (
                 <div
+                  className="interactive"
                   onClick={() => navigate('admin-investors')}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -162,7 +164,8 @@ export function AdminDashboardScreen() {
               )}
               {overdueProperties.length > 0 && (
                 <div
-                  onClick={() => navigate('admin-properties')}
+                  className="interactive"
+                  onClick={() => navigate('admin-closings', { highlightClosingMode: 'overdue' })}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '8px 12px', background: 'rgba(255,77,77,0.08)', borderRadius: 8,
@@ -264,6 +267,7 @@ export function AdminDashboardScreen() {
                 return (
                   <div
                     key={inv.mondayId}
+                    className="interactive"
                     onClick={() => navigate('admin-investor-detail', { investorId: inv.mondayId })}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,

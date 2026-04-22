@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import { StatusBadge } from '../../common/StatusBadge';
 import { fetchMillerGroupProperties, type MondayProperty } from '../../../services/mondayApi';
-import { useEffect } from 'react';
 
 const GOLD = '#C9A84C';
 
@@ -40,10 +39,12 @@ const SECTIONS: { key: string; label: string; filter: (d: number | null) => bool
 ];
 
 export function AdminClosingsScreen() {
-  const { navigate } = useNavigation();
+  const { navigate, navState } = useNavigation();
+  const highlightMode = navState.highlightClosingMode;
   const { properties } = useMondayData();
   const [mgProps, setMgProps] = useState<MondayProperty[]>([]);
   const [loadingMg, setLoadingMg] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Also fetch MG deals so closings include both
   useEffect(() => {
@@ -74,6 +75,25 @@ export function AdminClosingsScreen() {
       });
   }, [properties, mgProps]);
 
+  // Scroll to first highlighted item after the list renders
+  useEffect(() => {
+    if (!highlightMode || loadingMg) return;
+    const timer = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const first = container.querySelector('[data-flash="true"]') as HTMLElement | null;
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [highlightMode, loadingMg, allWithDates.length]);
+
+  const isFlashTarget = (days: number | null): boolean => {
+    if (!highlightMode || days === null) return false;
+    if (highlightMode === 'week')    return days >= 0 && days <= 7;
+    if (highlightMode === 'overdue') return days < 0;
+    return false;
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
       <div className="desktop-page-title">
@@ -86,7 +106,7 @@ export function AdminClosingsScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>יומן סגירות</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {loadingMg && (
           <div style={{ textAlign: 'center', color: GOLD, fontSize: 12 }}>⏳ טוען עסקאות Miller Group...</div>
         )}
@@ -118,10 +138,12 @@ export function AdminClosingsScreen() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map(({ p, days }: any) => {
                   const color = days === null ? 'var(--text-secondary)' : days === 0 ? '#ff6b6b' : days < 0 ? 'var(--text-muted)' : days <= 7 ? '#ff9800' : GOLD;
+                  const flash = isFlashTarget(days);
                   return (
                     <div
                       key={p.mondayId}
-                      className="gold-card"
+                      className={`gold-card interactive${flash ? ' flash-highlight' : ''}`}
+                      data-flash={flash ? 'true' : undefined}
                       style={{
                         padding: '14px 16px', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row-reverse',

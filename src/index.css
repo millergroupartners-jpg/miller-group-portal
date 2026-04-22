@@ -416,6 +416,43 @@ html, body {
   }
 }
 
+/* ── Global button hover feedback ───────────────────────────── */
+button {
+  cursor: pointer;
+}
+button:not(:disabled) {
+  transition: background 0.15s, opacity 0.15s, filter 0.15s;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+button:not(:disabled):active {
+  filter: brightness(0.9);
+  transform: scale(0.98);
+}
+
+/* ── Interactive rows / cards (divs with onClick) ────────────── */
+.interactive {
+  transition: background 0.15s;
+}
+.interactive:hover {
+  background: var(--bg-surface-hover) !important;
+}
+.interactive:active {
+  filter: brightness(0.92);
+}
+
+/* ── Scroll-target flash animation ──────────────────────────── */
+@keyframes flashHighlight {
+  0%   { box-shadow: none; border-color: var(--border); }
+  25%  { box-shadow: 0 0 0 3px rgba(255,77,77,0.7), 0 0 18px rgba(255,77,77,0.35); border-color: rgba(255,77,77,0.8); }
+  75%  { box-shadow: 0 0 0 3px rgba(255,77,77,0.7), 0 0 18px rgba(255,77,77,0.35); border-color: rgba(255,77,77,0.8); }
+  100% { box-shadow: none; border-color: var(--border); }
+}
+.flash-highlight {
+  animation: flashHighlight 0.75s ease 0.3s 3;
+}
+
 /* ── Photo grid ──────────────────────────────────────────────── */
 .photo-grid {
   display: grid;

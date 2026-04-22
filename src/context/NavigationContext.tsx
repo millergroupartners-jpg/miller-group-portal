@@ -3,7 +3,7 @@ import type { Screen, NavState } from '../types';
 
 interface NavigationContextValue {
   navState: NavState;
-  navigate: (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string }) => void;
+  navigate: (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue' }) => void;
   goBack: () => void;
   resetTo: (screen: Screen) => void;
 }
@@ -22,12 +22,13 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   const current = stack[stack.length - 1];
 
-  const navigate = (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string }) => {
+  const navigate = (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue' }) => {
     setStack(s => [...s, {
       screen,
       selectedPropertyId: opts?.propertyId ?? null,
       selectedInvestorId: opts?.investorId ?? null,
       investorName: opts?.investorName,
+      highlightClosingMode: opts?.highlightClosingMode,
       direction: 'forward',
     }]);
   };
