@@ -87,10 +87,11 @@ export function AdminClosingsScreen() {
     return () => clearTimeout(timer);
   }, [highlightMode, loadingMg, allWithDates.length]);
 
-  const isFlashTarget = (days: number | null): boolean => {
+  const STALE_STATUSES = ['על חוזה', 'בשלבי הלוואה וחתימות'];
+  const isFlashTarget = (days: number | null, status?: string): boolean => {
     if (!highlightMode || days === null) return false;
     if (highlightMode === 'week')    return days >= 0 && days <= 7;
-    if (highlightMode === 'overdue') return days < 0;
+    if (highlightMode === 'overdue') return days < 0 && STALE_STATUSES.includes(status ?? '');
     return false;
   };
 
@@ -138,7 +139,7 @@ export function AdminClosingsScreen() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map(({ p, days }: any) => {
                   const color = days === null ? 'var(--text-secondary)' : days === 0 ? '#ff6b6b' : days < 0 ? 'var(--text-muted)' : days <= 7 ? '#ff9800' : GOLD;
-                  const flash = isFlashTarget(days);
+                  const flash = isFlashTarget(days, p.status);
                   return (
                     <div
                       key={p.mondayId}
