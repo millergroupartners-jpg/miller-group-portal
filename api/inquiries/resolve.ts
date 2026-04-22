@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       mutation {
         change_simple_column_value(
           item_id: ${inquiryId},
-          board_id: ${Number(process.env.INQUIRIES_BOARD_ID || 5095120333)},
+          board_id: ${Number((process.env.INQUIRIES_BOARD_ID || '5095120333').trim())},
           column_id: "${INQ_COL.status}",
           value: "${INQ_STATUS.RESOLVED.label}"
         ) { id }

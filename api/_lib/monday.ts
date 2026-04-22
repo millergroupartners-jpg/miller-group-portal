@@ -5,7 +5,7 @@
 
 const MONDAY_API_URL = 'https://api.monday.com/v2';
 
-export const INQUIRIES_BOARD_ID = Number(process.env.INQUIRIES_BOARD_ID || 5095120333);
+export const INQUIRIES_BOARD_ID = Number((process.env.INQUIRIES_BOARD_ID || '5095120333').trim());
 
 /** Column IDs on the Inquiries board (verified via API) */
 export const INQ_COL = {
@@ -29,7 +29,7 @@ export const INQ_DIRECTION = {
 } as const;
 
 function getToken(): string {
-  const token = process.env.MONDAY_API_TOKEN || process.env.VITE_MONDAY_API_TOKEN;
+  const token = (process.env.MONDAY_API_TOKEN || process.env.VITE_MONDAY_API_TOKEN || '').trim();
   if (!token) throw new Error('Monday API token is not configured on the server');
   return token;
 }

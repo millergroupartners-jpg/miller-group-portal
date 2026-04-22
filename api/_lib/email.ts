@@ -13,8 +13,8 @@ let _transporter: nodemailer.Transporter | null = null;
 
 function getTransporter() {
   if (_transporter) return _transporter;
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const user = (process.env.GMAIL_USER || '').trim();
+  const pass = (process.env.GMAIL_APP_PASSWORD || '').trim();
   if (!user || !pass) {
     throw new Error('GMAIL_USER / GMAIL_APP_PASSWORD not configured on server');
   }
@@ -31,7 +31,7 @@ export async function sendMail(opts: {
   html: string;
   replyTo?: string;
 }) {
-  const user = process.env.GMAIL_USER!;
+  const user = (process.env.GMAIL_USER || '').trim();
   return getTransporter().sendMail({
     from: `"Miller Group" <${user}>`,
     to: opts.to,
