@@ -7,7 +7,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQ_STATUS, INQ_COL } from '../_lib/monday';
+import { mondayQuery, INQ_STATUS, INQ_COL } from '../_lib/monday.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

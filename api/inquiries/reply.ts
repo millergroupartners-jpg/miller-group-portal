@@ -17,8 +17,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQ_STATUS, INQ_COL, esc } from '../_lib/monday';
-import { sendMail, wrapEmail } from '../_lib/email';
+import { mondayQuery, INQ_STATUS, INQ_COL, esc } from '../_lib/monday.js';
+import { sendMail, wrapEmail } from '../_lib/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

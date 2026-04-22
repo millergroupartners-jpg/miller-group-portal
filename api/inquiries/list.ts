@@ -9,7 +9,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL } from '../_lib/monday';
+import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL } from '../_lib/monday.js';
 
 interface RawColumnValue {
   id: string;
