@@ -142,10 +142,14 @@ export function DesktopSidebar({ active }: { active: Screen }) {
   const { currentUser } = useUser();
   const { theme, toggleTheme } = useTheme();
 
-  // Admin users always see admin tabs — even on shared screens like 'property-detail'
-  // that are reused between investor and admin flows.
-  const isAdminContext = Boolean(currentUser?.isAdmin) || active.startsWith('admin-');
-  const TABS = isAdminContext ? ADMIN_TABS : INVESTOR_TABS;
+  const isAdmin = Boolean(currentUser?.isAdmin);
+  // Admin viewing a property or investor-style screen — show the same tabs an investor sees,
+  // so documents/media are one click away. Otherwise (admin on an admin-* screen, or a real
+  // investor), use the role-appropriate tab set.
+  const adminInInvestorView = isAdmin && (
+    active === 'property-detail' || active === 'documents' || active === 'media'
+  );
+  const TABS = (isAdmin && !adminInInvestorView) ? ADMIN_TABS : INVESTOR_TABS;
 
   return (
     <aside className="desktop-sidebar">
@@ -153,6 +157,34 @@ export function DesktopSidebar({ active }: { active: Screen }) {
       <div style={{ padding: '28px 24px 20px', borderBottom: '1px solid var(--border)' }}>
         <MGLogo size={40} />
       </div>
+
+      {/* "Back to admin menu" button — only when admin is in investor-style view */}
+      {adminInInvestorView && (
+        <div style={{ padding: '14px 12px 4px' }}>
+          <button
+            onClick={() => navigate('admin-dashboard')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+              background: `${GOLD}12`, border: `1px solid ${GOLD}33`,
+              width: '100%', textAlign: 'right',
+              transition: 'background 0.15s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.background = `${GOLD}22`)}
+            onMouseOut={e => (e.currentTarget.style.background = `${GOLD}12`)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            <span style={{
+              fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, color: GOLD,
+            }}>
+              חזרה לתפריט אדמין
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
