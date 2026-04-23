@@ -21,17 +21,17 @@ export function DocumentsScreen() {
   // Admin sees ALL properties (investor-owned + Miller Group own deals).
   // Investor sees only their own linked properties.
   const isAdmin = Boolean(user.isAdmin);
-  const sourceProperties = isAdmin
-    ? [...allProperties, ...mgProperties]
-    : (mondayInvestor?.properties ?? []);
 
-  const mondayFolders = sourceProperties
-    .filter(p => p.docsUrl)
-    .filter(p => !search
-      || p.address.toLowerCase().includes(search.toLowerCase())
-      || p.city.toLowerCase().includes(search.toLowerCase())
-    );
+  const matchesSearch = (p: { address: string; city: string }) =>
+    !search || p.address.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase());
 
+  const investorFolders = (isAdmin ? allProperties : (mondayInvestor?.properties ?? []))
+    .filter(p => p.docsUrl).filter(matchesSearch);
+  const mgFolders = isAdmin
+    ? mgProperties.filter(p => p.docsUrl).filter(matchesSearch)
+    : [];
+
+  const mondayFolders = [...investorFolders, ...mgFolders]; // non-admin uses this as flat list
   const isMondayMode = isAdmin || Boolean(mondayInvestor);
 
   // Static folders filtered by search
@@ -82,47 +82,74 @@ export function DocumentsScreen() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
 
         {/* Monday mode: one row per property with Drive link */}
-        {isMondayMode && (
-          <div className="gold-card" style={{ overflow: 'hidden' }}>
-            {mondayFolders.length === 0 && (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                אין מסמכים זמינים
-              </div>
-            )}
-            {mondayFolders.map((p, i) => (
-              <a
-                key={p.mondayId}
-                href={p.docsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: 'none' }}
-              >
-                <div
-                  className="doc-row"
-                  style={{ borderBottom: i < mondayFolders.length - 1 ? '1px solid var(--divider)' : 'none' }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round">
-                    <path d="M9 18l-6-6 6-6" />
-                  </svg>
-                  <div style={{ flex: 1, textAlign: 'right' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{p.address}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.city} · Google Drive</div>
-                  </div>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: 'rgba(201,168,76,0.12)',
-                    border: '1px solid rgba(201,168,76,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round">
-                      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                    </svg>
-                  </div>
+        {isMondayMode && (() => {
+          const renderRow = (p: typeof investorFolders[number], last: boolean) => (
+            <a key={p.mondayId} href={p.docsUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <div className="doc-row" style={{ borderBottom: last ? 'none' : '1px solid var(--divider)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round">
+                  <path d="M9 18l-6-6 6-6" />
+                </svg>
+                <div style={{ flex: 1, textAlign: 'right' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{p.address}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.city} · Google Drive</div>
                 </div>
-              </a>
-            ))}
-          </div>
-        )}
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: 'rgba(201,168,76,0.12)',
+                  border: '1px solid rgba(201,168,76,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                  </svg>
+                </div>
+              </div>
+            </a>
+          );
+          const SectionHeading = ({ label, count, color }: { label: string; count: number; color: string }) => (
+            <div style={{ fontSize: 11, fontWeight: 700, color, marginBottom: 8, textAlign: 'right', padding: '0 4px' }}>
+              {label} <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({count})</span>
+            </div>
+          );
+          if (isAdmin) {
+            return (
+              <>
+                {investorFolders.length > 0 && (
+                  <>
+                    <SectionHeading label="נכסי משקיעים" count={investorFolders.length} color={GOLD} />
+                    <div className="gold-card" style={{ overflow: 'hidden', marginBottom: 14 }}>
+                      {investorFolders.map((p, i) => renderRow(p, i === investorFolders.length - 1))}
+                    </div>
+                  </>
+                )}
+                {mgFolders.length > 0 && (
+                  <>
+                    <SectionHeading label="Miller Group" count={mgFolders.length} color="#64B5F6" />
+                    <div className="gold-card" style={{ overflow: 'hidden' }}>
+                      {mgFolders.map((p, i) => renderRow(p, i === mgFolders.length - 1))}
+                    </div>
+                  </>
+                )}
+                {investorFolders.length === 0 && mgFolders.length === 0 && (
+                  <div className="gold-card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    אין מסמכים זמינים
+                  </div>
+                )}
+              </>
+            );
+          }
+          // Investor: flat list
+          return (
+            <div className="gold-card" style={{ overflow: 'hidden' }}>
+              {mondayFolders.length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                  אין מסמכים זמינים
+                </div>
+              )}
+              {mondayFolders.map((p, i) => renderRow(p, i === mondayFolders.length - 1))}
+            </div>
+          );
+        })()}
 
         {/* Static / demo mode */}
         {!isMondayMode && (

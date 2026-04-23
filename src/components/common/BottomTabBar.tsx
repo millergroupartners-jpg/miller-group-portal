@@ -1,5 +1,6 @@
 import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
+import { useOpenInquiryCount } from '../../hooks/useOpenInquiryCount';
 import type { Screen } from '../../types';
 
 const GOLD = '#C9A84C';
@@ -170,6 +171,7 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
   const isAdmin = Boolean(currentUser?.isAdmin);
+  const openInquiryCount = useOpenInquiryCount();
 
   // When admin is viewing a property/documents/media, keep investor-style tabs so
   // docs/media are easy to reach (mirrors DesktopSidebar behavior).
@@ -185,15 +187,37 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
           active === tab.id ||
           (active === 'property-detail' && tab.id === 'dashboard') ||
           (active === 'admin-investor-detail' && tab.id === 'admin-investors');
+        const showBadge = (tab.id === 'inquiries' || tab.id === 'admin-inquiries') && openInquiryCount > 0;
         return (
           <div
             key={tab.id}
             className="tab-item"
             onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
+            style={{ position: 'relative' }}
           >
             {tab.icon(isActive)}
             <span style={{ color: isActive ? GOLD : 'var(--tab-icon)' }}>{tab.label}</span>
             {isActive && <div className="tab-dot" />}
+            {showBadge && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 4,
+                minWidth: 16,
+                height: 16,
+                padding: '0 4px',
+                borderRadius: 100,
+                background: '#ff4d4d',
+                color: '#fff',
+                fontSize: 9,
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1.5px solid var(--bg-tab)',
+                lineHeight: 1,
+              }}>{openInquiryCount > 9 ? '9+' : openInquiryCount}</div>
+            )}
           </div>
         );
       })}
