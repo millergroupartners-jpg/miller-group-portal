@@ -20,7 +20,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL, INQ_STATUS, INQ_DIRECTION, esc, jsonEsc } from '../_lib/monday.js';
+import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL, INQ_STATUS, INQ_DIRECTION, esc, jsonEsc, appendToMessageColumn } from '../_lib/monday.js';
 import { sendMail, wrapEmail } from '../_lib/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -79,6 +79,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const updRes = await mondayQuery<{ create_update: { id: string } }>(updateMutation);
       updateId = updRes?.create_update?.id ?? '';
     } catch {}
+
+    // Log the first message to the Message column (full conversation log)
+    try {
+      await appendToMessageColumn({
+        inquiryId,
+        author: initialAuthor,
+        text: message,
+      });
+    } catch (logErr) {
+      console.error('Failed to log first message to Message column:', logErr);
+    }
 
     // Send email notification
     const adminEmail = process.env.GMAIL_USER!;

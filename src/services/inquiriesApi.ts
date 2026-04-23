@@ -10,6 +10,13 @@ export interface InquiryReply {
   author: string;
 }
 
+export interface InquiryFile {
+  id: string;
+  name: string;
+  url: string;       // public download URL
+  thumbUrl: string;  // thumbnail URL (for images)
+}
+
 export interface Inquiry {
   id: string;
   inquiryNumber: string;   // e.g. "INQ-012345"
@@ -23,6 +30,7 @@ export interface Inquiry {
   investorEmail: string;
   property: string;
   replies: InquiryReply[];
+  files: InquiryFile[];
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -76,45 +84,32 @@ export async function replyToInquiry(opts: {
 }
 
 /**
- * Upload a file (image/pdf/doc) as an attachment to a Monday update.
- * Uses the VITE_MONDAY_API_TOKEN directly from the client (same token already
- * exposed to the portal). Returns the public asset URL from Monday.
+ * Upload a file (image/pdf/doc) as an attachment to an inquiry's Files column.
+ * Monday's /v2/file endpoint blocks browser CORS, so we proxy the upload
+ * through our own Vercel serverless function.
  */
-export async function uploadFileToUpdate(updateId: string, file: File): Promise<string> {
-  const token = import.meta.env.VITE_MONDAY_API_TOKEN as string;
-  if (!token) throw new Error('Monday token missing on client');
-  if (!updateId) throw new Error('No updateId — cannot attach file');
+export async function uploadFileToInquiry(inquiryId: string, file: File): Promise<void> {
+  if (!inquiryId) throw new Error('No inquiryId — cannot attach file');
 
-  const query = `mutation add_file($file: File!) {
-    add_file_to_update(update_id: ${updateId}, file: $file) {
-      id
-      url
-      asset_id
-    }
-  }`;
-
-  const form = new FormData();
-  form.append('query', query);
-  form.append('variables[file]', file, file.name);
-
-  const res = await fetch('https://api.monday.com/v2/file', {
+  const res = await fetch(`/api/inquiries/upload-file?inquiryId=${encodeURIComponent(inquiryId)}`, {
     method: 'POST',
-    headers: { Authorization: token },
-    body: form,
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      'X-Filename': encodeURIComponent(file.name),
+    },
+    body: file,
   });
+
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Monday file upload HTTP ${res.status}: ${body}`);
+    throw new Error(`File upload failed (${res.status}): ${body.slice(0, 200)}`);
   }
-  const json = await res.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json?.data?.add_file_to_update?.url ?? '';
 }
 
-export async function uploadFilesToUpdate(updateId: string, files: File[]): Promise<void> {
+export async function uploadFilesToInquiry(inquiryId: string, files: File[]): Promise<void> {
   // Sequential to avoid rate-limiting Monday's API
   for (const f of files) {
-    await uploadFileToUpdate(updateId, f);
+    await uploadFileToInquiry(inquiryId, f);
   }
 }
 

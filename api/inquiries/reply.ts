@@ -17,7 +17,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery, INQ_STATUS, INQ_COL, esc } from '../_lib/monday.js';
+import { mondayQuery, INQ_STATUS, INQ_COL, esc, appendToMessageColumn } from '../_lib/monday.js';
 import { sendMail, wrapEmail } from '../_lib/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -46,6 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `;
     const updRes = await mondayQuery<{ create_update: { id: string } }>(updateMutation);
     const updateId = updRes?.create_update?.id ?? '';
+
+    // Append this reply to the Message column (full conversation log)
+    try {
+      await appendToMessageColumn({
+        inquiryId,
+        author: authorName,
+        text: message,
+      });
+    } catch (logErr) {
+      console.error('Failed to append reply to Message column:', logErr);
+    }
 
     // 2. Move status to "In Progress" if it's still "New"
     //    (safe to always update — Monday API just overwrites)

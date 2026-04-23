@@ -23,6 +23,12 @@ interface RawUpdate {
   created_at: string;
   creator?: { id: string; name: string } | null;
 }
+interface RawAsset {
+  id: string;
+  name: string;
+  public_url: string;
+  url_thumbnail?: string | null;
+}
 interface RawItem {
   id: string;
   name: string;
@@ -30,6 +36,7 @@ interface RawItem {
   updated_at: string;
   column_values: RawColumnValue[];
   updates: RawUpdate[];
+  assets?: RawAsset[];
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -55,6 +62,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 id
                 text
                 value
+              }
+              assets {
+                id
+                name
+                public_url
+                url_thumbnail
               }
               updates {
                 id
@@ -96,6 +109,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           textBody:  u.text_body,
           createdAt: u.created_at,
           author:    u.creator?.name || 'System',
+        })),
+        files: (item.assets ?? []).map(a => ({
+          id:       a.id,
+          name:     a.name,
+          url:      a.public_url,
+          thumbUrl: a.url_thumbnail || '',
         })),
       };
     });

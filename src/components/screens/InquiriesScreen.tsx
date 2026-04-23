@@ -9,7 +9,7 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { MGLogo } from '../common/MGLogo';
 import {
-  listInquiries, createInquiry, replyToInquiry, uploadFilesToUpdate,
+  listInquiries, createInquiry, replyToInquiry, uploadFilesToInquiry,
   type Inquiry,
 } from '../../services/inquiriesApi';
 
@@ -80,7 +80,7 @@ export function InquiriesScreen() {
     if (!newSubject.trim() || !newMessage.trim() || !currentUser) return;
     setSending(true); setError(null);
     try {
-      const { updateId } = await createInquiry({
+      const { inquiryId } = await createInquiry({
         subject: newSubject.trim(),
         message: newMessage.trim(),
         investorId: investorMondayId,
@@ -89,8 +89,8 @@ export function InquiriesScreen() {
         property: newProperty,
         direction: 'investor-to-admin',
       });
-      if (newFiles.length > 0 && updateId) {
-        await uploadFilesToUpdate(updateId, newFiles);
+      if (newFiles.length > 0 && inquiryId) {
+        await uploadFilesToInquiry(inquiryId, newFiles);
       }
       setNewSubject(''); setNewMessage(''); setNewProperty(''); setNewFiles([]);
       setComposeOpen(false);
@@ -107,7 +107,7 @@ export function InquiriesScreen() {
     setReplying(true); setError(null);
     try {
       const effectiveText = replyText.trim() || '(צירוף קובץ)';
-      const { updateId } = await replyToInquiry({
+      await replyToInquiry({
         inquiryId: inq.id,
         message: effectiveText,
         replyFrom: 'investor',
@@ -115,8 +115,8 @@ export function InquiriesScreen() {
         investorEmail: currentUser.email,
         subject: inq.subject,
       });
-      if (replyFiles.length > 0 && updateId) {
-        await uploadFilesToUpdate(updateId, replyFiles);
+      if (replyFiles.length > 0) {
+        await uploadFilesToInquiry(inq.id, replyFiles);
       }
       setReplyText(''); setReplyFiles([]);
       await refresh();
@@ -208,6 +208,36 @@ export function InquiriesScreen() {
               {/* Thread */}
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--divider)', padding: '14px 16px', background: 'var(--bg-base)' }}>
+                  {/* Attached files section */}
+                  {inq.files && inq.files.length > 0 && (
+                    <div style={{ marginBottom: 14, padding: '10px 12px', background: `${GOLD}08`, border: `1px solid ${GOLD}22`, borderRadius: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, marginBottom: 8, textAlign: 'right' }}>
+                        📎 קבצים מצורפים ({inq.files.length})
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 }}>
+                        {inq.files.map(f => (
+                          <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
+                             style={{ textDecoration: 'none' }}>
+                            {f.thumbUrl ? (
+                              <img src={f.thumbUrl} alt={f.name}
+                                   style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', cursor: 'pointer' }}
+                                   title={f.name}/>
+                            ) : (
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '6px 10px', background: 'var(--bg-chip)',
+                                border: '1px solid var(--border)', borderRadius: 100,
+                                fontSize: 11, color: 'var(--text-primary)',
+                              }}>
+                                📄 {f.name.length > 25 ? f.name.slice(0, 22) + '...' : f.name}
+                              </div>
+                            )}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {inq.replies.length === 0 && (
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', padding: 12 }}>
                       אין תגובות עדיין
