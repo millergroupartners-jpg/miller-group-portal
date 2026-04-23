@@ -24,6 +24,18 @@ interface Notification {
   accentColor?: string;
 }
 
+/**
+ * System/version notification — bump the id whenever you want to announce a
+ * new portal update to all users. Once a user dismisses a specific version,
+ * it never comes back for them. New versions produce a new id → appears fresh.
+ */
+const PORTAL_VERSION_NOTIF = {
+  id: 'portal-v2.1',
+  title: 'פורטל עודכן — גרסה 2.1',
+  body: 'פעמון התראות חכם (מבוסס פעילות אמיתית), פניות דו-כיווניות עם קבצים מצורפים, ותיקוני תצוגה במובייל.',
+  date: '23 אפר׳ 2026',
+};
+
 const STORAGE_KEY = 'mg_dismissed_notifs_v2';
 
 function getDismissed(): Set<string> {
@@ -51,6 +63,26 @@ function buildNotifications(opts: {
 }): Notification[] {
   const { isAdmin, investorMondayId, inquiries, relevantProperties } = opts;
   const out: Notification[] = [];
+
+  // ── System notifications (welcome + portal version) ────────────
+  // Welcome — ONLY for an investor, once per investorId (different each investor)
+  if (!isAdmin && investorMondayId) {
+    out.push({
+      id: `welcome-${investorMondayId}`,
+      title: 'ברוכים הבאים לפורטל המשקיעים',
+      body: 'כאן תוכל לצפות בנכסים שלך, לקבל את המסמכים והתמונות העדכניות, ולפתוח פניות ישירות להנהלה.',
+      date: '',
+      accentColor: GOLD,
+    });
+  }
+  // Portal version — for everyone, once per version (bump PORTAL_VERSION_NOTIF.id on future updates)
+  out.push({
+    id: PORTAL_VERSION_NOTIF.id,
+    title: PORTAL_VERSION_NOTIF.title,
+    body: PORTAL_VERSION_NOTIF.body,
+    date: PORTAL_VERSION_NOTIF.date,
+    accentColor: GOLD,
+  });
 
   // ── Inquiry notifications ─────────────────────────────────────
   for (const inq of inquiries) {
