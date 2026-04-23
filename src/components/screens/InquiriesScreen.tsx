@@ -88,6 +88,7 @@ export function InquiriesScreen() {
         investorEmail: currentUser.email,
         property: newProperty,
         direction: 'investor-to-admin',
+        fileCount: newFiles.length,
       });
       if (newFiles.length > 0 && inquiryId) {
         await uploadFilesToInquiry(inquiryId, newFiles);

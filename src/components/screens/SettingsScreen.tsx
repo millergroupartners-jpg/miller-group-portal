@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
+import { getEmailOptOut, setEmailOptOut } from '../../services/notificationPrefs';
 
 const GOLD = '#C9A84C';
 
@@ -65,6 +67,35 @@ export function SettingsScreen() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser, setCurrentUser } = useUser();
   const user = currentUser ?? MOCK_USER;
+
+  // Email notification preference (investors only)
+  const [emailsEnabled, setEmailsEnabled] = useState<boolean | null>(null); // null = loading
+  const [savingEmails, setSavingEmails] = useState(false);
+  const investorMondayId = user.mondayInvestorId || '';
+
+  useEffect(() => {
+    if (!investorMondayId) return;
+    getEmailOptOut(investorMondayId)
+      .then(optedOut => setEmailsEnabled(!optedOut))
+      .catch(() => setEmailsEnabled(true)); // default to enabled on error
+  }, [investorMondayId]);
+
+  const toggleEmails = async () => {
+    if (emailsEnabled === null || savingEmails || !investorMondayId) return;
+    const next = !emailsEnabled;
+    setSavingEmails(true);
+    // Optimistic update
+    setEmailsEnabled(next);
+    try {
+      await setEmailOptOut(investorMondayId, !next); // optedOut = !enabled
+    } catch (e) {
+      // Revert on failure
+      setEmailsEnabled(!next);
+      alert('שמירה נכשלה, נסה שוב');
+    } finally {
+      setSavingEmails(false);
+    }
+  };
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -133,6 +164,60 @@ export function SettingsScreen() {
             value={user.investorSince}
           />
         </SectionCard>
+
+        {/* Notifications (investors only) */}
+        {!user.isAdmin && investorMondayId && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', marginBottom: 8, paddingRight: 4 }}>
+              התראות
+            </div>
+            <SectionCard>
+              <div
+                onClick={toggleEmails}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  cursor: emailsEnabled === null ? 'default' : 'pointer',
+                  opacity: emailsEnabled === null ? 0.6 : 1,
+                  flexDirection: 'row-reverse',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (emailsEnabled !== null) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface-hover)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>התראות במייל</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {emailsEnabled === null ? 'טוען...' : emailsEnabled ? 'פעיל — תקבל סיכום על תמונות חדשות' : 'מושבת'}
+                    </div>
+                  </div>
+                </div>
+                {/* Toggle */}
+                <div style={{
+                  width: 44, height: 26, borderRadius: 13,
+                  background: emailsEnabled ? GOLD : '#ddd',
+                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3,
+                    right: emailsEnabled ? 3 : undefined,
+                    left: emailsEnabled ? undefined : 3,
+                    transition: 'left 0.2s, right 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </div>
+              </div>
+            </SectionCard>
+          </>
+        )}
 
         {/* Appearance */}
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', marginBottom: 8, paddingRight: 4 }}>

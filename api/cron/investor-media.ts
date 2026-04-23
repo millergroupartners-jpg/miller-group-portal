@@ -20,6 +20,8 @@ import { sendMail, wrapEmail } from '../_lib/email.js';
 const PROPERTIES_BOARD_ID = 1997938102;
 const INVESTORS_BOARD_ID  = 1997938105;
 const INV_COL_EMAIL       = 'lead_email';
+const INV_COL_PASSWORD    = 'text_mm2mw06h';      // סיסמה לפורטל — presence = "registered"
+const INV_COL_NOTIF_OPTOUT= 'boolean_mm2pee1j';   // Email Notifications (checkbox). checked = OPTED OUT
 const INV_REL_ON_PROPERTY = 'board_relation_mkrzrtny';
 
 const CC_API = 'https://api.companycam.com/v2';
@@ -70,16 +72,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           items {
             id
             name
-            column_values(ids: ["${INV_COL_EMAIL}"]) {
+            column_values(ids: ["${INV_COL_EMAIL}", "${INV_COL_PASSWORD}", "${INV_COL_NOTIF_OPTOUT}"]) {
               id text value
             }
           }
         }
       }
     }`;
-    type RawInv = { id: string; name: string; column_values: { id: string; text: string | null }[] };
+    type RawInv = { id: string; name: string; column_values: { id: string; text: string | null; value: string | null }[] };
     const invData = await mondayQuery<{ boards: { items_page: { items: RawInv[] } }[] }>(investorsQuery);
-    const investors = invData?.boards?.[0]?.items_page?.items ?? [];
+    const allInvestors = invData?.boards?.[0]?.items_page?.items ?? [];
+
+    // Keep only REGISTERED investors (have password) who have NOT opted out of emails.
+    // Checkbox column: value is {"checked":"true"} when checked (= opted out).
+    const investors = allInvestors.filter(inv => {
+      const cols = Object.fromEntries(inv.column_values.map(c => [c.id, c]));
+      const hasPassword = Boolean(cols[INV_COL_PASSWORD]?.text?.trim());
+      const optoutRaw = cols[INV_COL_NOTIF_OPTOUT]?.value || '';
+      const optedOut = /"checked":"?true"?/i.test(optoutRaw);
+      return hasPassword && !optedOut;
+    });
 
     // 2. Fetch all properties with their linked investor
     const propsQuery = `query {

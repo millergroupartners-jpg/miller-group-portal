@@ -120,6 +120,20 @@ const ADMIN_TABS: Tab[] = [
     ),
   },
   {
+    id: 'admin-mg-deals',
+    label: 'מילר',
+    icon: active => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition: 'stroke 0.15s' }}>
+        <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
+        <path d="M9 21V11h6v10" />
+        <path d="M9 7h.01M13 7h.01" />
+      </svg>
+    ),
+  },
+  {
     id: 'admin-inquiries',
     label: 'פניות',
     icon: active => (

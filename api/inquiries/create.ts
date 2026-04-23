@@ -29,11 +29,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { subject, message, investorId, investorName, investorEmail, property, direction } = req.body || {};
+    const { subject, message, investorId, investorName, investorEmail, property, direction, fileCount } = req.body || {};
 
     if (!subject || !message || !investorName || !investorEmail || !direction) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    const filesCount = Number(fileCount) || 0;
+    const filesNote = filesCount > 0
+      ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(201,168,76,0.1);border-right:3px solid #C9A84C;border-radius:8px;font-size:13px;color:#333;">📎 <b>מצורפים ${filesCount} ${filesCount === 1 ? 'קובץ' : 'קבצים'}</b> — זמינים לצפייה בפורטל תחת הפניה.</div>`
+      : '';
 
     const dirLabel = direction === 'admin-to-investor'
       ? INQ_DIRECTION.ADMIN_TO_INVESTOR
@@ -109,6 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <div style="background:#faf7f2;padding:14px;border-radius:10px;border-right:3px solid ${'#C9A84C'};">
                 ${messageBody}
               </div>
+              ${filesNote}
               <p style="margin-top:20px;padding:12px;background:#fff8e1;border-right:3px solid #ff9800;border-radius:8px;font-size:12px;color:#8a6a28;">
                 ⚠️ <b>חשוב:</b> אנא השב רק דרך הפורטל — תגובה למייל זה לא תסתנכרן למערכת.
               </p>
@@ -130,6 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <div style="background:#faf7f2;padding:14px;border-radius:10px;border-right:3px solid #C9A84C;">
                 ${messageBody}
               </div>
+              ${filesNote}
               <p style="margin-top:20px;padding:12px;background:#fff8e1;border-right:3px solid #ff9800;border-radius:8px;font-size:12px;color:#8a6a28;">
                 ⚠️ <b>חשוב:</b> כדי להגיב, היכנס לפורטל. תגובה למייל זה לא תסתנכרן למערכת.
               </p>

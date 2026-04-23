@@ -16,6 +16,7 @@ import { InquiriesScreen } from './components/screens/InquiriesScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
+import { NotificationsPanel } from './components/common/NotificationsPanel';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
@@ -71,6 +72,10 @@ export default function App() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           {content}
           <BottomTabBar active={screen} />
+        </div>
+        {/* Mobile-only floating bell (desktop has its own in the sidebar) */}
+        <div className="mobile-bell-float">
+          <NotificationsPanel />
         </div>
       </div>
     );

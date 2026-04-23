@@ -62,6 +62,7 @@ export async function createInquiry(opts: {
   investorEmail: string;
   property?: string;
   direction: 'investor-to-admin' | 'admin-to-investor';
+  fileCount?: number;
 }): Promise<{ inquiryId: string; inquiryNumber: string; updateId: string }> {
   return fetchJson('/api/inquiries/create', {
     method: 'POST',

@@ -16,7 +16,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mondayQuery } from '../_lib/monday.js';
+import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL } from '../_lib/monday.js';
 import { sendMail, wrapEmail } from '../_lib/email.js';
 
 const PROPERTIES_BOARD_ID = 1997938102;
@@ -92,6 +92,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(query);
     const items = data?.boards?.[0]?.items_page?.items ?? [];
 
+    // Also fetch open inquiries (status != Resolved)
+    const inqQuery = `query {
+      boards(ids: [${INQUIRIES_BOARD_ID}]) {
+        items_page(limit: 200) {
+          items {
+            id
+            name
+            updated_at
+            column_values(ids: ["${INQ_COL.status}", "${INQ_COL.investorName}", "${INQ_COL.direction}"]) {
+              id text
+            }
+          }
+        }
+      }
+    }`;
+    type RawInq = { id: string; name: string; updated_at: string; column_values: { id: string; text: string | null }[] };
+    const inqData = await mondayQuery<{ boards: { items_page: { items: RawInq[] } }[] }>(inqQuery);
+    const allInquiries = inqData?.boards?.[0]?.items_page?.items ?? [];
+    const openInquiries = allInquiries
+      .map(i => {
+        const c = Object.fromEntries(i.column_values.map(cv => [cv.id, cv.text || '']));
+        return {
+          id: i.id,
+          subject: i.name,
+          status: c[INQ_COL.status] || '',
+          investorName: c[INQ_COL.investorName] || '',
+          direction: c[INQ_COL.direction] || '',
+          updatedAt: i.updated_at,
+        };
+      })
+      .filter(i => i.status !== 'Resolved' && i.status !== '');
+
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
@@ -129,8 +161,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Sort upcoming closings by date ascending
     upcomingClosings.sort((a, b) => a.days - b.days);
     overdueStale.sort((a, b) => b.days - a.days); // most overdue first (most negative)
+    // Sort open inquiries: "New" first, then by updatedAt descending
+    openInquiries.sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'New' ? -1 : 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 
-    const totalAlerts = overdueStale.length + upcomingClosings.length + mgRecentActivity.length;
+    const totalAlerts = overdueStale.length + upcomingClosings.length + mgRecentActivity.length + openInquiries.length;
 
     if (totalAlerts === 0) {
       return res.status(200).json({ ok: true, sent: false, reason: 'No alerts today' });
@@ -144,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sections.push(`
         <div style="margin-bottom:20px;">
           <div style="font-weight:700;font-size:14px;color:#ff4d4d;margin-bottom:8px;border-right:3px solid #ff4d4d;padding-right:10px;">
-            🚨 נכסים שעברו תאריך סגירה ועדיין במעמד לא מתאים (${overdueStale.length})
+            🚨 נכסים שעברו תאריך סגירה ועדיין בסטטוס לא מתאים (${overdueStale.length})
           </div>
           ${overdueStale.map(x => `
             <div style="background:rgba(255,77,77,0.06);border:1px solid rgba(255,77,77,0.25);padding:10px 12px;border-radius:8px;margin-bottom:6px;">
@@ -180,6 +217,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <b>${esc(x.name)}</b> — ${esc(x.status)}
               <br><span style="font-size:12px;color:#888;">עודכן: ${fmtDateHe(x.updatedAt)}</span>
             </div>`).join('')}
+        </div>`);
+    }
+
+    if (openInquiries.length > 0) {
+      sections.push(`
+        <div style="margin-bottom:20px;">
+          <div style="font-weight:700;font-size:14px;color:#64B5F6;margin-bottom:8px;border-right:3px solid #64B5F6;padding-right:10px;">
+            💬 פניות פתוחות שטרם טופלו (${openInquiries.length})
+          </div>
+          ${openInquiries.map(x => {
+            const isNew = x.status === 'New';
+            const statusHe = isNew ? 'חדש' : 'בטיפול';
+            const statusColor = isNew ? '#64B5F6' : '#ff9800';
+            const dirHe = x.direction === 'Management→Investor' ? 'ניהול → משקיע' : 'משקיע → ניהול';
+            return `
+              <div style="background:rgba(100,181,246,0.06);border:1px solid rgba(100,181,246,0.25);padding:10px 12px;border-radius:8px;margin-bottom:6px;">
+                <b>${esc(x.subject)}</b>
+                <span style="display:inline-block;background:${statusColor}15;color:${statusColor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;margin-right:6px;">${statusHe}</span>
+                <br><span style="font-size:12px;color:#888;">${esc(x.investorName)} · ${dirHe} · עודכן: ${fmtDateHe(x.updatedAt)}</span>
+              </div>`;
+          }).join('')}
         </div>`);
     }
 
