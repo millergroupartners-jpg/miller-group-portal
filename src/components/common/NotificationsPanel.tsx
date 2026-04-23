@@ -1,57 +1,174 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useUser } from '../../context/UserContext';
+import { useMondayData } from '../../context/MondayDataContext';
+import { useNavigation } from '../../context/NavigationContext';
+import { listInquiries, type Inquiry } from '../../services/inquiriesApi';
+import type { MondayProperty } from '../../services/mondayApi';
 
 const GOLD = '#C9A84C';
 
+/**
+ * Each notification has a stable ID derived from the underlying event
+ * (inquiry ID, reply ID, property ID + closing date). Once the user
+ * dismisses a notification, we remember its ID in localStorage so the
+ * same notification never comes back — but a new event (new reply,
+ * new inquiry, new closing date) produces a different ID and thus
+ * appears as fresh.
+ */
 interface Notification {
   id: string;
   title: string;
   body: string;
   date: string;
+  target?: { screen: 'inquiries' | 'admin-inquiries' | 'admin-closings' | 'property-detail'; propertyId?: string };
+  accentColor?: string;
 }
 
-const ALL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'notif-portal-v2',
-    title: 'פורטל המשקיעים עודכן — גרסה 2.0',
-    body: 'פרטי חברת ניהול לכל נכס, יומן סגירות עם התראות חכמות, פידבק עכבר מלא ועיצוב מהיר יותר.',
-    date: '22 אפריל 2026',
-  },
-  {
-    id: 'notif-closings-week',
-    title: 'תזכורת: סגירות השבוע',
-    body: 'ישנן סגירות מתוכננות בשבוע הקרוב. כדאי לוודא תיאום עם המשקיעים הרלוונטיים.',
-    date: '21 אפריל 2026',
-  },
-  {
-    id: 'notif-welcome',
-    title: 'ברוכים הבאים למערכת',
-    body: 'כל הנתונים מסונכרנים עם Monday בזמן אמת. ניתן לנהל משקיעים, נכסים וסגירות ממקום אחד.',
-    date: '15 אפריל 2026',
-  },
-];
-
-const STORAGE_KEY = 'mg_dismissed_notifs_v1';
+const STORAGE_KEY = 'mg_dismissed_notifs_v2';
 
 function getDismissed(): Set<string> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return new Set(raw ? JSON.parse(raw) : []);
-  } catch {
-    return new Set();
-  }
+  } catch { return new Set(); }
+}
+function saveDismissed(ids: Set<string>) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids])); } catch {}
 }
 
-function saveDismissed(ids: Set<string>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
-  } catch {}
+function isAdminAuthor(name: string): boolean {
+  if (!name) return false;
+  return /miller|הנהלת/i.test(name);
+}
+
+function fmtDateHe(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('he-IL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function buildNotifications(opts: {
+  isAdmin: boolean;
+  investorMondayId: string;
+  inquiries: Inquiry[];
+  relevantProperties: MondayProperty[];
+}): Notification[] {
+  const { isAdmin, investorMondayId, inquiries, relevantProperties } = opts;
+  const out: Notification[] = [];
+
+  // ── Inquiry notifications ─────────────────────────────────────
+  for (const inq of inquiries) {
+    if (inq.status === 'Resolved') continue;
+
+    if (isAdmin) {
+      // Admin: new inquiries from investors (not yet resolved)
+      if (inq.direction === 'Investor→Management') {
+        // Latest reply from investor (or the inquiry itself if no replies)
+        const latestInvReply = [...inq.replies].reverse().find(r => !isAdminAuthor(r.author));
+        const eventId = latestInvReply?.id ?? `${inq.id}-initial`;
+        const isNew = inq.status === 'New';
+        out.push({
+          id: `inq-${inq.id}-${eventId}`,
+          title: isNew
+            ? `פנייה חדשה מאת ${inq.investorName}`
+            : `תגובה מאת ${inq.investorName}`,
+          body: inq.subject,
+          date: fmtDateHe(inq.updatedAt),
+          target: { screen: 'admin-inquiries' },
+          accentColor: '#64B5F6',
+        });
+      }
+    } else {
+      // Investor: only my own inquiries
+      if (inq.investorId !== investorMondayId) continue;
+
+      // Admin-initiated inquiry
+      if (inq.direction === 'Management→Investor') {
+        out.push({
+          id: `inq-${inq.id}-initial-admin`,
+          title: `פניה חדשה מההנהלה`,
+          body: inq.subject,
+          date: fmtDateHe(inq.createdAt),
+          target: { screen: 'inquiries' },
+          accentColor: GOLD,
+        });
+      }
+      // Admin replies on my inquiry
+      const latestAdminReply = [...inq.replies].reverse().find(r => isAdminAuthor(r.author));
+      if (latestAdminReply) {
+        out.push({
+          id: `inq-${inq.id}-reply-${latestAdminReply.id}`,
+          title: `תגובה חדשה מההנהלה`,
+          body: inq.subject,
+          date: fmtDateHe(latestAdminReply.createdAt),
+          target: { screen: 'inquiries' },
+          accentColor: GOLD,
+        });
+      }
+    }
+  }
+
+  // ── Closing-date notifications (only for user's actual properties) ─
+  const now = Date.now();
+  const cutoff = now + 7 * 24 * 3600 * 1000;
+  for (const p of relevantProperties) {
+    if (!p.closingDate) continue;
+    const d = new Date(p.closingDate).getTime();
+    if (isNaN(d)) continue;
+    if (d < now || d > cutoff) continue;
+    const days = Math.round((d - now) / 86400000);
+    out.push({
+      id: `closing-${p.mondayId}-${p.closingDate}`,
+      title: days === 0 ? `סגירה היום — ${p.address}` : `סגירה בעוד ${days} ${days === 1 ? 'יום' : 'ימים'}`,
+      body: `${p.address} · ${p.city}`,
+      date: p.closingDate,
+      target: { screen: 'property-detail', propertyId: p.mondayId },
+      accentColor: '#ff9800',
+    });
+  }
+
+  return out;
 }
 
 export function NotificationsPanel() {
+  const { currentUser } = useUser();
+  const { properties, mgProperties, investors } = useMondayData();
+  const { navigate } = useNavigation();
+
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(getDismissed);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
 
-  const unread = ALL_NOTIFICATIONS.filter(n => !dismissed.has(n.id));
+  const isAdmin = Boolean(currentUser?.isAdmin);
+  const investorMondayId = currentUser?.mondayInvestorId ?? '';
+
+  // Fetch inquiries (polling)
+  useEffect(() => {
+    if (!currentUser) return;
+    let cancelled = false;
+    const fetchOnce = () => {
+      listInquiries(isAdmin ? undefined : investorMondayId)
+        .then(list => { if (!cancelled) setInquiries(list); })
+        .catch(() => {});
+    };
+    fetchOnce();
+    const t = window.setInterval(fetchOnce, 60_000);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [currentUser?.id, isAdmin, investorMondayId]);
+
+  const relevantProperties = useMemo<MondayProperty[]>(() => {
+    if (!currentUser) return [];
+    if (isAdmin) return [...properties, ...mgProperties];
+    const inv = investors.find(i => i.mondayId === investorMondayId);
+    return inv?.properties ?? [];
+  }, [currentUser, isAdmin, investorMondayId, properties, mgProperties, investors]);
+
+  const all = useMemo(() => buildNotifications({
+    isAdmin, investorMondayId, inquiries, relevantProperties,
+  }), [isAdmin, investorMondayId, inquiries, relevantProperties]);
+
+  const unread = all.filter(n => !dismissed.has(n.id));
   const unreadCount = unread.length;
 
   const dismiss = (id: string) => {
@@ -64,10 +181,22 @@ export function NotificationsPanel() {
   };
 
   const dismissAll = () => {
-    const all = new Set(ALL_NOTIFICATIONS.map(n => n.id));
-    setDismissed(all);
-    saveDismissed(all);
+    const allIds = new Set([...dismissed, ...all.map(n => n.id)]);
+    setDismissed(allIds);
+    saveDismissed(allIds);
     setOpen(false);
+  };
+
+  const clickNotification = (n: Notification) => {
+    dismiss(n.id);
+    setOpen(false);
+    if (n.target) {
+      if (n.target.screen === 'property-detail' && n.target.propertyId) {
+        navigate('property-detail', { propertyId: n.target.propertyId });
+      } else {
+        navigate(n.target.screen);
+      }
+    }
   };
 
   return (
@@ -96,36 +225,28 @@ export function NotificationsPanel() {
         {unreadCount > 0 && (
           <div style={{
             position: 'absolute', top: 5, right: 5,
-            width: 15, height: 15, borderRadius: '50%',
+            minWidth: 15, height: 15, padding: '0 3px', borderRadius: '50%',
             background: '#ff4d4d',
             fontSize: 8, fontWeight: 800, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '1.5px solid var(--bg-base)',
             lineHeight: 1,
-          }}>{unreadCount}</div>
+          }}>{unreadCount > 9 ? '9+' : unreadCount}</div>
         )}
       </button>
 
       {/* Overlay backdrop */}
       {open && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200 }}
-          onClick={() => setOpen(false)}
-        />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setOpen(false)} />
       )}
 
       {/* Panel */}
       {open && (
         <div style={{
-          position: 'fixed',
-          top: 72,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'min(420px, calc(100vw - 32px))',
-          zIndex: 201,
+          position: 'fixed', top: 72, left: '50%', transform: 'translateX(-50%)',
+          width: 'min(420px, calc(100vw - 32px))', zIndex: 201,
           background: 'var(--bg-surface)',
-          borderRadius: 16,
-          border: '1px solid var(--border)',
+          borderRadius: 16, border: '1px solid var(--border)',
           boxShadow: '0 14px 48px rgba(0,0,0,0.55)',
           overflow: 'hidden',
           animation: 'slideDownNotif 0.2s ease',
@@ -136,38 +257,28 @@ export function NotificationsPanel() {
             borderBottom: '1px solid var(--border)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <button
-              onClick={dismissAll}
-              style={{
-                background: 'none', border: 'none',
-                fontSize: 11, color: 'var(--text-secondary)',
-                cursor: 'pointer', transition: 'color 0.15s',
-              }}
-              onMouseOver={e => (e.currentTarget.style.color = GOLD)}
-              onMouseOut={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
-            >נקה הכל</button>
-            <div style={{
-              fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
+            {unreadCount > 0 ? (
+              <button
+                onClick={dismissAll}
+                style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >נקה הכל</button>
+            ) : <span />}
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>התראות</span>
               {unreadCount > 0 && (
                 <span style={{
                   fontSize: 9, fontWeight: 800, color: '#fff',
                   background: '#ff4d4d', borderRadius: '50%',
-                  width: 18, height: 18,
+                  minWidth: 18, height: 18, padding: '0 4px',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{unreadCount}</span>
               )}
             </div>
           </div>
 
-          {/* Notification list */}
+          {/* List */}
           {unread.length === 0 ? (
-            <div style={{
-              padding: '32px 18px', textAlign: 'center',
-              color: 'var(--text-secondary)', fontSize: 13,
-            }}>
+            <div style={{ padding: '32px 18px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
               ✓ אין התראות חדשות
             </div>
           ) : (
@@ -176,7 +287,7 @@ export function NotificationsPanel() {
                 <div
                   key={n.id}
                   className="interactive"
-                  onClick={() => dismiss(n.id)}
+                  onClick={() => clickNotification(n)}
                   style={{
                     padding: '14px 18px',
                     borderBottom: i < unread.length - 1 ? '1px solid var(--divider)' : 'none',
@@ -186,18 +297,12 @@ export function NotificationsPanel() {
                 >
                   <div style={{
                     width: 7, height: 7, borderRadius: '50%',
-                    background: GOLD, flexShrink: 0, marginTop: 6,
+                    background: n.accentColor || GOLD, flexShrink: 0, marginTop: 6,
                   }} />
                   <div style={{ flex: 1, textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-                      {n.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      {n.body}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
-                      {n.date}
-                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{n.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{n.body}</div>
+                    {n.date && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{n.date}</div>}
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); dismiss(n.id); }}
@@ -205,7 +310,6 @@ export function NotificationsPanel() {
                       background: 'none', border: 'none',
                       color: 'var(--text-muted)', cursor: 'pointer',
                       fontSize: 18, lineHeight: 1, padding: '0 2px', flexShrink: 0,
-                      transition: 'color 0.15s',
                     }}
                     onMouseOver={e => (e.currentTarget.style.color = '#ff4d4d')}
                     onMouseOut={e => (e.currentTarget.style.color = 'var(--text-muted)')}
