@@ -9,7 +9,7 @@ import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import {
-  listInquiries, createInquiry, replyToInquiry, resolveInquiry, uploadFilesToInquiry,
+  listInquiries, createInquiry, replyToInquiry, resolveInquiry, uploadFilesToInquiry, parseReplyAuthor,
   type Inquiry,
 } from '../../../services/inquiriesApi';
 
@@ -278,17 +278,18 @@ export function AdminInquiriesScreen() {
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {inq.replies.map(r => {
-                      const isAdminReply = r.author.includes('Miller') || r.author.includes('הנהלת');
+                      const { name: authorName, isAdmin: isAdminReply } = parseReplyAuthor(r);
+                      // Admin's own replies on the right (mine), investor replies on the left
                       return (
                         <div key={r.id} style={{
-                          alignSelf: isAdminReply ? 'flex-start' : 'flex-end',
+                          alignSelf: isAdminReply ? 'flex-end' : 'flex-start',
                           maxWidth: '85%',
                           background: isAdminReply ? `${GOLD}15` : 'var(--bg-surface)',
                           border: `1px solid ${isAdminReply ? `${GOLD}33` : 'var(--border)'}`,
                           padding: '10px 12px', borderRadius: 12,
                         }}>
                           <div style={{ fontSize: 11, color: isAdminReply ? GOLD : 'var(--text-secondary)', marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
-                            {r.author} · {fmtDate(r.createdAt)}
+                            {authorName} · {fmtDate(r.createdAt)}
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--text-primary)', textAlign: 'right', lineHeight: 1.6 }}
                             dangerouslySetInnerHTML={{ __html: r.body }} />

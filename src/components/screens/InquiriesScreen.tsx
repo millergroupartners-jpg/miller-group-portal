@@ -9,7 +9,7 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { MGLogo } from '../common/MGLogo';
 import {
-  listInquiries, createInquiry, replyToInquiry, uploadFilesToInquiry,
+  listInquiries, createInquiry, replyToInquiry, uploadFilesToInquiry, parseReplyAuthor,
   type Inquiry,
 } from '../../services/inquiriesApi';
 
@@ -246,17 +246,18 @@ export function InquiriesScreen() {
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {inq.replies.map(r => {
-                      const isMe = r.author.includes(currentUser?.fullNameHe || '___') || r.author === currentUser?.fullNameHe;
+                      const { name: authorName, isAdmin } = parseReplyAuthor(r);
+                      const isMine = !isAdmin;
                       return (
                         <div key={r.id} style={{
-                          alignSelf: isMe ? 'flex-start' : 'flex-end',
+                          alignSelf: isMine ? 'flex-end' : 'flex-start',
                           maxWidth: '85%',
-                          background: isMe ? `${GOLD}15` : 'var(--bg-surface)',
-                          border: `1px solid ${isMe ? `${GOLD}33` : 'var(--border)'}`,
+                          background: isMine ? `${GOLD}15` : 'var(--bg-surface)',
+                          border: `1px solid ${isMine ? `${GOLD}33` : 'var(--border)'}`,
                           padding: '10px 12px', borderRadius: 12,
                         }}>
-                          <div style={{ fontSize: 11, color: isMe ? GOLD : 'var(--text-secondary)', marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
-                            {r.author} · {fmtDate(r.createdAt)}
+                          <div style={{ fontSize: 11, color: isMine ? GOLD : 'var(--text-secondary)', marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
+                            {authorName} · {fmtDate(r.createdAt)}
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--text-primary)', textAlign: 'right', lineHeight: 1.6 }}
                             dangerouslySetInnerHTML={{ __html: r.body }} />

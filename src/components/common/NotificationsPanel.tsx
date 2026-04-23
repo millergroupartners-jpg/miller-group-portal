@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useNavigation } from '../../context/NavigationContext';
-import { listInquiries, type Inquiry } from '../../services/inquiriesApi';
+import { listInquiries, parseReplyAuthor, type Inquiry } from '../../services/inquiriesApi';
 import type { MondayProperty } from '../../services/mondayApi';
 
 const GOLD = '#C9A84C';
@@ -36,11 +36,6 @@ function saveDismissed(ids: Set<string>) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids])); } catch {}
 }
 
-function isAdminAuthor(name: string): boolean {
-  if (!name) return false;
-  return /miller|הנהלת/i.test(name);
-}
-
 function fmtDateHe(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -62,10 +57,10 @@ function buildNotifications(opts: {
     if (inq.status === 'Resolved') continue;
 
     if (isAdmin) {
-      // Admin: new inquiries from investors (not yet resolved)
+      // Admin: any non-resolved inquiry from investors
       if (inq.direction === 'Investor→Management') {
-        // Latest reply from investor (or the inquiry itself if no replies)
-        const latestInvReply = [...inq.replies].reverse().find(r => !isAdminAuthor(r.author));
+        // Latest reply authored by the investor (functional author, parsed from body)
+        const latestInvReply = [...inq.replies].reverse().find(r => !parseReplyAuthor(r).isAdmin);
         const eventId = latestInvReply?.id ?? `${inq.id}-initial`;
         const isNew = inq.status === 'New';
         out.push({
@@ -83,23 +78,14 @@ function buildNotifications(opts: {
       // Investor: only my own inquiries
       if (inq.investorId !== investorMondayId) continue;
 
-      // Admin-initiated inquiry
-      if (inq.direction === 'Management→Investor') {
-        out.push({
-          id: `inq-${inq.id}-initial-admin`,
-          title: `פניה חדשה מההנהלה`,
-          body: inq.subject,
-          date: fmtDateHe(inq.createdAt),
-          target: { screen: 'inquiries' },
-          accentColor: GOLD,
-        });
-      }
-      // Admin replies on my inquiry
-      const latestAdminReply = [...inq.replies].reverse().find(r => isAdminAuthor(r.author));
+      // Latest reply authored by admin (parsed from body)
+      const latestAdminReply = [...inq.replies].reverse().find(r => parseReplyAuthor(r).isAdmin);
       if (latestAdminReply) {
         out.push({
           id: `inq-${inq.id}-reply-${latestAdminReply.id}`,
-          title: `תגובה חדשה מההנהלה`,
+          title: inq.direction === 'Management→Investor' && inq.replies[0]?.id === latestAdminReply.id
+            ? `פנייה חדשה מההנהלה`
+            : `תגובה חדשה מההנהלה`,
           body: inq.subject,
           date: fmtDateHe(latestAdminReply.createdAt),
           target: { screen: 'inquiries' },

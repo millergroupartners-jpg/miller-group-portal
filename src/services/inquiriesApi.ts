@@ -7,7 +7,20 @@ export interface InquiryReply {
   body: string;      // HTML from Monday update
   textBody: string;  // plain text
   createdAt: string;
-  author: string;
+  author: string;   // Monday creator name — NOT the functional author! Always use parseReplyAuthor()
+}
+
+/**
+ * Monday's `creator` on an update is the Monday user account that pushed it via
+ * the API (always the same for our single-token setup). The FUNCTIONAL author
+ * (who actually wrote the message in the portal) is embedded as a bold prefix
+ * in the body: `<b>Name:</b><br>message`. This helper reconstructs it.
+ */
+export function parseReplyAuthor(reply: InquiryReply): { name: string; isAdmin: boolean } {
+  const match = reply.body?.match(/<b>([^:<]+):<\/b>/);
+  const name = match ? match[1].trim() : (reply.author || '');
+  const isAdmin = /miller|הנהלת/i.test(name);
+  return { name, isAdmin };
 }
 
 export interface InquiryFile {
