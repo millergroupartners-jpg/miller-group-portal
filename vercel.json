@@ -1,5 +1,9 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/daily-alerts",    "schedule": "0 7 * * *" },
+    { "path": "/api/cron/investor-media",  "schedule": "15 7 * * *" }
   ]
 }
