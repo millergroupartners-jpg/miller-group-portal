@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
+import { useUser } from '../../context/UserContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { ProgressBar } from '../common/ProgressBar';
 import { PropPhoto } from '../common/PropPhoto';
@@ -47,6 +48,8 @@ interface PropertyDetailScreenProps {
 
 export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
+  const { currentUser } = useUser();
+  const isAdmin = Boolean(currentUser?.isAdmin);
   const { properties: mondayProperties, mgProperties } = useMondayData();
   const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'media'>('details');
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -159,38 +162,67 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             </div>
           )}
 
-          {/* Property management contact (read-only, from linked contact on contacts board) */}
-          {(mp.managerContactName || mp.managerCompanyName || mp.managerPhone || mp.managerEmail) && (
-            <div className="gold-card" style={{ padding: '14px', marginBottom: 14 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                marginBottom: 12, flexDirection: 'row-reverse',
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>חברת ניהול</span>
+          {/* Property management contact — always shown to admin (with edit link if empty),
+              shown to investor only if populated */}
+          {(() => {
+            const hasManagerData = Boolean(mp.managerContactName || mp.managerCompanyName || mp.managerPhone || mp.managerEmail);
+            if (!hasManagerData && !isAdmin) return null;
+
+            const mondayItemUrl = `https://real-estate-usa-eden.monday.com/boards/1997938102/pulses/${mp.mondayId}`;
+
+            return (
+              <div className="gold-card" style={{ padding: '14px', marginBottom: 14 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  marginBottom: 12, flexDirection: 'row-reverse',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>חברת ניהול</span>
+                </div>
+
+                {hasManagerData ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {mp.managerCompanyName && <ManagementRow label="שם החברה" value={mp.managerCompanyName} />}
+                    {mp.managerContactName && <ManagementRow label="איש קשר" value={mp.managerContactName} />}
+                    {mp.managerRole && <ManagementRow label="תפקיד" value={mp.managerRole} />}
+                    {mp.managerPhone && <ManagementRow label="טלפון" value={mp.managerPhone} href={`tel:${mp.managerPhone}`} />}
+                    {mp.managerEmail && <ManagementRow label="אימייל" value={mp.managerEmail} href={`mailto:${mp.managerEmail}`} />}
+                  </div>
+                ) : (
+                  // Admin-only empty state
+                  <div style={{
+                    background: 'var(--bg-chip)', borderRadius: 10, padding: '14px',
+                    display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch',
+                  }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right', lineHeight: 1.6 }}>
+                      לא הוגדרה חברת ניהול לנכס זה. כדי להוסיף, פתח את הפריט ב-Monday והגדר את עמודת <b>"מנהל הנכס"</b>.
+                    </div>
+                    <a
+                      href={mondayItemUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        textAlign: 'center',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        background: `${GOLD}18`,
+                        border: `1px solid ${GOLD}55`,
+                        color: GOLD,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      פתח ב-Monday להוספת מנהל ↗
+                    </a>
+                  </div>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {mp.managerCompanyName && (
-                  <ManagementRow label="שם החברה" value={mp.managerCompanyName} />
-                )}
-                {mp.managerContactName && (
-                  <ManagementRow label="איש קשר" value={mp.managerContactName} />
-                )}
-                {mp.managerRole && (
-                  <ManagementRow label="תפקיד" value={mp.managerRole} />
-                )}
-                {mp.managerPhone && (
-                  <ManagementRow label="טלפון" value={mp.managerPhone} href={`tel:${mp.managerPhone}`} />
-                )}
-                {mp.managerEmail && (
-                  <ManagementRow label="אימייל" value={mp.managerEmail} href={`mailto:${mp.managerEmail}`} />
-                )}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>
