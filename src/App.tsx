@@ -15,6 +15,7 @@ import { AdminInquiriesScreen } from './components/screens/admin/AdminInquiriesS
 import { InquiriesScreen } from './components/screens/InquiriesScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
+import { BottomTabBar } from './components/common/BottomTabBar';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
@@ -67,7 +68,10 @@ export default function App() {
     return (
       <div className="app-layout">
         <DesktopSidebar active={screen} />
-        {content}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+          {content}
+          <BottomTabBar active={screen} />
+        </div>
       </div>
     );
   }

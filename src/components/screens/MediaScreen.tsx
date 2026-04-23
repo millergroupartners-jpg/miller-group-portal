@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
-import { BottomTabBar } from '../common/BottomTabBar';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { MOCK_USER } from '../../data/user';
@@ -30,12 +29,18 @@ function formatDate(ts: number): string {
 
 export function MediaScreen() {
   const { currentUser } = useUser();
-  const { investors: mondayInvestors } = useMondayData();
+  const { investors: mondayInvestors, properties: allProperties, mgProperties } = useMondayData();
   const user = currentUser ?? MOCK_USER;
+  const isAdmin = Boolean(user.isAdmin);
 
   const mondayInvestor = user.mondayInvestorId
     ? mondayInvestors.find(inv => inv.mondayId === user.mondayInvestorId)
     : null;
+
+  // Admin sees ALL properties; investor sees only their linked ones.
+  const sourceProperties = isAdmin
+    ? [...allProperties, ...mgProperties]
+    : (mondayInvestor?.properties ?? []);
 
   const [mediaList, setMediaList] = useState<PropertyMedia[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,34 +50,27 @@ export function MediaScreen() {
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!mondayInvestor) return;
+    if (sourceProperties.length === 0) {
+      if (!isAdmin && !mondayInvestor) return; // investor not loaded yet
+      if (sourceProperties.length === 0) {
+        setError(isAdmin ? 'לא נמצאו נכסים במערכת' : 'לא נמצאו נכסים מקושרים למשקיע זה');
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
 
     (async () => {
       try {
-        console.log('[MediaScreen] investor properties:', mondayInvestor.properties);
-        console.log('[MediaScreen] CC token available:', Boolean(import.meta.env.VITE_COMPANYCAM_TOKEN));
-
-        if (mondayInvestor.properties.length === 0) {
-          setError('לא נמצאו נכסים מקושרים למשקיע זה');
-          setLoading(false);
-          return;
-        }
-
         const allProjects = await fetchAllCCProjects();
-        console.log('[MediaScreen] total CC projects fetched:', allProjects.length);
 
         // Match each property to a project
         const matched: PropertyMedia[] = [];
-        for (const prop of mondayInvestor.properties) {
-          console.log('[MediaScreen] trying to match:', prop.address);
+        for (const prop of sourceProperties) {
           const project = allProjects.find(p => addressMatchesProject(prop.address, p));
-          console.log('[MediaScreen] matched project:', project?.name ?? 'NONE');
           if (!project) continue;
           const photos = await fetchCCPhotos(project.id, 50);
-          console.log('[MediaScreen] photos for', prop.address, ':', photos.length);
           matched.push({ address: prop.address, city: prop.city, project, photos });
         }
         setMediaList(matched);
@@ -84,7 +82,7 @@ export function MediaScreen() {
         setLoading(false);
       }
     })();
-  }, [mondayInvestor?.mondayId]);
+  }, [isAdmin, mondayInvestor?.mondayId, sourceProperties.length]);
 
   const activeMedia = mediaList.find(m => m.address === selectedProperty) ?? mediaList[0];
 
@@ -171,15 +169,17 @@ export function MediaScreen() {
           </div>
         )}
 
-        {!loading && !error && !mondayInvestor && (
+        {!loading && !error && !isAdmin && !mondayInvestor && (
           <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-secondary)', fontSize: 13 }}>
             היכנס כמשקיע לצפות בתמונות
           </div>
         )}
 
-        {!loading && !error && mondayInvestor && mediaList.length === 0 && (
+        {!loading && !error && (isAdmin || mondayInvestor) && mediaList.length === 0 && (
           <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-secondary)', fontSize: 13 }}>
-            לא נמצאו תמונות בCompanyCam עבור הנכסים שלך
+            {isAdmin
+              ? 'לא נמצאו תמונות בCompanyCam עבור נכסי המערכת'
+              : 'לא נמצאו תמונות בCompanyCam עבור הנכסים שלך'}
           </div>
         )}
 
@@ -318,7 +318,6 @@ export function MediaScreen() {
         )}
       </div>
 
-      <BottomTabBar active="media" />
 
       {/* Lightbox */}
       {lightboxPhoto && activeMedia && (

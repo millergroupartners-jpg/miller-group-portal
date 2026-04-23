@@ -3,7 +3,6 @@ import { useNavigation } from '../../context/NavigationContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { ProgressBar } from '../common/ProgressBar';
 import { PropPhoto } from '../common/PropPhoto';
-import { BottomTabBar } from '../common/BottomTabBar';
 import { PROPERTIES } from '../../data/properties';
 import { FOLDERS } from '../../data/documents';
 import { useMondayData } from '../../context/MondayDataContext';
@@ -194,7 +193,6 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           )}
 
         </div>
-        <BottomTabBar active="dashboard" />
       </div>
     );
   }
@@ -370,7 +368,6 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
         )}
       </div>
 
-      <BottomTabBar active="property-detail" />
 
       {/* Lightbox */}
       {lightbox !== null && (

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
-import { BottomTabBar } from '../common/BottomTabBar';
 import { FOLDERS } from '../../data/documents';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
@@ -11,7 +10,7 @@ const GOLD = '#C9A84C';
 
 export function DocumentsScreen() {
   const { currentUser } = useUser();
-  const { investors: mondayInvestors } = useMondayData();
+  const { investors: mondayInvestors, properties: allProperties, mgProperties } = useMondayData();
   const user = currentUser ?? MOCK_USER;
   const [search, setSearch] = useState('');
 
@@ -19,12 +18,21 @@ export function DocumentsScreen() {
     ? mondayInvestors.find(inv => inv.mondayId === user.mondayInvestorId)
     : null;
 
-  // Build folder rows from Monday properties (only those with a Drive link)
-  const mondayFolders = (mondayInvestor?.properties ?? [])
-    .filter(p => p.docsUrl)
-    .filter(p => !search || p.address.toLowerCase().includes(search.toLowerCase()));
+  // Admin sees ALL properties (investor-owned + Miller Group own deals).
+  // Investor sees only their own linked properties.
+  const isAdmin = Boolean(user.isAdmin);
+  const sourceProperties = isAdmin
+    ? [...allProperties, ...mgProperties]
+    : (mondayInvestor?.properties ?? []);
 
-  const isMondayMode = Boolean(mondayInvestor);
+  const mondayFolders = sourceProperties
+    .filter(p => p.docsUrl)
+    .filter(p => !search
+      || p.address.toLowerCase().includes(search.toLowerCase())
+      || p.city.toLowerCase().includes(search.toLowerCase())
+    );
+
+  const isMondayMode = isAdmin || Boolean(mondayInvestor);
 
   // Static folders filtered by search
   const staticFolders = FOLDERS.filter(f =>
@@ -148,7 +156,6 @@ export function DocumentsScreen() {
         )}
       </div>
 
-      <BottomTabBar active="documents" />
     </div>
   );
 }

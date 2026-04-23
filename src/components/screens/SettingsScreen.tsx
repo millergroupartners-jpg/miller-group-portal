@@ -3,7 +3,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
-import { BottomTabBar } from '../common/BottomTabBar';
 import { MOCK_USER } from '../../data/user';
 
 const GOLD = '#C9A84C';
@@ -220,7 +219,6 @@ export function SettingsScreen() {
 
       </div>
 
-      <BottomTabBar active="settings" />
     </div>
   );
 }

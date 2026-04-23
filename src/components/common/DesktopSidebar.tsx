@@ -183,7 +183,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <MGLogo size={40} />
-        {isAdmin && <NotificationsPanel />}
+        <NotificationsPanel />
       </div>
 
       {/* "Back to admin menu" button — only when admin is in investor-style view */}

@@ -9,7 +9,7 @@ import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import {
-  listInquiries, createInquiry, replyToInquiry, resolveInquiry,
+  listInquiries, createInquiry, replyToInquiry, resolveInquiry, uploadFilesToUpdate,
   type Inquiry,
 } from '../../../services/inquiriesApi';
 
@@ -42,6 +42,7 @@ export function AdminInquiriesScreen() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [replyText, setReplyText] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [replying, setReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
@@ -51,6 +52,7 @@ export function AdminInquiriesScreen() {
   const [targetInvestorId, setTargetInvestorId] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -80,18 +82,22 @@ export function AdminInquiriesScreen() {
   }), [inquiries]);
 
   const handleReply = async (inq: Inquiry) => {
-    if (!replyText.trim() || !currentUser) return;
+    if ((!replyText.trim() && replyFiles.length === 0) || !currentUser) return;
     setReplying(true); setError(null);
     try {
-      await replyToInquiry({
+      const effectiveText = replyText.trim() || '(צירוף קובץ)';
+      const { updateId } = await replyToInquiry({
         inquiryId: inq.id,
-        message: replyText.trim(),
+        message: effectiveText,
         replyFrom: 'admin',
         investorName: inq.investorName,
         investorEmail: inq.investorEmail,
         subject: inq.subject,
       });
-      setReplyText('');
+      if (replyFiles.length > 0 && updateId) {
+        await uploadFilesToUpdate(updateId, replyFiles);
+      }
+      setReplyText(''); setReplyFiles([]);
       await refresh();
     } catch (e: any) {
       setError(e?.message || 'שליחה נכשלה');
@@ -118,7 +124,7 @@ export function AdminInquiriesScreen() {
     if (!inv || !newSubject.trim() || !newMessage.trim()) return;
     setSending(true); setError(null);
     try {
-      await createInquiry({
+      const { updateId } = await createInquiry({
         subject: newSubject.trim(),
         message: newMessage.trim(),
         investorId: inv.mondayId,
@@ -126,7 +132,10 @@ export function AdminInquiriesScreen() {
         investorEmail: inv.email,
         direction: 'admin-to-investor',
       });
-      setNewSubject(''); setNewMessage(''); setTargetInvestorId('');
+      if (newFiles.length > 0 && updateId) {
+        await uploadFilesToUpdate(updateId, newFiles);
+      }
+      setNewSubject(''); setNewMessage(''); setTargetInvestorId(''); setNewFiles([]);
       setComposeOpen(false);
       await refresh();
     } catch (e: any) {
@@ -270,15 +279,44 @@ export function AdminInquiriesScreen() {
                         />
                         <button
                           onClick={() => handleReply(inq)}
-                          disabled={replying || !replyText.trim()}
+                          disabled={replying || (!replyText.trim() && replyFiles.length === 0)}
                           style={{
                             background: GOLD, color: '#000', border: 'none',
                             padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                            cursor: replyText.trim() ? 'pointer' : 'not-allowed',
-                            opacity: replyText.trim() ? 1 : 0.5,
+                            cursor: 'pointer',
+                            opacity: (replyText.trim() || replyFiles.length > 0) ? 1 : 0.5,
                             whiteSpace: 'nowrap', alignSelf: 'flex-end',
                           }}
                         >{replying ? '...' : 'שלח'}</button>
+                      </div>
+                      {/* File attach for reply */}
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
+                        <label style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '6px 12px', borderRadius: 100, cursor: 'pointer',
+                          background: 'var(--bg-chip)', border: '1px solid var(--border)',
+                          fontSize: 11, color: 'var(--text-secondary)',
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                          </svg>
+                          צרף קובץ
+                          <input
+                            type="file"
+                            multiple
+                            onChange={e => setReplyFiles(Array.from(e.target.files || []))}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        {replyFiles.map((f, i) => (
+                          <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                            📎 {f.name}
+                            <span
+                              onClick={() => setReplyFiles(replyFiles.filter((_, j) => j !== i))}
+                              style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                            >×</span>
+                          </span>
+                        ))}
                       </div>
                       <button
                         onClick={() => handleResolve(inq)}
@@ -348,6 +386,35 @@ export function AdminInquiriesScreen() {
                 rows={6}
                 style={{ fontSize: 14, resize: 'vertical', minHeight: 120, fontFamily: 'var(--font-ui)' }}
               />
+              {/* File attach */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 100, cursor: 'pointer',
+                  background: 'var(--bg-chip)', border: '1px solid var(--border)',
+                  fontSize: 12, color: 'var(--text-secondary)',
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                  צרף קובץ / תמונה
+                  <input
+                    type="file"
+                    multiple
+                    onChange={e => setNewFiles(Array.from(e.target.files || []))}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {newFiles.map((f, i) => (
+                  <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                    📎 {f.name}
+                    <span
+                      onClick={() => setNewFiles(newFiles.filter((_, j) => j !== i))}
+                      style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                    >×</span>
+                  </span>
+                ))}
+              </div>
               {error && <div style={{ fontSize: 12, color: '#ff6b6b' }}>{error}</div>}
             </div>
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexDirection: 'row-reverse' }}>

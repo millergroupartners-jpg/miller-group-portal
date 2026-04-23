@@ -3,7 +3,6 @@ import { MGLogo } from '../common/MGLogo';
 import { StatusBadge } from '../common/StatusBadge';
 import { ProgressBar } from '../common/ProgressBar';
 import { PropPhoto } from '../common/PropPhoto';
-import { BottomTabBar } from '../common/BottomTabBar';
 import { PROPERTIES } from '../../data/properties';
 import { MOCK_USER } from '../../data/user';
 import { useUser } from '../../context/UserContext';
@@ -238,7 +237,6 @@ export function DashboardScreen() {
         ))}
       </div>
 
-      <BottomTabBar active="dashboard" />
     </div>
   );
 }

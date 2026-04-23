@@ -9,7 +9,7 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { MGLogo } from '../common/MGLogo';
 import {
-  listInquiries, createInquiry, replyToInquiry,
+  listInquiries, createInquiry, replyToInquiry, uploadFilesToUpdate,
   type Inquiry,
 } from '../../services/inquiriesApi';
 
@@ -34,7 +34,12 @@ function fmtDate(iso: string): string {
 
 export function InquiriesScreen() {
   const { currentUser } = useUser();
-  const { properties } = useMondayData();
+  const { investors: mondayInvestors } = useMondayData();
+
+  // Properties the investor actually owns (for the property dropdown)
+  const myProperties = currentUser?.mondayInvestorId
+    ? (mondayInvestors.find(i => i.mondayId === currentUser.mondayInvestorId)?.properties ?? [])
+    : [];
 
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,11 +50,13 @@ export function InquiriesScreen() {
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [newProperty, setNewProperty] = useState('');
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Reply state
   const [replyText, setReplyText] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [replying, setReplying] = useState(false);
 
   const investorMondayId = currentUser?.mondayInvestorId || '';
@@ -73,7 +80,7 @@ export function InquiriesScreen() {
     if (!newSubject.trim() || !newMessage.trim() || !currentUser) return;
     setSending(true); setError(null);
     try {
-      await createInquiry({
+      const { updateId } = await createInquiry({
         subject: newSubject.trim(),
         message: newMessage.trim(),
         investorId: investorMondayId,
@@ -82,7 +89,10 @@ export function InquiriesScreen() {
         property: newProperty,
         direction: 'investor-to-admin',
       });
-      setNewSubject(''); setNewMessage(''); setNewProperty('');
+      if (newFiles.length > 0 && updateId) {
+        await uploadFilesToUpdate(updateId, newFiles);
+      }
+      setNewSubject(''); setNewMessage(''); setNewProperty(''); setNewFiles([]);
       setComposeOpen(false);
       await refresh();
     } catch (e: any) {
@@ -93,18 +103,22 @@ export function InquiriesScreen() {
   };
 
   const handleReply = async (inq: Inquiry) => {
-    if (!replyText.trim() || !currentUser) return;
+    if ((!replyText.trim() && replyFiles.length === 0) || !currentUser) return;
     setReplying(true); setError(null);
     try {
-      await replyToInquiry({
+      const effectiveText = replyText.trim() || '(צירוף קובץ)';
+      const { updateId } = await replyToInquiry({
         inquiryId: inq.id,
-        message: replyText.trim(),
+        message: effectiveText,
         replyFrom: 'investor',
         investorName: currentUser.fullNameHe,
         investorEmail: currentUser.email,
         subject: inq.subject,
       });
-      setReplyText('');
+      if (replyFiles.length > 0 && updateId) {
+        await uploadFilesToUpdate(updateId, replyFiles);
+      }
+      setReplyText(''); setReplyFiles([]);
       await refresh();
     } catch (e: any) {
       setError(e?.message || 'שליחה נכשלה');
@@ -222,26 +236,57 @@ export function InquiriesScreen() {
 
                   {/* Reply input */}
                   {inq.status !== 'Resolved' && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 14, flexDirection: 'row-reverse' }}>
-                      <input
-                        value={replyText}
-                        onChange={e => setReplyText(e.target.value)}
-                        placeholder="כתוב תגובה..."
-                        className="mg-input"
-                        style={{ fontSize: 13, padding: '10px 14px', flex: 1 }}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(inq); } }}
-                      />
-                      <button
-                        onClick={() => handleReply(inq)}
-                        disabled={replying || !replyText.trim()}
-                        style={{
-                          background: GOLD, color: '#000', border: 'none',
-                          padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                          cursor: replyText.trim() ? 'pointer' : 'not-allowed',
-                          opacity: replyText.trim() ? 1 : 0.5,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >{replying ? '...' : 'שלח'}</button>
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ display: 'flex', gap: 8, flexDirection: 'row-reverse' }}>
+                        <input
+                          value={replyText}
+                          onChange={e => setReplyText(e.target.value)}
+                          placeholder="כתוב תגובה..."
+                          className="mg-input"
+                          style={{ fontSize: 13, padding: '10px 14px', flex: 1 }}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(inq); } }}
+                        />
+                        <button
+                          onClick={() => handleReply(inq)}
+                          disabled={replying || (!replyText.trim() && replyFiles.length === 0)}
+                          style={{
+                            background: GOLD, color: '#000', border: 'none',
+                            padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                            cursor: 'pointer',
+                            opacity: (replyText.trim() || replyFiles.length > 0) ? 1 : 0.5,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >{replying ? '...' : 'שלח'}</button>
+                      </div>
+                      {/* File attach */}
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
+                        <label style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '6px 12px', borderRadius: 100, cursor: 'pointer',
+                          background: 'var(--bg-chip)', border: '1px solid var(--border)',
+                          fontSize: 11, color: 'var(--text-secondary)',
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                          </svg>
+                          צרף קובץ
+                          <input
+                            type="file"
+                            multiple
+                            onChange={e => setReplyFiles(Array.from(e.target.files || []))}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        {replyFiles.map((f, i) => (
+                          <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                            📎 {f.name}
+                            <span
+                              onClick={() => setReplyFiles(replyFiles.filter((_, j) => j !== i))}
+                              style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                            >×</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {inq.status === 'Resolved' && (
@@ -278,7 +323,7 @@ export function InquiriesScreen() {
                 className="mg-input"
                 style={{ fontSize: 14 }}
               />
-              {properties.length > 0 && (
+              {myProperties.length > 0 && (
                 <select
                   value={newProperty}
                   onChange={e => setNewProperty(e.target.value)}
@@ -286,7 +331,7 @@ export function InquiriesScreen() {
                   style={{ fontSize: 14, appearance: 'none' }}
                 >
                   <option value="">ללא נכס ספציפי (אופציונלי)</option>
-                  {properties.map(p => (
+                  {myProperties.map(p => (
                     <option key={p.mondayId} value={`${p.address}, ${p.city}`}>
                       {p.address}, {p.city}
                     </option>
@@ -301,6 +346,37 @@ export function InquiriesScreen() {
                 rows={6}
                 style={{ fontSize: 14, resize: 'vertical', minHeight: 120, fontFamily: 'var(--font-ui)' }}
               />
+
+              {/* File attach */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 100, cursor: 'pointer',
+                  background: 'var(--bg-chip)', border: '1px solid var(--border)',
+                  fontSize: 12, color: 'var(--text-secondary)',
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                  צרף קובץ / תמונה
+                  <input
+                    type="file"
+                    multiple
+                    onChange={e => setNewFiles(Array.from(e.target.files || []))}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {newFiles.map((f, i) => (
+                  <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                    📎 {f.name}
+                    <span
+                      onClick={() => setNewFiles(newFiles.filter((_, j) => j !== i))}
+                      style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                    >×</span>
+                  </span>
+                ))}
+              </div>
+
               {error && <div style={{ fontSize: 12, color: '#ff6b6b' }}>{error}</div>}
             </div>
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexDirection: 'row-reverse' }}>

@@ -74,7 +74,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ) { id }
       }
     `;
-    await mondayQuery(updateMutation).catch(() => {}); // don't fail the whole request if update fails
+    let updateId = '';
+    try {
+      const updRes = await mondayQuery<{ create_update: { id: string } }>(updateMutation);
+      updateId = updRes?.create_update?.id ?? '';
+    } catch {}
 
     // Send email notification
     const adminEmail = process.env.GMAIL_USER!;
@@ -84,7 +88,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (direction === 'investor-to-admin') {
         await sendMail({
           to: adminEmail,
-          replyTo: investorEmail,
           subject: `פנייה חדשה מאת ${investorName} — ${inquiryNumber}`,
           html: wrapEmail({
             title: `פנייה חדשה — ${inquiryNumber}`,
@@ -95,9 +98,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <div style="background:#faf7f2;padding:14px;border-radius:10px;border-right:3px solid ${'#C9A84C'};">
                 ${messageBody}
               </div>
-              <p style="margin-top:16px;font-size:12px;color:#888;">כדי להגיב, השב למייל זה (Reply) או פתח את הפורטל.</p>
+              <p style="margin-top:20px;padding:12px;background:#fff8e1;border-right:3px solid #ff9800;border-radius:8px;font-size:12px;color:#8a6a28;">
+                ⚠️ <b>חשוב:</b> אנא השב רק דרך הפורטל — תגובה למייל זה לא תסתנכרן למערכת.
+              </p>
             `,
-            cta: { label: 'פתח את הפורטל', url: `${process.env.PORTAL_URL || 'https://miller-group-portal.vercel.app'}` },
+            cta: { label: 'הגב בפורטל', url: `${process.env.PORTAL_URL || 'https://miller-group-portal.vercel.app'}` },
           }),
         });
       } else {
@@ -114,6 +119,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <div style="background:#faf7f2;padding:14px;border-radius:10px;border-right:3px solid #C9A84C;">
                 ${messageBody}
               </div>
+              <p style="margin-top:20px;padding:12px;background:#fff8e1;border-right:3px solid #ff9800;border-radius:8px;font-size:12px;color:#8a6a28;">
+                ⚠️ <b>חשוב:</b> כדי להגיב, היכנס לפורטל. תגובה למייל זה לא תסתנכרן למערכת.
+              </p>
             `,
             cta: { label: 'הגב בפורטל', url: `${process.env.PORTAL_URL || 'https://miller-group-portal.vercel.app'}` },
           }),
@@ -128,6 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       inquiryId,
       inquiryNumber,
+      updateId,
     });
   } catch (err: any) {
     console.error('create-inquiry error:', err);
