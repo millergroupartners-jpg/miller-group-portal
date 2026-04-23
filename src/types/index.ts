@@ -56,6 +56,8 @@ export interface NavState {
   highlightClosingMode?: 'week' | 'overdue';
   /** When navigating to admin-investors from an alert, highlight these investors */
   highlightInvestorMode?: 'no-password';
+  /** When navigating to admin-properties from an alert, highlight these properties */
+  highlightPropertyMode?: 'no-manager';
 }
 
 export interface Investor {

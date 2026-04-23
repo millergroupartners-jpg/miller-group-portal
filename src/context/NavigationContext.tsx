@@ -3,7 +3,7 @@ import type { Screen, NavState } from '../types';
 
 interface NavigationContextValue {
   navState: NavState;
-  navigate: (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue'; highlightInvestorMode?: 'no-password' }) => void;
+  navigate: (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue'; highlightInvestorMode?: 'no-password'; highlightPropertyMode?: 'no-manager' }) => void;
   goBack: () => void;
   resetTo: (screen: Screen) => void;
 }
@@ -22,7 +22,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   const current = stack[stack.length - 1];
 
-  const navigate = (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue'; highlightInvestorMode?: 'no-password' }) => {
+  const navigate = (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue'; highlightInvestorMode?: 'no-password'; highlightPropertyMode?: 'no-manager' }) => {
     setStack(s => [...s, {
       screen,
       selectedPropertyId: opts?.propertyId ?? null,
@@ -30,6 +30,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       investorName: opts?.investorName,
       highlightClosingMode: opts?.highlightClosingMode,
       highlightInvestorMode: opts?.highlightInvestorMode,
+      highlightPropertyMode: opts?.highlightPropertyMode,
       direction: 'forward',
     }]);
   };

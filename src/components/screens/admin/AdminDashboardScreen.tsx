@@ -25,7 +25,7 @@ function fmtUSD(n: number): string {
 export function AdminDashboardScreen() {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
-  const { investors, properties, loading, hasToken } = useMondayData();
+  const { investors, properties, mgProperties, loading, hasToken } = useMondayData();
 
   // Aggregate metrics
   const totalAllIn   = properties.reduce((s, p) => s + p.allIn, 0);
@@ -72,6 +72,13 @@ export function AdminDashboardScreen() {
     if (isNaN(d.getTime())) return false;
     d.setHours(0, 0, 0, 0);
     return d < today && STALE_STATUSES.includes(p.status);
+  });
+
+  // Properties in late-stage statuses that still have no property manager linked
+  const NEEDS_MANAGER_STATUSES = ['מעבר לניהול', 'מרקט', 'מושכר'];
+  const propertiesMissingManager = [...properties, ...mgProperties].filter(p => {
+    if (!NEEDS_MANAGER_STATUSES.includes(p.status)) return false;
+    return !(p.managerContactName || p.managerCompanyName || p.managerPhone || p.managerEmail);
   });
 
   return (
@@ -123,7 +130,7 @@ export function AdminDashboardScreen() {
         </div>
 
         {/* Health alerts */}
-        {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0 || overdueProperties.length > 0) && (
+        {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0 || overdueProperties.length > 0 || propertiesMissingManager.length > 0) && (
           <div className="gold-card" style={{ padding: '14px 18px', borderRight: '3px solid #ff9800' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexDirection: 'row-reverse' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" strokeWidth="2" strokeLinecap="round">
@@ -174,6 +181,20 @@ export function AdminDashboardScreen() {
                 >
                   <span style={{ color: '#ff4d4d', fontWeight: 700 }}>{overdueProperties.length}</span>
                   <span>נכסים שעברו תאריך סגירה ועדיין בחוזה / הלוואה →</span>
+                </div>
+              )}
+              {propertiesMissingManager.length > 0 && (
+                <div
+                  className="interactive"
+                  onClick={() => navigate('admin-properties', { highlightPropertyMode: 'no-manager' })}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', background: 'rgba(255,77,77,0.08)', borderRadius: 8,
+                    cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                  }}
+                >
+                  <span style={{ color: '#ff4d4d', fontWeight: 700 }}>{propertiesMissingManager.length}</span>
+                  <span>נכסים בניהול / מרקט / מושכר ללא חברת ניהול →</span>
                 </div>
               )}
             </div>

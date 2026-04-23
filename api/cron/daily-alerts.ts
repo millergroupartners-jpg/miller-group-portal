@@ -25,8 +25,10 @@ const MG_DEALS_GROUP       = 'group_mkw9are4';
 const RENTAL_STATUS_COL    = 'color_mm1fv8p0';
 const CLOSING_DATE_COL     = 'date_mkrz2xsg';
 const INVESTOR_REL_COL     = 'board_relation_mkrzrtny';
+const MANAGER_REL_COL      = 'board_relation_mm219qy1';  // "מנהל הנכס" → contacts board
 
-const STALE_STATUSES = ['על חוזה', 'בשלבי הלוואה וחתימות'];
+const STALE_STATUSES         = ['על חוזה', 'בשלבי הלוואה וחתימות'];
+const NEEDS_MANAGER_STATUSES = ['מעבר לניהול', 'מרקט', 'מושכר'];
 
 interface RawItem {
   id: string;
@@ -76,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name
             updated_at
             group { id title }
-            column_values(ids: ["${RENTAL_STATUS_COL}", "${CLOSING_DATE_COL}", "${INVESTOR_REL_COL}"]) {
+            column_values(ids: ["${RENTAL_STATUS_COL}", "${CLOSING_DATE_COL}", "${INVESTOR_REL_COL}", "${MANAGER_REL_COL}"]) {
               id
               text
               value
@@ -130,12 +132,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const overdueStale: Array<{ name: string; status: string; date: string; days: number; investorName: string }> = [];
     const upcomingClosings: Array<{ name: string; status: string; date: string; days: number; investorName: string; isMg: boolean }> = [];
     const mgRecentActivity: Array<{ name: string; status: string; updatedAt: string }> = [];
+    const missingManager: Array<{ name: string; status: string; investorName: string; isMg: boolean }> = [];
 
     for (const item of items) {
       const cols = Object.fromEntries(item.column_values.map(c => [c.id, c]));
       const status    = cols[RENTAL_STATUS_COL]?.text || '';
       const closing   = cols[CLOSING_DATE_COL]?.text || '';
       const linkedInv = cols[INVESTOR_REL_COL]?.linked_items?.[0]?.name || '';
+      const linkedMgr = cols[MANAGER_REL_COL]?.linked_items?.[0]?.id || '';
       const days = daysBetween(closing, now);
       const isMg = item.group?.id === MG_DEALS_GROUP;
 
@@ -156,6 +160,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           mgRecentActivity.push({ name: item.name, status, updatedAt: item.updated_at });
         }
       }
+
+      // D. Late-stage status (management/market/rented) with no manager linked
+      if (NEEDS_MANAGER_STATUSES.includes(status) && !linkedMgr) {
+        missingManager.push({ name: item.name, status, investorName: linkedInv, isMg });
+      }
     }
 
     // Sort upcoming closings by date ascending
@@ -167,7 +176,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
 
-    const totalAlerts = overdueStale.length + upcomingClosings.length + mgRecentActivity.length + openInquiries.length;
+    const totalAlerts = overdueStale.length + upcomingClosings.length + mgRecentActivity.length + openInquiries.length + missingManager.length;
 
     if (totalAlerts === 0) {
       return res.status(200).json({ ok: true, sent: false, reason: 'No alerts today' });
@@ -241,6 +250,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>`);
     }
 
+    if (missingManager.length > 0) {
+      sections.push(`
+        <div style="margin-bottom:20px;">
+          <div style="font-weight:700;font-size:14px;color:#ff4d4d;margin-bottom:8px;border-right:3px solid #ff4d4d;padding-right:10px;">
+            🏢 נכסים בניהול / מרקט / מושכר ללא חברת ניהול מקושרת (${missingManager.length})
+          </div>
+          ${missingManager.map(x => `
+            <div style="background:rgba(255,77,77,0.06);border:1px solid rgba(255,77,77,0.25);padding:10px 12px;border-radius:8px;margin-bottom:6px;">
+              ${x.isMg ? '<span style="background:#C9A84C;color:#000;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">MG</span>' : ''}
+              <b>${esc(x.name)}</b> — סטטוס: <span style="color:#ff4d4d;">${esc(x.status)}</span>
+              ${x.investorName ? `<br><span style="font-size:12px;color:#888;">${esc(x.investorName)}</span>` : ''}
+            </div>`).join('')}
+        </div>`);
+    }
+
     const adminEmail = (process.env.GMAIL_USER || '').trim();
     await sendMail({
       to: adminEmail,
@@ -262,6 +286,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       overdueStale: overdueStale.length,
       upcomingClosings: upcomingClosings.length,
       mgRecentActivity: mgRecentActivity.length,
+      missingManager: missingManager.length,
+      openInquiries: openInquiries.length,
     });
   } catch (err: any) {
     console.error('daily-alerts cron error:', err);

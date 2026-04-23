@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
@@ -8,15 +8,26 @@ import { PropPhoto } from '../../common/PropPhoto';
 import { useCCThumbnail } from '../../../hooks/useCCThumbnail';
 import type { MondayProperty } from '../../../services/mondayApi';
 
+const NEEDS_MANAGER_STATUSES = ['מעבר לניהול', 'מרקט', 'מושכר'];
+function needsManager(p: MondayProperty): boolean {
+  return NEEDS_MANAGER_STATUSES.includes(p.status)
+    && !(p.managerContactName || p.managerCompanyName || p.managerPhone || p.managerEmail);
+}
+
 const GOLD = '#C9A84C';
 
-const STATUS_FILTERS = ['הכל', 'על חוזה', 'בשלבי הלוואה וחתימות', 'בשיפוץ', 'מעבר לניהול', 'מרקט', 'מושכר'];
+const STATUS_FILTERS = ['הכל', 'חסר מנהל', 'על חוזה', 'בשלבי הלוואה וחתימות', 'בשיפוץ', 'מעבר לניהול', 'מרקט', 'מושכר'];
 
-function Card({ p, i }: { p: MondayProperty; i: number }) {
+function Card({ p, i, flash }: { p: MondayProperty; i: number; flash?: boolean }) {
   const thumb = useCCThumbnail(p.address);
   const { navigate } = useNavigation();
   return (
-    <div className="gold-card" style={{ cursor: 'pointer' }} onClick={() => navigate('property-detail', { propertyId: p.mondayId })}>
+    <div
+      className={`gold-card${flash ? ' flash-highlight' : ''}`}
+      data-flash={flash ? 'true' : undefined}
+      style={{ cursor: 'pointer' }}
+      onClick={() => navigate('property-detail', { propertyId: p.mondayId })}
+    >
       <div style={{ position: 'relative' }}>
         <PropPhoto index={i} heightRatio={48} photoUrl={thumb} />
         <div style={{
@@ -70,12 +81,28 @@ function Card({ p, i }: { p: MondayProperty; i: number }) {
 }
 
 export function AdminPropertiesScreen() {
-  const { properties, loading } = useMondayData();
-  const [statusFilter, setStatusFilter] = useState('הכל');
+  const { properties, mgProperties, loading } = useMondayData();
+  const { navState } = useNavigation();
+  const highlightMode = navState.highlightPropertyMode;
+  const [statusFilter, setStatusFilter] = useState<string>(() =>
+    highlightMode === 'no-manager' ? 'חסר מנהל' : 'הכל',
+  );
   const [search, setSearch] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const filtered = properties.filter(p => {
-    if (statusFilter !== 'הכל' && p.status !== statusFilter) return false;
+  // When admin came in from the "missing manager" alert, also include MG properties
+  // so they can fix them from one screen.
+  const allProperties: MondayProperty[] = useMemo(
+    () => highlightMode === 'no-manager' ? [...properties, ...mgProperties] : properties,
+    [properties, mgProperties, highlightMode],
+  );
+
+  const filtered = allProperties.filter(p => {
+    if (statusFilter === 'חסר מנהל') {
+      if (!needsManager(p)) return false;
+    } else if (statusFilter !== 'הכל' && p.status !== statusFilter) {
+      return false;
+    }
     if (search) {
       const s = search.toLowerCase();
       return p.address.toLowerCase().includes(s) ||
@@ -84,6 +111,24 @@ export function AdminPropertiesScreen() {
     }
     return true;
   });
+
+  // Set of property IDs to flash when we arrive from the alert
+  const flashIds = useMemo(() => {
+    if (highlightMode !== 'no-manager') return new Set<string>();
+    return new Set(allProperties.filter(needsManager).map(p => p.mondayId));
+  }, [highlightMode, allProperties]);
+
+  // Scroll to first flashed card after the list renders
+  useEffect(() => {
+    if (flashIds.size === 0) return;
+    const t = window.setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const first = container.querySelector('[data-flash="true"]') as HTMLElement | null;
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [flashIds.size]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
@@ -129,7 +174,7 @@ export function AdminPropertiesScreen() {
         ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 20px' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 20px' }}>
         {loading && <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0' }}>⏳ טוען...</div>}
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, padding: '40px 0' }}>
@@ -137,7 +182,9 @@ export function AdminPropertiesScreen() {
           </div>
         )}
         <div className="property-grid" style={{ padding: 0 }}>
-          {filtered.map((p, i) => <Card key={p.mondayId} p={p} i={i} />)}
+          {filtered.map((p, i) => (
+            <Card key={p.mondayId} p={p} i={i} flash={flashIds.has(p.mondayId)} />
+          ))}
         </div>
       </div>
     </div>
