@@ -71,7 +71,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 text
                 value
                 ... on BoardRelationValue { linked_items { id name } }
-                ... on StatusValue { label { style { color } } }
               }
             }
           }

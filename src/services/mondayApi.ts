@@ -30,6 +30,7 @@ const COL = {
   rent:           'numeric_mkrzdr4k',         // "שכ״ד חזוי ($)"
   docs:           'file_mkrzdfq3',            // "מסמכים" — Google Drive link
   manager:        'board_relation_mm219qy1', // "מנהל הנכס" — board_relation → contacts board
+  lockbox:        'text_mkxk3v6b',            // "lockbox code"
 } as const;
 
 // Column IDs on the contacts board (1997938116)
@@ -103,6 +104,9 @@ export interface MondayProperty {
   managerEmail: string;
   /** Management company name */
   managerCompanyName: string;
+
+  /** Lockbox code — how to enter the property (key location / code). Shown in details tab. */
+  lockboxCode: string;
 }
 
 export interface MondayInvestor {
@@ -275,6 +279,7 @@ function transformRawProperty(item: RawItem): MondayProperty {
     managerPhone:       '',
     managerEmail:       '',
     managerCompanyName: '',
+    lockboxCode:        cols[COL.lockbox]?.text ?? '',
   };
 }
 
@@ -314,7 +319,7 @@ const PROPERTY_COLUMN_IDS = [
   COL.investor, COL.rentalStatus, COL.loanStatus, COL.closingDate,
   COL.purchaseClient, COL.renovClient,
   COL.closingCosts, COL.arv, COL.rent, COL.docs,
-  COL.manager,
+  COL.manager, COL.lockbox,
 ].map(id => `"${id}"`).join(', ');
 
 const INVESTOR_COLUMN_IDS = [

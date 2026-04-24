@@ -127,6 +127,19 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           </div>
         )}
 
+        {mp.lockboxCode && (
+          <div style={{
+            background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 10,
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', direction: 'ltr', letterSpacing: 1 }}>
+              🔑 {mp.lockboxCode}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>Lockbox code</span>
+          </div>
+        )}
+
         {(roi || equity) && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             {[{ label: 'ROI', value: roi ?? '—' }, { label: 'Equity', value: equity ?? '—' }].map(s => (
