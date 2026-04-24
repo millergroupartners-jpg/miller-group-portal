@@ -21,7 +21,9 @@ const COL = {
   loanStatus:     'color_mkvj438f',           // "סטטוס הלוואה"
   closingDate:    'date_mkrz2xsg',            // "תאריך סגירה"
   purchaseClient: 'numeric_mkrzmmy',          // "רכישה ללקוח ($)"
+  purchaseOur:    'numeric_mkvj3q7z',         // "רכישה שלנו ($)"  ADMIN-ONLY
   renovClient:    'numeric_mkrzk78b',         // "שיפוץ ללקוח ($)"
+  renovOur:       'numeric_mkvjrbnp',         // "שיפוץ שלנו ($)"  ADMIN-ONLY
   closingCosts:   'numeric_mks3rebm',         // "עלויות סגירה ($)"
   // allIn is computed: purchaseClient + renovClient + closingCosts (formula col returns null)
   arv:            'numeric_mkrzjtsd',         // "ARV ($)"
@@ -610,4 +612,69 @@ export async function fetchMillerGroupProperties(): Promise<MondayProperty[]> {
   const properties = raw.map(transformRawProperty);
   await enrichPropertiesWithManagers(properties);
   return properties;
+}
+
+/**
+ * Fetch per-property profit margin data (purchase profit, renovation profit, total).
+ *
+ * ADMIN-ONLY. Call this only from admin surfaces (AdminClosingsScreen,
+ * AdminRenovationsScreen, etc). Never render the returned values in any view
+ * the investor could reach — they reveal our internal margins on purchases and
+ * renovations, which must stay hidden per business policy.
+ *
+ * Returns a map keyed by property Monday item id.
+ */
+export interface PropertyProfit {
+  purchaseClient: number;  // רכישה ללקוח
+  purchaseOur:    number;  // רכישה שלנו   (admin-only)
+  renovClient:    number;  // שיפוץ ללקוח
+  renovOur:       number;  // שיפוץ שלנו   (admin-only)
+  purchaseProfit: number;  // clientCost - ourCost
+  renovProfit:    number;
+  totalProfit:    number;
+}
+
+export async function fetchPropertyProfits(propertyIds: string[]): Promise<Record<string, PropertyProfit>> {
+  if (propertyIds.length === 0) return {};
+
+  // Monday accepts up to ~100 ids per items() query — chunk defensively.
+  const CHUNK = 80;
+  const chunks: string[][] = [];
+  for (let i = 0; i < propertyIds.length; i += CHUNK) chunks.push(propertyIds.slice(i, i + CHUNK));
+
+  const colIds = [COL.purchaseClient, COL.purchaseOur, COL.renovClient, COL.renovOur]
+    .map(id => `"${id}"`).join(',');
+
+  const out: Record<string, PropertyProfit> = {};
+
+  for (const chunk of chunks) {
+    const idList = chunk.join(',');
+    const query = `query {
+      items(ids: [${idList}]) {
+        id
+        column_values(ids: [${colIds}]) { id text value }
+      }
+    }`;
+    try {
+      const data = await mondayQuery<{ items: { id: string; column_values: RawColumnValue[] }[] }>(query);
+      for (const it of data.items ?? []) {
+        const map = toColMap(it.column_values);
+        const purchaseClient = num(map[COL.purchaseClient]);
+        const purchaseOur    = num(map[COL.purchaseOur]);
+        const renovClient    = num(map[COL.renovClient]);
+        const renovOur       = num(map[COL.renovOur]);
+        const purchaseProfit = purchaseClient - purchaseOur;
+        const renovProfit    = renovClient    - renovOur;
+        out[it.id] = {
+          purchaseClient, purchaseOur, renovClient, renovOur,
+          purchaseProfit, renovProfit,
+          totalProfit: purchaseProfit + renovProfit,
+        };
+      }
+    } catch (err) {
+      console.error('fetchPropertyProfits chunk failed:', err);
+    }
+  }
+
+  return out;
 }

@@ -3,7 +3,7 @@ import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import { StatusBadge } from '../../common/StatusBadge';
-import { fetchMillerGroupProperties, type MondayProperty } from '../../../services/mondayApi';
+import { fetchMillerGroupProperties, fetchPropertyProfits, type MondayProperty, type PropertyProfit } from '../../../services/mondayApi';
 
 const GOLD = '#C9A84C';
 
@@ -44,6 +44,11 @@ export function AdminClosingsScreen() {
   const { properties } = useMondayData();
   const [mgProps, setMgProps] = useState<MondayProperty[]>([]);
   const [loadingMg, setLoadingMg] = useState(false);
+  /**
+   * Purchase-side profit per property. ADMIN-ONLY data. Keyed by Monday item id.
+   * Never rendered outside this admin screen.
+   */
+  const [profits, setProfits] = useState<Record<string, PropertyProfit>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Also fetch MG deals so closings include both
@@ -56,6 +61,17 @@ export function AdminClosingsScreen() {
       .finally(() => { if (!cancelled) setLoadingMg(false); });
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch admin-only purchase profit per property as soon as the list is known
+  useEffect(() => {
+    const ids = [...properties, ...mgProps].map(p => p.mondayId).filter(Boolean);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    fetchPropertyProfits(ids)
+      .then(map => { if (!cancelled) setProfits(map); })
+      .catch(err => console.error('closings profit fetch failed:', err));
+    return () => { cancelled = true; };
+  }, [properties, mgProps]);
 
   const allWithDates = useMemo(() => {
     const combined = [
@@ -118,6 +134,32 @@ export function AdminClosingsScreen() {
         {loadingMg && (
           <div style={{ textAlign: 'center', color: GOLD, fontSize: 12 }}>⏳ טוען עסקאות Miller Group...</div>
         )}
+
+        {/* Admin-only upcoming-closings profit summary. Sums purchase profit for
+            investor deals closing in next 30 days (excludes MG own deals). */}
+        {(() => {
+          const upcoming = allWithDates.filter(x => !(x.p as any)._isMg && x.days !== null && x.days >= 0 && x.days <= 30);
+          const totalUpcomingProfit = upcoming.reduce((s, x) => s + (profits[x.p.mondayId]?.purchaseProfit || 0), 0);
+          if (totalUpcomingProfit === 0) return null;
+          return (
+            <div className="gold-card" style={{
+              padding: 14, display: 'flex', flexDirection: 'row-reverse', alignItems: 'center',
+              justifyContent: 'space-between', gap: 12,
+            }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: 0.5, marginBottom: 2 }}>
+                  💰 רווח רכישה צפוי · 30 ימים הקרובים
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#4CAF50' }}>
+                  ${totalUpcomingProfit.toLocaleString('en-US')}
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'left' }}>
+                ADMIN ONLY<br/>{upcoming.length} עסקאות
+              </div>
+            </div>
+          );
+        })()}
 
         {allWithDates.length === 0 && !loadingMg && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -188,6 +230,17 @@ export function AdminClosingsScreen() {
                           <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.city}</span>
                           {p.investorName && <span style={{ fontSize: 11, color: GOLD }}>{p.investorName}</span>}
                           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{fmtHe(p.closingDate)}</span>
+                          {/* Admin-only purchase profit pill. MG deals (company's own) have no client markup so skip. */}
+                          {!p._isMg && profits[p.mondayId] && profits[p.mondayId].purchaseProfit > 0 && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 100,
+                              background: 'rgba(76,175,80,0.14)', color: '#4CAF50',
+                              border: '1px solid rgba(76,175,80,0.35)',
+                              whiteSpace: 'nowrap',
+                            }} title="רווח רכישה — ADMIN ONLY">
+                              💰 רווח רכישה: ${profits[p.mondayId].purchaseProfit.toLocaleString('en-US')}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

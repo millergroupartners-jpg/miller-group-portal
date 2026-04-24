@@ -15,6 +15,7 @@ export type Screen =
   | 'admin-mg-deals'
   | 'admin-closings'
   | 'admin-inquiries'
+  | 'admin-renovations'
   | 'set-password';
 
 export type BadgeType = 'gold' | 'green' | 'blue';

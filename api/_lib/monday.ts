@@ -30,6 +30,66 @@ export const INQ_DIRECTION = {
   ADMIN_TO_INVESTOR: 'Management→Investor',
 } as const;
 
+/** Properties board (used by several features: alerts, media, timeline, renovations, utilities) */
+export const PROPERTIES_BOARD_ID = 1997938102;
+export const PROP_COL = {
+  rentalStatus: 'color_mm1fv8p0',
+  closingDate:  'date_mkrz2xsg',
+  investor:     'board_relation_mkrzrtny',
+  manager:      'board_relation_mm219qy1',
+} as const;
+
+/** Renovations boards — parent item per property renovation project, subitems are individual payments */
+export const RENOVATIONS_BOARD_ID = 2064106439;
+export const RENOV_SUBITEMS_BOARD_ID = 2064124983;
+
+export const RENOV_COL = {
+  property:  'board_relation_mkt3p6jp', // link to Properties board
+  addons:    'numeric_mm18rej0',        // "Approved addons"
+  subitems:  'subtasks_mkt3kts6',
+} as const;
+
+/** Column IDs on renovation SUBITEMS (each subitem = one payment) */
+export const RENOV_SUB_COL = {
+  amount:    'numeric_mkwga613', // תשלום ($)
+  date:      'date0',             // תאריך תשלום
+  paidTo:    'status',            // למי שולם — "לנו" / "לקבלן" / "קבלן משנה"
+  paidBy:    'color_mkwgjqbv',    // מי שילם — "הלקוח" / "אנחנו"
+  category:  'color_mkwga4m3',    // קטגוריה — עבודה / עבודה וחומרים / חומרים / אחר
+  receipt:   'file_mm1p18rb',     // אסמכתא
+} as const;
+
+/** Utilities board — one item per utility ACCOUNT per property (water / power / gas / sewer) */
+export const UTILITIES_BOARD_ID = 5087052578;
+
+export const UTIL_COL = {
+  property:       'board_relation_mkxthxq9', // property address
+  investor:       'board_relation_mkxtcmrf',
+  serviceCompany: 'color_mkxtqat0',          // status: 11 known providers
+  scheduledIn:    'date_mkxxd3w9',
+  phone:          'text_mkxt1ere',
+  website:        'text_mkxtp1w9',
+  notes:          'text_mkxtk9s',
+} as const;
+
+/** Utility groups — effectively the lifecycle status of each account */
+export const UTIL_GROUP = {
+  toStart:        'group_mkxtrste',  // "utilities to start"
+  scheduled:      'group_mkxxg99z',  // "utilities scheduled to start"
+  active:         'topics',           // "utilities that are on"
+  pendingPayment: 'group_mm0prwgj',  // "Utilities Pending Payments"
+} as const;
+
+export function utilGroupToStatus(groupId: string): { status: 'to-start' | 'scheduled' | 'active' | 'pending-payment' | 'unknown'; he: string } {
+  switch (groupId) {
+    case UTIL_GROUP.toStart:        return { status: 'to-start', he: 'להקמה' };
+    case UTIL_GROUP.scheduled:      return { status: 'scheduled', he: 'נקבע להפעלה' };
+    case UTIL_GROUP.active:         return { status: 'active', he: 'פעיל' };
+    case UTIL_GROUP.pendingPayment: return { status: 'pending-payment', he: 'ממתין לתשלום' };
+    default:                        return { status: 'unknown', he: '' };
+  }
+}
+
 function getToken(): string {
   const token = (process.env.MONDAY_API_TOKEN || process.env.VITE_MONDAY_API_TOKEN || '').trim();
   if (!token) throw new Error('Monday API token is not configured on the server');
