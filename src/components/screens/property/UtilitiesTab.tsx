@@ -82,8 +82,17 @@ export function UtilitiesTab({ propertyId }: Props) {
             )}
           </div>
 
-          {(u.scheduledIn || u.phone || u.website) && (
+          {(u.createdAt || u.scheduledIn || u.phone || u.website) && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {u.createdAt && (
+                <div style={{
+                  background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px',
+                  display: 'flex', flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>נוצר</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{fmtDate(u.createdAt)}</span>
+                </div>
+              )}
               {u.scheduledIn && (
                 <div style={{
                   background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px',

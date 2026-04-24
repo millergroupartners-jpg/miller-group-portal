@@ -41,6 +41,7 @@ interface RawColumnValue {
 interface RawItem {
   id: string;
   name: string;
+  created_at: string;
   updated_at: string;
   group: { id: string; title: string };
   column_values: RawColumnValue[];
@@ -64,6 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             items {
               id
               name
+              created_at
               updated_at
               group { id title }
               column_values(ids: [${columnIds}]) {
@@ -110,6 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         propertyName:      linkedProperty?.name || '',
         investorId:        linkedInvestor?.id || '',
         investorName:      linkedInvestor?.name || '',
+        createdAt:         item.created_at,
         updatedAt:         item.updated_at,
       };
     });

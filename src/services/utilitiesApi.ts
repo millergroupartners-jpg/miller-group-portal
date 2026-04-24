@@ -21,6 +21,7 @@ export interface Utility {
   propertyName: string;
   investorId: string;
   investorName: string;
+  createdAt: string;
   updatedAt: string;
 }
 

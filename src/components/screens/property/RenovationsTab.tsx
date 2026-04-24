@@ -22,8 +22,10 @@ import { listRenovations, calcBalance, paidToColor, paidByColor, type Renovation
 
 const GOLD = '#C9A84C';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
-/** Investor-facing label for the renovation company (hides the real contractor). */
-const INVESTOR_COMPANY_LABEL = 'חברת השיפוצים שלנו';
+/** Investor-facing label. Must stay neutral — the renovation company is ours
+ *  but we don't want the investor to know that, and we also don't want them to
+ *  realize there's a subcontractor in the middle. "קבלן" is the safe generic. */
+const INVESTOR_COMPANY_LABEL = 'קבלן';
 
 function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-US');
@@ -257,7 +259,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                       }}>
                         <div style={{ flex: 1, textAlign: 'right' }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-                            {sub.name || (isAdmin ? '—' : 'העברה לחברת השיפוצים')}
+                            {sub.name || (isAdmin ? '—' : 'העברה לקבלן')}
                           </div>
                           <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                             {fmtDate(sub.date || sub.createdAt)}{sub.category ? ` · ${sub.category}` : ''}

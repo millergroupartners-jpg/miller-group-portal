@@ -124,7 +124,7 @@ export function InvestorRenovationsScreen() {
                     {r.propertyName || r.name}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                    חברת השיפוצים שלנו
+                    קבלן
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 150 }}>
@@ -177,7 +177,7 @@ export function InvestorRenovationsScreen() {
                         }}>
                           <div style={{ flex: 1, textAlign: 'right' }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {sub.name || 'העברה לחברת השיפוצים'}
+                              {sub.name || 'העברה לקבלן'}
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                               {fmtDate(sub.date || sub.createdAt)}{sub.category ? ` · ${sub.category}` : ''}
