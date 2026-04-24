@@ -104,7 +104,9 @@ export function DashboardScreen() {
     if (!mondayInvestor?.mondayId) return;
     let cancelled = false;
     setFeedLoading(true);
-    fetchInvestorFeed(mondayInvestor.mondayId, 20)
+    // Pull a larger window so we can show the 5 most recent regardless of recency —
+    // the old cap hid the feed entirely for investors with no activity this week.
+    fetchInvestorFeed(mondayInvestor.mondayId, 50)
       .then(list => { if (!cancelled) setFeed(list); })
       .catch(err => console.error('investor feed failed:', err))
       .finally(() => { if (!cancelled) setFeedLoading(false); });
@@ -256,7 +258,7 @@ export function DashboardScreen() {
       </div>
 
       {/* ── Activity feed (investor mode only) ── */}
-      {isMondayMode && (feed.length > 0 || feedLoading) && (
+      {isMondayMode && (
         <div style={{ marginTop: 20 }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -265,16 +267,29 @@ export function DashboardScreen() {
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
               ציר זמן · עדכונים אחרונים
             </span>
-            {feedLoading && <span style={{ fontSize: 10, color: GOLD }}>⏳</span>}
+            {feedLoading
+              ? <span style={{ fontSize: 10, color: GOLD }}>⏳</span>
+              : feed.length > 0 && (
+                  <button
+                    onClick={() => navigate('timeline')}
+                    style={{
+                      background: 'transparent', border: 'none', color: GOLD,
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    צפה בציר זמן מלא ←
+                  </button>
+                )
+            }
           </div>
           <div className="gold-card" style={{ padding: 12 }}>
-            {feed.length === 0 && !feedLoading && (
+            {!feedLoading && feed.length === 0 && (
               <div style={{ textAlign: 'center', padding: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
                 אין עדכונים אחרונים
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {feed.slice(0, 15).map(ev => {
+              {feed.slice(0, 5).map(ev => {
                 const clickable = Boolean(ev.propertyId || ev.inquiryId);
                 const onClick = () => {
                   if (ev.propertyId) navigate('property-detail', { propertyId: ev.propertyId });
@@ -301,6 +316,12 @@ export function DashboardScreen() {
                         fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>{ev.title}</div>
+                      {ev.propertyName && (
+                        <div style={{
+                          fontSize: 10, color: GOLD, fontWeight: 600, marginBottom: 2,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>📍 {ev.propertyName}</div>
+                      )}
                       {ev.subtitle && (
                         <div style={{
                           fontSize: 10, color: 'var(--text-secondary)',

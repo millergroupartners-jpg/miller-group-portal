@@ -57,6 +57,7 @@ export interface AdminFeedEvent {
   icon: string;
   color: string;
   propertyId?: string;
+  propertyName?: string;
   inquiryId?: string;
 }
 

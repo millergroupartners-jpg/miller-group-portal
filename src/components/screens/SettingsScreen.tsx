@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
-import { getEmailOptOut, setEmailOptOut } from '../../services/notificationPrefs';
+import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut } from '../../services/notificationPrefs';
 
 const GOLD = '#C9A84C';
 
@@ -71,6 +71,10 @@ export function SettingsScreen() {
   // Email notification preference (investors only)
   const [emailsEnabled, setEmailsEnabled] = useState<boolean | null>(null); // null = loading
   const [savingEmails, setSavingEmails] = useState(false);
+  // Utility-reminder opt-out (independent of the blanket one so investors can
+  // silence just the monthly bill reminder without losing photo summaries).
+  const [utilRemEnabled, setUtilRemEnabled] = useState<boolean | null>(null);
+  const [savingUtilRem, setSavingUtilRem] = useState(false);
   const investorMondayId = user.mondayInvestorId || '';
 
   useEffect(() => {
@@ -78,6 +82,9 @@ export function SettingsScreen() {
     getEmailOptOut(investorMondayId)
       .then(optedOut => setEmailsEnabled(!optedOut))
       .catch(() => setEmailsEnabled(true)); // default to enabled on error
+    getUtilityReminderOptOut(investorMondayId)
+      .then(optedOut => setUtilRemEnabled(!optedOut))
+      .catch(() => setUtilRemEnabled(true));
   }, [investorMondayId]);
 
   const toggleEmails = async () => {
@@ -94,6 +101,21 @@ export function SettingsScreen() {
       alert('שמירה נכשלה, נסה שוב');
     } finally {
       setSavingEmails(false);
+    }
+  };
+
+  const toggleUtilReminders = async () => {
+    if (utilRemEnabled === null || savingUtilRem || !investorMondayId) return;
+    const next = !utilRemEnabled;
+    setSavingUtilRem(true);
+    setUtilRemEnabled(next);
+    try {
+      await setUtilityReminderOptOut(investorMondayId, !next);
+    } catch (e) {
+      setUtilRemEnabled(!next);
+      alert('שמירה נכשלה, נסה שוב');
+    } finally {
+      setSavingUtilRem(false);
     }
   };
 
@@ -210,6 +232,48 @@ export function SettingsScreen() {
                     position: 'absolute', top: 3,
                     right: emailsEnabled ? 3 : undefined,
                     left: emailsEnabled ? undefined : 3,
+                    transition: 'left 0.2s, right 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* Monthly utility reminder toggle */}
+              <div
+                onClick={toggleUtilReminders}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  cursor: utilRemEnabled === null ? 'default' : 'pointer',
+                  opacity: utilRemEnabled === null ? 0.6 : 1,
+                  flexDirection: 'row-reverse', transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (utilRemEnabled !== null) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface-hover)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    🔌
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>תזכורות חודשיות ל-utilities</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {utilRemEnabled === null ? 'טוען...' : utilRemEnabled ? 'פעיל — תקבל תזכורת ב-1 לכל חודש' : 'מושבת'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{
+                  width: 44, height: 26, borderRadius: 13,
+                  background: utilRemEnabled ? GOLD : '#ddd',
+                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3,
+                    right: utilRemEnabled ? 3 : undefined,
+                    left: utilRemEnabled ? undefined : 3,
                     transition: 'left 0.2s, right 0.2s',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                   }} />

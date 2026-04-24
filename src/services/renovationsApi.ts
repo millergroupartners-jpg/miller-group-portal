@@ -72,8 +72,14 @@ export function calcBalance(r: Renovation): RenovationBalance {
     s.paidTo === 'לקבלן' || s.paidTo === 'קבלן משנה'
   );
 
-  const remainingTotal = Math.max(0, r.clientCost - clientPaidTotal);
-  const contractorNeedsMore = Math.max(0, r.ourCost - contractorReceivedTotal);
+  // Approved addons add BOTH to what the client owes us AND to what the
+  // contractor is owed — they pass through at cost. Profit stays unchanged.
+  const addons = r.approvedAddons || 0;
+  const effectiveClientTotal = r.clientCost + addons;
+  const effectiveOurCost     = r.ourCost    + addons;
+
+  const remainingTotal = Math.max(0, effectiveClientTotal - clientPaidTotal);
+  const contractorNeedsMore = Math.max(0, effectiveOurCost - contractorReceivedTotal);
   const remainingToContractor = Math.min(remainingTotal, contractorNeedsMore);
   const remainingToUs = Math.max(0, remainingTotal - remainingToContractor);
 
@@ -110,6 +116,34 @@ export async function listRenovations(opts?: {
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   const data = await fetchJson<{ ok: true; renovations: Renovation[] }>(`/api/renovations/list${suffix}`);
   return data.renovations;
+}
+
+/** Updates (comments) posted on a renovation Monday item */
+export interface RenovationUpdate {
+  id: string;
+  body: string;      // HTML
+  textBody: string;  // plain
+  createdAt: string;
+  author: string;
+}
+
+export async function listRenovationUpdates(itemId: string): Promise<RenovationUpdate[]> {
+  const res = await fetch(`/api/renovations/updates?itemId=${encodeURIComponent(itemId)}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.updates as RenovationUpdate[];
+}
+
+export async function postRenovationUpdate(itemId: string, body: string, author?: string): Promise<void> {
+  const res = await fetch(`/api/renovations/updates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId, body, author }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${text}`);
+  }
 }
 
 /** Human-readable color for the "למי שולם" chip */

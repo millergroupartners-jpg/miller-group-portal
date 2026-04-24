@@ -13,7 +13,11 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { listRenovations, calcBalance, paidToColor, paidByColor, type Renovation } from '../../../services/renovationsApi';
+import {
+  listRenovations, calcBalance, paidToColor, paidByColor,
+  listRenovationUpdates, postRenovationUpdate,
+  type Renovation, type RenovationUpdate,
+} from '../../../services/renovationsApi';
 import { MGLogo } from '../../common/MGLogo';
 import { useNavigation } from '../../../context/NavigationContext';
 
@@ -28,6 +32,113 @@ const STATUS_FILTERS = [
   'new construction',
 ] as const;
 type StatusFilter = typeof STATUS_FILTERS[number] | 'all';
+
+/** Inline updates (notes/comments) panel for a single renovation item.
+ *  Lists existing Monday Updates and lets an admin post a new one. */
+function UpdatesSection({ itemId }: { itemId: string }) {
+  const [updates, setUpdates] = useState<RenovationUpdate[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [draft,   setDraft]     = useState('');
+  const [posting, setPosting]   = useState(false);
+  const [error,   setError]     = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    listRenovationUpdates(itemId)
+      .then(list => { setUpdates(list); setError(null); })
+      .catch(err => setError(err?.message || 'שגיאה בטעינה'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [itemId]);
+
+  const handlePost = async () => {
+    const text = draft.trim();
+    if (!text) return;
+    setPosting(true);
+    try {
+      await postRenovationUpdate(itemId, text);
+      setDraft('');
+      load();
+    } catch (err: any) {
+      setError(err?.message || 'שגיאה בשמירת עדכון');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      marginTop: 10, padding: 10, borderRadius: 10,
+      background: 'var(--bg-chip)', border: '1px solid var(--border)',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textAlign: 'right' }}>
+        עדכונים פנימיים · {updates.length}
+      </div>
+
+      {loading && <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: 6, textAlign: 'center' }}>טוען…</div>}
+      {error && <div style={{ fontSize: 11, color: '#ff4d4d', padding: 6, textAlign: 'center' }}>{error}</div>}
+
+      {!loading && updates.length === 0 && !error && (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: 6, textAlign: 'center' }}>
+          אין עדכונים עדיין
+        </div>
+      )}
+
+      {updates.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {updates.map(u => {
+            const when = new Date(u.createdAt);
+            const whenStr = !isNaN(when.getTime())
+              ? when.toLocaleDateString('he-IL', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+              : '';
+            return (
+              <div key={u.id} style={{
+                padding: '8px 10px', borderRadius: 8, background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{
+                  fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5,
+                  direction: 'rtl', textAlign: 'right',
+                }} dangerouslySetInnerHTML={{ __html: u.body }} />
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4, textAlign: 'left' }}>
+                  {whenStr}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Compose new update */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder="הוסף עדכון פנימי על הפרויקט…"
+          style={{
+            resize: 'vertical', minHeight: 56, padding: 8, borderRadius: 8,
+            border: '1px solid var(--border)', background: 'var(--bg-surface)',
+            color: 'var(--text-primary)', fontSize: 12, direction: 'rtl', fontFamily: 'inherit',
+          }}
+        />
+        <button
+          onClick={handlePost}
+          disabled={!draft.trim() || posting}
+          style={{
+            padding: '8px 10px', borderRadius: 8, border: 'none',
+            background: draft.trim() ? '#C9A84C' : 'var(--bg-chip)',
+            color: draft.trim() ? '#000' : 'var(--text-muted)',
+            fontSize: 12, fontWeight: 700,
+            cursor: draft.trim() && !posting ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {posting ? 'שומר…' : 'שמור עדכון'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const GOLD = '#C9A84C';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
@@ -81,7 +192,9 @@ export function AdminRenovationsScreen() {
     });
   }, [items, statusFilter, search]);
 
-  // Aggregates across filtered set — include balance sums
+  // Aggregates across filtered set — include balance sums.
+  // Approved addons add equally to what the client owes AND to what the
+  // contractor should get, so profit stays on (clientCost - ourCost).
   const totals = useMemo(() => filtered.reduce(
     (acc, r) => {
       const b = calcBalance(r);
@@ -89,13 +202,14 @@ export function AdminRenovationsScreen() {
         paid:               acc.paid               + r.totalPaid,
         our:                acc.our                + r.ourCost,
         client:             acc.client             + r.clientCost,
+        addons:             acc.addons             + (r.approvedAddons || 0),
         profit:             acc.profit             + (r.clientCost - r.ourCost),
         remainingTotal:     acc.remainingTotal     + b.remainingTotal,
         remainingToUs:      acc.remainingToUs      + b.remainingToUs,
         remainingToContr:   acc.remainingToContr   + b.remainingToContractor,
       };
     },
-    { paid: 0, our: 0, client: 0, profit: 0, remainingTotal: 0, remainingToUs: 0, remainingToContr: 0 }
+    { paid: 0, our: 0, client: 0, addons: 0, profit: 0, remainingTotal: 0, remainingToUs: 0, remainingToContr: 0 }
   ), [filtered]);
 
   return (
@@ -117,12 +231,17 @@ export function AdminRenovationsScreen() {
             {[
               { label: 'סה״כ שולם',      value: fmtMoney(totals.paid),   c: '#4CAF50' },
               { label: 'רווח משיפוצים',   value: fmtMoney(totals.profit), c: GOLD },
-              { label: 'שיפוץ שלנו',     value: fmtMoney(totals.our),    c: '#64B5F6' },
-              { label: 'שיפוץ ללקוח',    value: fmtMoney(totals.client), c: '#ff9800' },
+              { label: 'שיפוץ שלנו',     value: fmtMoney(totals.our),    c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+              { label: 'שיפוץ ללקוח',    value: fmtMoney(totals.client), c: '#ff9800', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
             ].map(k => (
               <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexDirection: 'row-reverse' }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  {(k as any).extra && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>{(k as any).extra}</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -249,16 +368,25 @@ export function AdminRenovationsScreen() {
                     ))}
                   </div>
 
-                  {/* Detail money grid — admin only */}
+                  {/* Detail money grid — admin only. Addons shown as a small
+                      "+" badge next to both "שיפוץ שלנו" and "שיפוץ ללקוח" since
+                      addons pass through at cost (profit unchanged). */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
                     {[
-                      { l: 'שיפוץ שלנו', v: fmtMoney(r.ourCost),      c: '#64B5F6' },
-                      { l: 'שיפוץ ללקוח', v: fmtMoney(r.clientCost),   c: '#ff9800' },
-                      { l: 'רווח',        v: fmtMoney(profit),          c: profit >= 0 ? GOLD : '#ff4d4d' },
+                      { l: 'שיפוץ שלנו',  v: fmtMoney(r.ourCost),    c: '#64B5F6', addon: r.approvedAddons > 0 },
+                      { l: 'שיפוץ ללקוח', v: fmtMoney(r.clientCost), c: '#ff9800', addon: r.approvedAddons > 0 },
+                      { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : '#ff4d4d', addon: false },
                     ].map(k => (
                       <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                          {k.addon && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: GOLD }}>
+                              +{fmtMoney(r.approvedAddons)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -314,6 +442,9 @@ export function AdminRenovationsScreen() {
                       ))}
                     </div>
                   )}
+
+                  {/* Internal project updates — admin-only notes */}
+                  <UpdatesSection itemId={r.id} />
 
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                     {r.propertyId && (

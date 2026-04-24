@@ -93,14 +93,21 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
     { paid: 0, client: 0, our: 0, profit: 0, remaining: 0, remainingToUs: 0, remainingToCont: 0 }
   );
 
-  // For investors, use the server-sanitized totals
+  // For investors, use the server-sanitized totals. Approved addons are
+  // included server-side on each item — we display them as a small "+$X"
+  // badge next to the base budget and remaining so the investor sees that
+  // the total and what's left have grown due to approved extras.
   const totalsInvestor = items.reduce(
-    (acc, r) => ({
-      paid:       acc.paid       + r.totalPaid,
-      budget:     acc.budget     + r.clientCost,
-      remaining:  acc.remaining  + Math.max(0, r.clientCost - r.totalPaid),
-    }),
-    { paid: 0, budget: 0, remaining: 0 }
+    (acc, r) => {
+      const addons = r.approvedAddons || 0;
+      return {
+        paid:       acc.paid       + r.totalPaid,
+        budget:     acc.budget     + r.clientCost,
+        addons:     acc.addons     + addons,
+        remaining:  acc.remaining  + Math.max(0, r.clientCost + addons - r.totalPaid),
+      };
+    },
+    { paid: 0, budget: 0, addons: 0, remaining: 0 }
   );
 
   return (
@@ -142,16 +149,27 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
             </div>
           </>
         ) : (
-          /* Investor-safe KPIs — simple 3-column: budget, paid, remaining. No profit/our-cost exposed. */
+          /* Investor-safe KPIs — 3-column: budget, paid, remaining. No profit/our-cost.
+             Addons shown as a small "+$X" badge next to budget & remaining. */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
-              { label: 'תקציב שיפוץ',        value: fmtMoney(totalsInvestor.budget),    c: '#ff9800' },
-              { label: 'העברת עד כה',        value: fmtMoney(totalsInvestor.paid),      c: '#4CAF50' },
-              { label: 'נותר להעברה',        value: fmtMoney(totalsInvestor.remaining), c: GOLD },
+              { label: 'תקציב שיפוץ', value: fmtMoney(totalsInvestor.budget),    c: '#ff9800', addon: totalsInvestor.addons > 0 },
+              { label: 'העברת עד כה', value: fmtMoney(totalsInvestor.paid),      c: '#4CAF50', addon: false },
+              { label: 'נותר להעברה', value: fmtMoney(totalsInvestor.remaining), c: GOLD,      addon: totalsInvestor.addons > 0 },
             ].map(k => (
               <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '12px 10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  {k.addon && (
+                    <span
+                      title="תוספות מאושרות מעבר לתקציב המקורי"
+                      style={{ fontSize: 10, fontWeight: 700, color: GOLD }}
+                    >
+                      +{fmtMoney(totalsInvestor.addons)}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -162,7 +180,8 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
       {items.map(r => {
         const isOpen = openId === r.id;
         const bal = isAdmin ? calcBalance(r) : null;
-        const investorRemaining = !isAdmin ? Math.max(0, r.clientCost - r.totalPaid) : 0;
+        const addons = r.approvedAddons || 0;
+        const investorRemaining = !isAdmin ? Math.max(0, r.clientCost + addons - r.totalPaid) : 0;
         return (
           <div key={r.id} className="gold-card" style={{ padding: 0, overflow: 'hidden' }}>
             <button
@@ -184,9 +203,18 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
               <div style={{ textAlign: 'left', marginInlineStart: 10 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
-                  {isAdmin
-                    ? `${r.subitems.length} תשלומים · נותר ${fmtMoney(bal!.remainingTotal)}`
-                    : `נותר להעברה · ${fmtMoney(investorRemaining)}`}
+                  {isAdmin ? (
+                    `${r.subitems.length} תשלומים · נותר ${fmtMoney(bal!.remainingTotal)}`
+                  ) : (
+                    <>
+                      נותר להעברה · {fmtMoney(investorRemaining)}
+                      {addons > 0 && (
+                        <span style={{ color: GOLD, fontWeight: 700, marginInlineStart: 4 }}>
+                          (+{fmtMoney(addons)})
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"

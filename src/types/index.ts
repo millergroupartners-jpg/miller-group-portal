@@ -17,6 +17,7 @@ export type Screen =
   | 'admin-inquiries'
   | 'admin-renovations'
   | 'renovations'
+  | 'timeline'
   | 'set-password';
 
 export type BadgeType = 'gold' | 'green' | 'blue';

@@ -260,7 +260,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ...r,
           contractorName: '',
           ourCost:        0,
-          approvedAddons: 0,
+          // approvedAddons STAYS visible — investor is shown it as a small "+$X"
+          // badge next to the base renovation price and remaining balance so
+          // they understand why the expected total may be higher than the
+          // original quote. This is approved work, not internal margin.
           subitems: r.subitems
             .filter(s => s.paidBy === 'הלקוח')
             .map(s => ({ ...s, paidTo: '', paidBy: '' })),

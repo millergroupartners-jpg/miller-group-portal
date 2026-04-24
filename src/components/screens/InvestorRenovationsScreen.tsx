@@ -49,12 +49,16 @@ export function InvestorRenovationsScreen() {
   }, [investorId]);
 
   const totals = useMemo(() => items.reduce(
-    (acc, r) => ({
-      budget:    acc.budget    + r.clientCost,
-      paid:      acc.paid      + r.totalPaid,
-      remaining: acc.remaining + Math.max(0, r.clientCost - r.totalPaid),
-    }),
-    { budget: 0, paid: 0, remaining: 0 }
+    (acc, r) => {
+      const addons = r.approvedAddons || 0;
+      return {
+        budget:    acc.budget    + r.clientCost,
+        addons:    acc.addons    + addons,
+        paid:      acc.paid      + r.totalPaid,
+        remaining: acc.remaining + Math.max(0, r.clientCost + addons - r.totalPaid),
+      };
+    },
+    { budget: 0, addons: 0, paid: 0, remaining: 0 }
   ), [items]);
 
   return (
@@ -70,17 +74,24 @@ export function InvestorRenovationsScreen() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Summary KPIs */}
+        {/* Summary KPIs — addons shown as small "+$X" next to budget & remaining */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
-              { label: 'תקציב כולל',   value: fmtMoney(totals.budget),    c: '#ff9800' },
-              { label: 'העברת עד כה', value: fmtMoney(totals.paid),      c: '#4CAF50' },
-              { label: 'נותר להעברה', value: fmtMoney(totals.remaining), c: GOLD },
+              { label: 'תקציב כולל',   value: fmtMoney(totals.budget),    c: '#ff9800', addon: totals.addons > 0 },
+              { label: 'העברת עד כה', value: fmtMoney(totals.paid),      c: '#4CAF50', addon: false },
+              { label: 'נותר להעברה', value: fmtMoney(totals.remaining), c: GOLD,      addon: totals.addons > 0 },
             ].map(k => (
               <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '12px 10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  {k.addon && (
+                    <span title="תוספות מאושרות מעבר לתקציב המקורי" style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>
+                      +{fmtMoney(totals.addons)}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -96,7 +107,8 @@ export function InvestorRenovationsScreen() {
 
         {items.map(r => {
           const isOpen = openId === r.id;
-          const remaining = Math.max(0, r.clientCost - r.totalPaid);
+          const addons = r.approvedAddons || 0;
+          const remaining = Math.max(0, r.clientCost + addons - r.totalPaid);
           return (
             <div key={r.id} className="gold-card" style={{ padding: 0, overflow: 'hidden' }}>
               <button
@@ -115,9 +127,16 @@ export function InvestorRenovationsScreen() {
                     חברת השיפוצים שלנו
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 140 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 150 }}>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</b></div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>נותר · <b style={{ color: GOLD }}>{fmtMoney(remaining)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                    נותר · <b style={{ color: GOLD }}>{fmtMoney(remaining)}</b>
+                    {addons > 0 && (
+                      <span style={{ color: GOLD, fontWeight: 700, marginInlineStart: 4, fontSize: 10 }}>
+                        (+{fmtMoney(addons)})
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"
                      style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
@@ -129,13 +148,18 @@ export function InvestorRenovationsScreen() {
                 <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px 14px', background: 'var(--bg-surface)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
                     {[
-                      { l: 'תקציב',    v: fmtMoney(r.clientCost), c: '#ff9800' },
-                      { l: 'שולם',     v: fmtMoney(r.totalPaid),  c: '#4CAF50' },
-                      { l: 'נותר',     v: fmtMoney(remaining),    c: GOLD },
+                      { l: 'תקציב', v: fmtMoney(r.clientCost), c: '#ff9800', addon: addons > 0 },
+                      { l: 'שולם',  v: fmtMoney(r.totalPaid),  c: '#4CAF50', addon: false },
+                      { l: 'נותר',  v: fmtMoney(remaining),    c: GOLD,      addon: addons > 0 },
                     ].map(k => (
                       <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 3, flexDirection: 'row-reverse' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                          {k.addon && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: GOLD }}>+{fmtMoney(addons)}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -42,6 +42,7 @@ interface AdminFeedEvent {
   color: string;
   href?: string;
   propertyId?: string;
+  propertyName?: string;   // so the UI can tag each event with its property
   inquiryId?: string;
 }
 
@@ -110,15 +111,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (!newLabel || newLabel === oldLabel) continue;
           // Per-investor filter
           if (investorPropertyIds && !investorPropertyIds.has(itemId)) continue;
+          const propName = itemMap.get(itemId) || '';
           events.push({
             id: `status-${log.id}`,
             kind: 'status-change',
             at: log.created_at,
-            title: `${itemMap.get(itemId) || 'נכס'} — סטטוס עבר ל-${newLabel}`,
+            title: `סטטוס עבר ל-${newLabel}`,
             subtitle: oldLabel ? `מ-${oldLabel}` : undefined,
             icon: '🔄',
             color: '#C9A84C',
             propertyId: itemId,
+            propertyName: propName,
           });
         } catch { /* skip malformed */ }
       }
@@ -148,6 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const dir = cols[INQ_COL.direction]?.text || '';
         const dirHe = dir === 'Management→Investor' ? 'ניהול → משקיע' : 'משקיע → ניהול';
         const investor = cols[INQ_COL.investorName]?.text || '';
+        const propName = cols[INQ_COL.property]?.text || '';
         events.push({
           id: `inq-new-${inq.id}`,
           kind: 'inquiry-new',
@@ -157,6 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           icon: '💬',
           color: '#64B5F6',
           inquiryId: inq.id,
+          propertyName: propName,
         });
         for (const upd of inq.updates || []) {
           events.push({
@@ -168,6 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             icon: '↩️',
             color: '#64B5F6',
             inquiryId: inq.id,
+            propertyName: propName,
           });
         }
       }
@@ -204,9 +210,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             kind: 'renovation-payment',
             at: date,
             title: `תשלום ${paidTo ? `ל${paidTo}` : ''} — $${amount}`,
-            subtitle: [r.name, category].filter(Boolean).join(' · '),
+            subtitle: category,
             icon: '🔨',
             color: '#8d6e63',
+            propertyName: r.name,
           });
         }
       }
