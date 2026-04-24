@@ -276,7 +276,13 @@ export function AdminRenovationsScreen() {
             style={{ flex: 1, direction: 'rtl' }}
           />
         </div>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexDirection: 'row-reverse' }}>
+        {/* Status filter chips — wrap onto multiple rows so every option is
+            visible on desktop too (the previous overflowX:auto+row-reverse
+            combo was clipping the list off-screen). */}
+        <div style={{
+          display: 'flex', gap: 6, flexWrap: 'wrap',
+          flexDirection: 'row-reverse', justifyContent: 'flex-start',
+        }}>
           {(['בשיפוץ', ...STATUS_FILTERS.filter(s => s !== 'בשיפוץ'), 'all'] as StatusFilter[]).map(s => {
             const count = s === 'all' ? items.length : (statusCounts[s] || 0);
             return (
@@ -289,7 +295,7 @@ export function AdminRenovationsScreen() {
                   color: statusFilter === s ? '#000' : 'var(--text-secondary)',
                   border: '1px solid var(--border)',
                   fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', gap: 6,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
                 {s === 'all' ? 'הכל' : s}

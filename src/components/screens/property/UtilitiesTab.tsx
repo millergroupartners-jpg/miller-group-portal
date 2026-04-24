@@ -126,8 +126,22 @@ export function UtilitiesTab({ propertyId }: Props) {
           )}
 
           {u.notes && (
-            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-chip)', borderRadius: 8, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, textAlign: 'right' }}>
-              {u.notes}
+            <div style={{
+              marginTop: 10, padding: '10px 12px', background: 'var(--bg-chip)',
+              borderRadius: 8, fontSize: 11, color: 'var(--text-secondary)',
+              lineHeight: 1.6, textAlign: 'right',
+            }}>
+              <div>{u.notes}</div>
+              {u.updatedAt && (
+                <div style={{
+                  marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)',
+                  fontSize: 10, color: 'var(--text-muted)', display: 'flex',
+                  justifyContent: 'space-between', flexDirection: 'row-reverse',
+                }}>
+                  <span>עודכן</span>
+                  <span style={{ fontWeight: 600 }}>{fmtDate(u.updatedAt)}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
