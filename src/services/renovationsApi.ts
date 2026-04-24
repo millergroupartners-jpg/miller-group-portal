@@ -128,14 +128,16 @@ export interface RenovationUpdate {
 }
 
 export async function listRenovationUpdates(itemId: string): Promise<RenovationUpdate[]> {
-  const res = await fetch(`/api/renovations/updates?itemId=${encodeURIComponent(itemId)}`);
+  // Routed via ?action=updates on the renovations/list serverless function —
+  // kept on the same function to stay within Vercel Hobby's 12-function cap.
+  const res = await fetch(`/api/renovations/list?action=updates&itemId=${encodeURIComponent(itemId)}`);
   if (!res.ok) throw new Error(`API ${res.status}`);
   const data = await res.json();
   return data.updates as RenovationUpdate[];
 }
 
 export async function postRenovationUpdate(itemId: string, body: string, author?: string): Promise<void> {
-  const res = await fetch(`/api/renovations/updates`, {
+  const res = await fetch(`/api/renovations/list?action=updates`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ itemId, body, author }),

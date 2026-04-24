@@ -40,6 +40,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   mondayQuery,
+  esc,
   RENOVATIONS_BOARD_ID,
   RENOV_COL,
   RENOV_SUB_COL,
@@ -78,6 +79,53 @@ function parseNumber(text: string | null | undefined): number {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Sub-endpoint: renovation item UPDATES (admin-only internal notes). Routed
+  // via `?action=updates` so we don't need a separate serverless function file
+  // (Vercel Hobby caps at 12 functions).
+  const action = (req.query.action as string) || '';
+  if (action === 'updates') {
+    try {
+      if (req.method === 'GET') {
+        const itemId = ((req.query.itemId as string) || '').trim();
+        if (!itemId) return res.status(400).json({ error: 'Missing itemId' });
+        const q = `query {
+          items(ids: [${itemId}]) {
+            updates { id body text_body created_at creator { id name } }
+          }
+        }`;
+        type Upd = { id: string; body: string; text_body: string; created_at: string; creator?: { id: string; name: string } | null };
+        const data = await mondayQuery<{ items: { updates: Upd[] }[] }>(q);
+        const raw = data.items?.[0]?.updates ?? [];
+        const updates = [...raw].reverse().map(u => ({
+          id:        u.id,
+          body:      u.body,
+          textBody:  u.text_body,
+          createdAt: u.created_at,
+          author:    u.creator?.name || 'System',
+        }));
+        return res.status(200).json({ ok: true, updates });
+      }
+      if (req.method === 'POST') {
+        const { itemId, body, author } = req.body || {};
+        if (!itemId || !body) return res.status(400).json({ error: 'Missing itemId or body' });
+        const authorName = (author || 'הנהלת Miller Group').toString();
+        const escBody = esc(String(body)).replace(/\n/g, '<br>');
+        const mutation = `mutation {
+          create_update(
+            item_id: ${itemId},
+            body: "<b>${esc(authorName)}:</b><br>${escBody}"
+          ) { id created_at }
+        }`;
+        const data = await mondayQuery<{ create_update: { id: string } }>(mutation);
+        return res.status(200).json({ ok: true, updateId: data?.create_update?.id || '' });
+      }
+      return res.status(405).json({ error: 'Method not allowed' });
+    } catch (err: any) {
+      console.error('renovations updates error:', err);
+      return res.status(500).json({ error: err?.message || 'Server error' });
+    }
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
