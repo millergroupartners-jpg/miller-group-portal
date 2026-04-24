@@ -164,13 +164,15 @@ function parseAddress(fullName: string): { address: string; city: string } {
 function mapRentalStatus(text: string): { status: string; statusType: 'gold' | 'green' | 'blue' } {
   switch (text) {
     case 'מושכר':
-    case 'מעבר לניהול':
       return { status: 'מושכר', statusType: 'green' };
+    case 'מעבר לניהול':
+      return { status: 'מעבר לניהול', statusType: 'green' };
     case 'בשיפוץ':
       return { status: 'בשיפוץ', statusType: 'gold' };
+    case 'מרקט':
+      return { status: 'מרקט', statusType: 'gold' };
     case 'על חוזה':
     case 'בשלבי הלוואה וחתימות':
-    case 'מרקט':
     case 'new construction':
     default:
       return { status: text || 'בבדיקה', statusType: 'blue' };
