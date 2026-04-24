@@ -80,14 +80,15 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
   if (!staticProperty && mondayProperty) {
     const mp = mondayProperty;
 
-    // Build tab list — 'renovations' only included for admin users so investors
-    // never see internal contractor payments / commissions.
+    // Build tab list — 'renovations' is available to both roles, but the server
+    // sanitizes the payload for investors (hides contractor / our-cost / our
+    // transfers) so it only shows their own money movements.
     const mondayTabs: { key: MondayTabKey; label: string }[] = [
       { key: 'details',    label: 'פרטים' },
       { key: 'utilities',  label: 'Utilities' },
       { key: 'timeline',   label: 'ציר זמן' },
+      { key: 'renovations',label: 'שיפוצים' },
     ];
-    if (isAdmin) mondayTabs.push({ key: 'renovations', label: 'שיפוצים' });
 
     const mondayItemUrl = `https://real-estate-usa-eden.monday.com/boards/1997938102/pulses/${mp.mondayId}`;
     const hasManagerData = Boolean(mp.managerContactName || mp.managerCompanyName || mp.managerPhone || mp.managerEmail);
@@ -254,8 +255,8 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
               onNavigateInquiry={() => navigate(isAdmin ? 'admin-inquiries' : 'inquiries')}
             />
           )}
-          {mondayTab === 'renovations' && isAdmin && (
-            <RenovationsTab propertyId={mp.mondayId} />
+          {mondayTab === 'renovations' && (
+            <RenovationsTab propertyId={mp.mondayId} role={isAdmin ? 'admin' : 'investor'} />
           )}
         </div>
       </div>

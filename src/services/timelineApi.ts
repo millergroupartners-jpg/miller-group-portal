@@ -61,7 +61,18 @@ export interface AdminFeedEvent {
 }
 
 export async function fetchAdminFeed(limit: number = 30): Promise<AdminFeedEvent[]> {
-  const data = await fetchJson<{ ok: true; events: AdminFeedEvent[] }>(`/api/timeline/admin-feed?limit=${limit}`);
+  const data = await fetchJson<{ ok: true; events: AdminFeedEvent[] }>(`/api/timeline/admin-feed?limit=${limit}&role=admin`);
+  return data.events;
+}
+
+/**
+ * Investor-facing activity feed scoped to a single investor's properties.
+ * Renovation-payment events are stripped server-side so internal transfers
+ * never leak to the investor.
+ */
+export async function fetchInvestorFeed(investorId: string, limit: number = 25): Promise<AdminFeedEvent[]> {
+  const qs = new URLSearchParams({ investorId, limit: String(limit), role: 'investor' });
+  const data = await fetchJson<{ ok: true; events: AdminFeedEvent[] }>(`/api/timeline/admin-feed?${qs.toString()}`);
   return data.events;
 }
 

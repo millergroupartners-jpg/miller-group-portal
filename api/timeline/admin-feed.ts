@@ -1,18 +1,22 @@
 /**
  * GET /api/timeline/admin-feed
  *
- * Admin-only global activity feed. Aggregates recent events across the entire
- * system so the admin dashboard can show "what happened lately" at a glance.
+ * Aggregates recent events across the system so a dashboard can show
+ * "what happened lately" at a glance.
  *
  * Sources:
  *   1. Status changes on property items (Properties board activity_logs)
  *   2. New inquiries created
  *   3. Replies posted on inquiries
- *   4. Renovation payments (subitems) created
- *   5. Utilities moved to a new group (implies status change — using updated_at)
+ *   4. Renovation payments (subitems) — ADMIN MODE ONLY
  *
  * Query params:
- *   limit (optional, default 30) — max events to return
+ *   limit      (optional, default 30) — max events to return
+ *   role       (optional, 'admin' | 'investor') — default 'admin'. When
+ *              'investor', renovation-payment events are stripped.
+ *   investorId (optional) — when provided, only events related to the given
+ *              investor's properties are returned (status changes on their
+ *              properties + their inquiries). Required with role='investor'.
  *
  * Response: { ok: true, events: AdminFeedEvent[] }   (desc by `at`)
  */
@@ -46,7 +50,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const limit = Math.max(10, Math.min(100, parseInt(String(req.query.limit || '30'), 10)));
+    const role = ((req.query.role as string) || 'admin').trim();
+    const investorId = ((req.query.investorId as string) || '').trim();
+    const isAdmin = role === 'admin';
     const events: AdminFeedEvent[] = [];
+
+    // When filtering by investor, first resolve the set of property ids that
+    // belong to them. Items on the Properties board have a "משקיע" board-relation.
+    let investorPropertyIds: Set<string> | null = null;
+    if (investorId) {
+      try {
+        const propQuery = `query {
+          boards(ids: [${PROPERTIES_BOARD_ID}]) {
+            items_page(limit: 500) {
+              items {
+                id
+                column_values(ids: ["${PROP_COL.investor}"]) {
+                  id
+                  ... on BoardRelationValue { linked_items { id } }
+                }
+              }
+            }
+          }
+        }`;
+        type PropRow = { id: string; column_values: { id: string; linked_items?: { id: string }[] }[] };
+        const d = await mondayQuery<{ boards: { items_page: { items: PropRow[] } }[] }>(propQuery);
+        const rows = d.boards?.[0]?.items_page?.items ?? [];
+        investorPropertyIds = new Set(
+          rows.filter(r => r.column_values?.[0]?.linked_items?.some(li => li.id === investorId)).map(r => r.id)
+        );
+      } catch (e) {
+        console.error('admin-feed property→investor map failed:', e);
+      }
+    }
 
     // 1. Status changes on Properties board — last 200 activity logs, filter to rentalStatus column
     try {
@@ -72,6 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const oldLabel = payload.previous_value?.label?.text || payload.previous_value?.post_value?.label?.text || '';
           const itemId = String(payload.pulse_id || payload.entity_id || '');
           if (!newLabel || newLabel === oldLabel) continue;
+          // Per-investor filter
+          if (investorPropertyIds && !investorPropertyIds.has(itemId)) continue;
           events.push({
             id: `status-${log.id}`,
             kind: 'status-change',
@@ -95,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           items_page(limit: 50) {
             items {
               id name created_at
-              column_values(ids: ["${INQ_COL.direction}", "${INQ_COL.investorName}", "${INQ_COL.property}"]) { id text }
+              column_values(ids: ["${INQ_COL.direction}", "${INQ_COL.investorName}", "${INQ_COL.investorId}", "${INQ_COL.property}"]) { id text }
               updates(limit: 5) { id text_body created_at creator { name } }
             }
           }
@@ -105,6 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const inqs = d.boards?.[0]?.items_page?.items ?? [];
       for (const inq of inqs) {
         const cols = Object.fromEntries(inq.column_values.map((c: any) => [c.id, c]));
+        // Per-investor filter
+        if (investorId && (cols[INQ_COL.investorId]?.text || '') !== investorId) continue;
         const dir = cols[INQ_COL.direction]?.text || '';
         const dirHe = dir === 'Management→Investor' ? 'ניהול → משקיע' : 'משקיע → ניהול';
         const investor = cols[INQ_COL.investorName]?.text || '';
@@ -135,8 +175,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('admin-feed inquiries failed:', e);
     }
 
-    // 4. Renovation payments — fetch top-level items with subitems, take newest subitems
-    try {
+    // 4. Renovation payments — ADMIN ONLY (investors must never see these transfers).
+    if (isAdmin) try {
       const renovQuery = `query {
         boards(ids: [${RENOVATIONS_BOARD_ID}]) {
           items_page(limit: 80) {

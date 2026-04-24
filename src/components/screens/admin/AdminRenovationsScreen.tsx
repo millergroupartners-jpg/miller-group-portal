@@ -13,9 +13,21 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { listRenovations, paidToColor, paidByColor, type Renovation } from '../../../services/renovationsApi';
+import { listRenovations, calcBalance, paidToColor, paidByColor, type Renovation } from '../../../services/renovationsApi';
 import { MGLogo } from '../../common/MGLogo';
 import { useNavigation } from '../../../context/NavigationContext';
+
+/** Property rental statuses — used for the primary filter. Ordered by "most relevant to renovations first". */
+const STATUS_FILTERS = [
+  'בשיפוץ',
+  'על חוזה',
+  'בשלבי הלוואה וחתימות',
+  'מעבר לניהול',
+  'מרקט',
+  'מושכר',
+  'new construction',
+] as const;
+type StatusFilter = typeof STATUS_FILTERS[number] | 'all';
 
 const GOLD = '#C9A84C';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
@@ -31,14 +43,14 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString('he-IL', { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
-type GroupFilter = 'all' | string;
-
 export function AdminRenovationsScreen() {
   const { navigate } = useNavigation();
   const [items, setItems] = useState<Renovation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [groupFilter, setGroupFilter] = useState<GroupFilter>('all');
+  /** Filter by the property's rental status, not by the renovations-board group.
+   *  Default = "בשיפוץ" per product request. */
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('בשיפוץ');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -52,33 +64,38 @@ export function AdminRenovationsScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  // Unique group titles for filter chips
-  const groups = useMemo(() => {
-    const s = new Set<string>();
-    items.forEach(r => { if (r.groupTitle) s.add(r.groupTitle); });
-    return Array.from(s);
+  // Count renovations per status so the filter chips can show a badge
+  const statusCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    items.forEach(r => { if (r.status) m[r.status] = (m[r.status] || 0) + 1; });
+    return m;
   }, [items]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter(r => {
-      if (groupFilter !== 'all' && r.groupTitle !== groupFilter) return false;
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (!q) return true;
       return [r.name, r.propertyName, r.investorName, r.contractorName]
         .some(v => (v || '').toLowerCase().includes(q));
     });
-  }, [items, groupFilter, search]);
+  }, [items, statusFilter, search]);
 
-  // Aggregates across filtered set
+  // Aggregates across filtered set — include balance sums
   const totals = useMemo(() => filtered.reduce(
-    (acc, r) => ({
-      paid:   acc.paid   + r.totalPaid,
-      our:    acc.our    + r.ourCost,
-      client: acc.client + r.clientCost,
-      addons: acc.addons + r.approvedAddons,
-      profit: acc.profit + (r.clientCost - r.ourCost),
-    }),
-    { paid: 0, our: 0, client: 0, addons: 0, profit: 0 }
+    (acc, r) => {
+      const b = calcBalance(r);
+      return {
+        paid:               acc.paid               + r.totalPaid,
+        our:                acc.our                + r.ourCost,
+        client:             acc.client             + r.clientCost,
+        profit:             acc.profit             + (r.clientCost - r.ourCost),
+        remainingTotal:     acc.remainingTotal     + b.remainingTotal,
+        remainingToUs:      acc.remainingToUs      + b.remainingToUs,
+        remainingToContr:   acc.remainingToContr   + b.remainingToContractor,
+      };
+    },
+    { paid: 0, our: 0, client: 0, profit: 0, remainingTotal: 0, remainingToUs: 0, remainingToContr: 0 }
   ), [filtered]);
 
   return (
@@ -96,7 +113,7 @@ export function AdminRenovationsScreen() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* KPI summary */}
         <div className="gold-card" style={{ padding: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
             {[
               { label: 'סה״כ שולם',      value: fmtMoney(totals.paid),   c: '#4CAF50' },
               { label: 'רווח משיפוצים',   value: fmtMoney(totals.profit), c: GOLD },
@@ -106,6 +123,22 @@ export function AdminRenovationsScreen() {
               <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+              </div>
+            ))}
+          </div>
+          {/* What's still owed — 3 columns */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+            background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 10, padding: 10,
+          }}>
+            {[
+              { l: 'נותר לתשלום',   v: fmtMoney(totals.remainingTotal),   c: '#ff9800' },
+              { l: 'נותר לנו',      v: fmtMoney(totals.remainingToUs),    c: GOLD },
+              { l: 'נותר לקבלן',    v: fmtMoney(totals.remainingToContr), c: '#225091' },
+            ].map(k => (
+              <div key={k.l} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, letterSpacing: 0.5 }}>{k.l}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
               </div>
             ))}
           </div>
@@ -125,21 +158,30 @@ export function AdminRenovationsScreen() {
           />
         </div>
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexDirection: 'row-reverse' }}>
-          {['all', ...groups].map(g => (
-            <button
-              key={g}
-              onClick={() => setGroupFilter(g)}
-              style={{
-                padding: '6px 14px', borderRadius: 100,
-                background: groupFilter === g ? GOLD : 'var(--bg-chip)',
-                color: groupFilter === g ? '#000' : 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              {g === 'all' ? 'הכל' : g}
-            </button>
-          ))}
+          {(['בשיפוץ', ...STATUS_FILTERS.filter(s => s !== 'בשיפוץ'), 'all'] as StatusFilter[]).map(s => {
+            const count = s === 'all' ? items.length : (statusCounts[s] || 0);
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                style={{
+                  padding: '6px 12px', borderRadius: 100,
+                  background: statusFilter === s ? GOLD : 'var(--bg-chip)',
+                  color: statusFilter === s ? '#000' : 'var(--text-secondary)',
+                  border: '1px solid var(--border)',
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {s === 'all' ? 'הכל' : s}
+                <span style={{
+                  fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
+                  background: statusFilter === s ? 'rgba(0,0,0,0.15)' : 'var(--border)',
+                  color: statusFilter === s ? '#000' : 'var(--text-muted)',
+                }}>{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>טוען…</div>}
@@ -154,6 +196,7 @@ export function AdminRenovationsScreen() {
         {filtered.map(r => {
           const isOpen = openId === r.id;
           const profit = r.clientCost - r.ourCost;
+          const bal = calcBalance(r);
           return (
             <div key={r.id} className="gold-card" style={{ padding: 0, overflow: 'hidden' }}>
               <button
@@ -167,9 +210,9 @@ export function AdminRenovationsScreen() {
                 <div style={{ flex: 1, textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', marginBottom: 4 }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{r.propertyName || r.name}</span>
-                    {r.groupTitle && (
+                    {r.status && (
                       <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: `${GOLD}22`, color: GOLD }}>
-                        {r.groupTitle}
+                        {r.status}
                       </span>
                     )}
                   </div>
@@ -177,9 +220,9 @@ export function AdminRenovationsScreen() {
                     {[r.investorName, r.contractorName].filter(Boolean).join(' · ') || '—'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 120 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 140 }}>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</b></div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>רווח · <b style={{ color: profit >= 0 ? GOLD : '#ff4d4d' }}>{fmtMoney(profit)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>נותר · <b style={{ color: '#ff9800' }}>{fmtMoney(bal.remainingTotal)}</b></div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"
                      style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
@@ -189,6 +232,23 @@ export function AdminRenovationsScreen() {
 
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px 16px', background: 'var(--bg-surface)' }}>
+                  {/* Balance breakdown — what's left to pay */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10,
+                    background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 8, padding: 8,
+                  }}>
+                    {[
+                      { l: 'נותר לתשלום',   v: fmtMoney(bal.remainingTotal),        c: '#ff9800' },
+                      { l: 'נותר לנו',      v: fmtMoney(bal.remainingToUs),         c: GOLD },
+                      { l: 'נותר לקבלן',    v: fmtMoney(bal.remainingToContractor), c: '#225091' },
+                    ].map(k => (
+                      <div key={k.l} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                      </div>
+                    ))}
+                  </div>
+
                   {/* Detail money grid — admin only */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
                     {[

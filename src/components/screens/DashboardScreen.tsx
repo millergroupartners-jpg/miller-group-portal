@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { MGLogo } from '../common/MGLogo';
 import { StatusBadge } from '../common/StatusBadge';
@@ -8,6 +9,7 @@ import { MOCK_USER } from '../../data/user';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useCCThumbnail } from '../../hooks/useCCThumbnail';
+import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../services/timelineApi';
 import type { MondayProperty } from '../../services/mondayApi';
 import type { Property } from '../../types';
 
@@ -94,6 +96,21 @@ export function DashboardScreen() {
     ? '$' + (totalArv - totalAllIn).toLocaleString('en-US')
     : '—';
 
+  // Investor activity feed — scoped to this investor's properties, renovation
+  // payments filtered out server-side so internal transfers never reach them.
+  const [feed, setFeed] = useState<AdminFeedEvent[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+  useEffect(() => {
+    if (!mondayInvestor?.mondayId) return;
+    let cancelled = false;
+    setFeedLoading(true);
+    fetchInvestorFeed(mondayInvestor.mondayId, 20)
+      .then(list => { if (!cancelled) setFeed(list); })
+      .catch(err => console.error('investor feed failed:', err))
+      .finally(() => { if (!cancelled) setFeedLoading(false); });
+    return () => { cancelled = true; };
+  }, [mondayInvestor?.mondayId]);
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
       {/* Desktop title */}
@@ -171,8 +188,9 @@ export function DashboardScreen() {
         </span>
       </div>
 
-      {/* Property cards */}
-      <div className="property-grid" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
+      {/* Property cards + optional activity feed below */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
+      <div className="property-grid" style={{ padding: 0 }}>
 
         {/* ── Monday investor properties ── */}
         {isMondayMode && mondayProps.map((p, i) => (
@@ -235,6 +253,69 @@ export function DashboardScreen() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Activity feed (investor mode only) ── */}
+      {isMondayMode && (feed.length > 0 || feedLoading) && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexDirection: 'row-reverse', marginBottom: 10,
+          }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+              ציר זמן · עדכונים אחרונים
+            </span>
+            {feedLoading && <span style={{ fontSize: 10, color: GOLD }}>⏳</span>}
+          </div>
+          <div className="gold-card" style={{ padding: 12 }}>
+            {feed.length === 0 && !feedLoading && (
+              <div style={{ textAlign: 'center', padding: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
+                אין עדכונים אחרונים
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {feed.slice(0, 15).map(ev => {
+                const clickable = Boolean(ev.propertyId || ev.inquiryId);
+                const onClick = () => {
+                  if (ev.propertyId) navigate('property-detail', { propertyId: ev.propertyId });
+                  else if (ev.inquiryId) navigate('inquiries');
+                };
+                return (
+                  <div
+                    key={ev.id}
+                    onClick={clickable ? onClick : undefined}
+                    style={{
+                      display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
+                      gap: 10, padding: 10, borderRadius: 10, background: 'var(--bg-chip)',
+                      cursor: clickable ? 'pointer' : 'default',
+                    }}
+                  >
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: `${ev.color}18`, border: `1px solid ${ev.color}44`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, flexShrink: 0,
+                    }}>{ev.icon}</div>
+                    <div style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{ev.title}</div>
+                      {ev.subtitle && (
+                        <div style={{
+                          fontSize: 10, color: 'var(--text-secondary)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{ev.subtitle}</div>
+                      )}
+                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>{relativeTimeHe(ev.at)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
     </div>

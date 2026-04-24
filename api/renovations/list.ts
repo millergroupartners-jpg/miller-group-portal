@@ -9,6 +9,13 @@
  *                           item on the Properties board (1997938102).
  *   investorId (optional) — filter to renovations whose "משקיע" mirror equals this
  *                           investor's Monday item id.
+ *   role       (optional) — 'admin' (default) or 'investor'. When 'investor', the
+ *                           response is SANITIZED: subitems paid by us (paidBy=אנחנו)
+ *                           are removed, the contractor name is stripped, ourCost
+ *                           and addons are zeroed, and each remaining subitem's
+ *                           paidTo is blanked so the investor only sees "their
+ *                           transfers to our renovation company" with no hint
+ *                           that a separate contractor exists in the middle.
  *
  * Response:
  *   {
@@ -78,6 +85,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const propertyId = ((req.query.propertyId as string) || '').trim();
     const investorId = ((req.query.investorId as string) || '').trim();
+    const role       = ((req.query.role as string) || 'admin').trim();
+    const isInvestor = role === 'investor';
 
     // Mirror columns ("משקיע" / "קבלן" / "סטטוס" / "שיפוץ ללקוח") — pull alongside
     // the linked property + addons. Mirror values come back via .text for display.
@@ -193,7 +202,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-    return res.status(200).json({ ok: true, renovations: filtered });
+    // INVESTOR sanitization — strip every hint of internal contractor / commission:
+    //   · Drop subitems paid by us (paidBy=אנחנו) — investor only sees their own transfers
+    //   · Zero contractor identity + our internal cost / addon totals
+    //   · Blank the paidTo on each remaining subitem so investor doesn't see
+    //     "לקבלן / קבלן משנה" labels. From their perspective, every transfer went
+    //     to our company ("חברת השיפוצים שלנו").
+    const sanitized = isInvestor
+      ? filtered.map(r => ({
+          ...r,
+          contractorName: '',
+          ourCost:        0,
+          approvedAddons: 0,
+          subitems: r.subitems
+            .filter(s => s.paidBy === 'הלקוח')
+            .map(s => ({ ...s, paidTo: '', paidBy: '' })),
+          // recompute totalPaid from what's visible to investor
+          totalPaid: r.subitems.filter(s => s.paidBy === 'הלקוח').reduce((a, x) => a + (x.amount || 0), 0),
+        }))
+      : filtered;
+
+    return res.status(200).json({ ok: true, renovations: sanitized });
   } catch (err: any) {
     console.error('renovations-list error:', err);
     return res.status(500).json({ error: err?.message || 'Server error' });
