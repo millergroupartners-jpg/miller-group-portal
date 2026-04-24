@@ -16,7 +16,9 @@ export type Screen =
   | 'admin-closings'
   | 'admin-inquiries'
   | 'admin-renovations'
+  | 'admin-utilities'
   | 'renovations'
+  | 'utilities'
   | 'timeline'
   | 'set-password';
 

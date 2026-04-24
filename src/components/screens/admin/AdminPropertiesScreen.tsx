@@ -80,6 +80,11 @@ function Card({ p, i, flash }: { p: MondayProperty; i: number; flash?: boolean }
   );
 }
 
+/** Which data source the admin wants to see — investor-owned deals or
+ *  Miller Group's own. Previously two separate sidebar tabs; merged here
+ *  to free a slot for Utilities. */
+type PropertySource = 'investors' | 'mg';
+
 export function AdminPropertiesScreen() {
   const { properties, mgProperties, loading } = useMondayData();
   const { navState } = useNavigation();
@@ -88,14 +93,16 @@ export function AdminPropertiesScreen() {
     highlightMode === 'no-manager' ? 'חסר מנהל' : 'הכל',
   );
   const [search, setSearch] = useState('');
+  const [source, setSource] = useState<PropertySource>('investors');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // When admin came in from the "missing manager" alert, also include MG properties
-  // so they can fix them from one screen.
-  const allProperties: MondayProperty[] = useMemo(
-    () => highlightMode === 'no-manager' ? [...properties, ...mgProperties] : properties,
-    [properties, mgProperties, highlightMode],
-  );
+  // so they can fix them from one screen. Otherwise, the source toggle picks
+  // exactly one set.
+  const allProperties: MondayProperty[] = useMemo(() => {
+    if (highlightMode === 'no-manager') return [...properties, ...mgProperties];
+    return source === 'mg' ? mgProperties : properties;
+  }, [properties, mgProperties, highlightMode, source]);
 
   const filtered = allProperties.filter(p => {
     if (statusFilter === 'חסר מנהל') {
@@ -133,14 +140,52 @@ export function AdminPropertiesScreen() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
       <div className="desktop-page-title">
-        <div className="subtitle">{properties.length} עסקאות של משקיעים</div>
-        <h1>נכסים</h1>
+        <div className="subtitle">
+          {source === 'mg'
+            ? `${mgProperties.length} עסקאות Miller Group`
+            : `${properties.length} עסקאות של משקיעים`}
+        </div>
+        <h1>{source === 'mg' ? 'נכסי Miller Group' : 'נכסי משקיעים'}</h1>
       </div>
 
       <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />
-        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>נכסים</span>
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+          {source === 'mg' ? 'נכסי Miller Group' : 'נכסי משקיעים'}
+        </span>
       </div>
+
+      {/* Source toggle — investors / Miller Group. Hidden when admin landed here
+          from the "missing manager" alert since that view intentionally spans
+          both sets. */}
+      {highlightMode !== 'no-manager' && (
+        <div style={{ padding: '6px 20px 0', flexShrink: 0 }}>
+          <div style={{
+            display: 'inline-flex', gap: 4, padding: 3, borderRadius: 100,
+            background: 'var(--bg-chip)', border: '1px solid var(--border)',
+            flexDirection: 'row-reverse',
+          }}>
+            {([
+              { key: 'investors' as PropertySource, label: `משקיעים (${properties.length})` },
+              { key: 'mg'        as PropertySource, label: `Miller Group (${mgProperties.length})` },
+            ]).map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setSource(opt.key)}
+                style={{
+                  padding: '6px 14px', borderRadius: 100, border: 'none',
+                  background: source === opt.key ? GOLD : 'transparent',
+                  color: source === opt.key ? '#000' : 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>

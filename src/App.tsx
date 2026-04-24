@@ -13,6 +13,8 @@ import { AdminMGDealsScreen } from './components/screens/admin/AdminMGDealsScree
 import { AdminClosingsScreen } from './components/screens/admin/AdminClosingsScreen';
 import { AdminInquiriesScreen } from './components/screens/admin/AdminInquiriesScreen';
 import { AdminRenovationsScreen } from './components/screens/admin/AdminRenovationsScreen';
+import { AdminUtilitiesScreen } from './components/screens/admin/AdminUtilitiesScreen';
+import { InvestorUtilitiesScreen } from './components/screens/InvestorUtilitiesScreen';
 import { InquiriesScreen } from './components/screens/InquiriesScreen';
 import { InvestorRenovationsScreen } from './components/screens/InvestorRenovationsScreen';
 import { InvestorTimelineScreen } from './components/screens/InvestorTimelineScreen';
@@ -23,8 +25,8 @@ import { MobileTopActions } from './components/common/MobileTopActions';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
-  'dashboard','property-detail','documents','media','inquiries','settings','renovations','timeline',
-  'admin-dashboard','admin-investors','admin-investor-detail','admin-properties','admin-mg-deals','admin-closings','admin-inquiries','admin-renovations',
+  'dashboard','property-detail','documents','media','inquiries','settings','renovations','utilities','timeline',
+  'admin-dashboard','admin-investors','admin-investor-detail','admin-properties','admin-mg-deals','admin-closings','admin-inquiries','admin-renovations','admin-utilities',
 ];
 
 export default function App() {
@@ -47,6 +49,7 @@ export default function App() {
       {screen === 'media'               && <MediaScreen />}
       {screen === 'inquiries'           && <InquiriesScreen />}
       {screen === 'renovations'         && <InvestorRenovationsScreen />}
+      {screen === 'utilities'           && <InvestorUtilitiesScreen />}
       {screen === 'timeline'            && <InvestorTimelineScreen />}
       {screen === 'settings'            && <SettingsScreen />}
 
@@ -61,6 +64,7 @@ export default function App() {
       {screen === 'admin-closings'      && <AdminClosingsScreen />}
       {screen === 'admin-inquiries'     && <AdminInquiriesScreen />}
       {screen === 'admin-renovations'   && <AdminRenovationsScreen />}
+      {screen === 'admin-utilities'     && <AdminUtilitiesScreen />}
 
       {screen === 'set-password' && selectedInvestorId && (
         <SetPasswordScreen

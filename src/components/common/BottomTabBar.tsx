@@ -76,6 +76,18 @@ const INVESTOR_TABS: Tab[] = [
       </svg>
     ),
   },
+  {
+    id: 'utilities',
+    label: 'Utilities',
+    icon: active => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition: 'stroke 0.15s' }}>
+        <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+  },
 ];
 
 const ADMIN_TABS: Tab[] = [
@@ -121,16 +133,16 @@ const ADMIN_TABS: Tab[] = [
     ),
   },
   {
-    id: 'admin-mg-deals',
-    label: 'מילר',
+    // "Miller Group" is now reachable via a toggle on the admin-properties
+    // screen — tap bar slot is reused for Utilities.
+    id: 'admin-utilities',
+    label: 'Utilities',
     icon: active => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
         stroke={active ? GOLD : 'var(--tab-icon)'}
         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
         style={{ transition: 'stroke 0.15s' }}>
-        <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
-        <path d="M9 21V11h6v10" />
-        <path d="M9 7h.01M13 7h.01" />
+        <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ),
   },

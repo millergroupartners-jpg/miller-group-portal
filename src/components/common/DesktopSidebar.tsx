@@ -67,6 +67,17 @@ const INVESTOR_TABS = [
     ),
   },
   {
+    id: 'utilities' as Screen,
+    label: 'Utilities',
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+  },
+  {
     id: 'settings' as Screen,
     label: 'הגדרות',
     icon: (active: boolean) => (
@@ -110,7 +121,7 @@ const ADMIN_TABS = [
   },
   {
     id: 'admin-properties' as Screen,
-    label: 'נכסי משקיעים',
+    label: 'נכסים',  // toggle inside this screen flips between משקיעים / Miller Group
     icon: (active: boolean) => (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
         stroke={active ? GOLD : 'var(--tab-icon)'}
@@ -120,18 +131,19 @@ const ADMIN_TABS = [
     ),
   },
   {
-    id: 'admin-mg-deals' as Screen,
-    label: 'Miller Group',
+    id: 'admin-utilities' as Screen,
+    label: 'Utilities',
     icon: (active: boolean) => (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
         stroke={active ? GOLD : 'var(--tab-icon)'}
         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
-        <path d="M9 21V11h6v10" />
-        <path d="M9 7h.01M13 7h.01" />
+        <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ),
   },
+  // Note: "Miller Group" deals are now accessed via a toggle on the "נכסי
+  // משקיעים" screen rather than a standalone sidebar entry. This frees a
+  // slot for Utilities without growing the sidebar further.
   {
     id: 'admin-closings' as Screen,
     label: 'יומן סגירות',
