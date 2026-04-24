@@ -15,7 +15,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mondayQuery } from '../_lib/monday.js';
-import { sendMail, wrapEmail } from '../_lib/email.js';
+import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
 
 const PROPERTIES_BOARD_ID = 1997938102;
 const INVESTORS_BOARD_ID  = 1997938105;
@@ -213,10 +213,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Admin summary
-    const adminEmail = (process.env.GMAIL_USER || '').trim();
     const totalAcross = perInvestorSummary.reduce((s, i) => s + i.properties.reduce((s2, p) => s2 + p.newCount, 0), 0);
     await sendMail({
-      to: adminEmail,
+      to: getAdminRecipients(),
       subject: `${totalAcross} תמונות חדשות נוספו לנכסים (${perInvestorSummary.length} משקיעים)`,
       html: wrapEmail({
         title: 'סיכום תמונות חדשות',

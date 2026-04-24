@@ -26,19 +26,36 @@ function getTransporter() {
 }
 
 export async function sendMail(opts: {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   replyTo?: string;
 }) {
   const user = (process.env.GMAIL_USER || '').trim();
+  const to = Array.isArray(opts.to) ? opts.to.join(', ') : opts.to;
   return getTransporter().sendMail({
     from: `"Miller Group" <${user}>`,
-    to: opts.to,
+    to,
     subject: opts.subject,
     html: opts.html,
     replyTo: opts.replyTo,
   });
+}
+
+/**
+ * Returns the list of recipient emails for any "goes to management" notification
+ * (daily summary, new inquiries, media alerts). Always includes GMAIL_USER, plus
+ * anyone listed in the comma-separated ADMIN_EMAILS env var (e.g. backoffice).
+ */
+export function getAdminRecipients(): string[] {
+  const primary = (process.env.GMAIL_USER || '').trim();
+  const extras = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s && s !== primary);
+  const all = [primary, ...extras].filter(Boolean);
+  // de-dupe while preserving order
+  return Array.from(new Set(all));
 }
 
 const PORTAL_URL = process.env.PORTAL_URL || 'https://miller-group-portal.vercel.app';

@@ -18,7 +18,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mondayQuery, INQ_STATUS, INQ_COL, esc, appendToMessageColumn } from '../_lib/monday.js';
-import { sendMail, wrapEmail } from '../_lib/email.js';
+import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -73,14 +73,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await mondayQuery(statusMutation).catch(() => {}); // ignore errors (e.g. status already Resolved)
 
     // 3. Send email notification
-    const adminEmail = process.env.GMAIL_USER!;
     const inquiryNumber = `INQ-${String(inquiryId).slice(-6)}`;
 
     try {
       if (replyFrom === 'investor') {
         // Investor replied → notify admin (no reply-to: admin should reply via portal)
         await sendMail({
-          to: adminEmail,
+          to: getAdminRecipients(),
           subject: `תגובה מ-${investorName} — ${inquiryNumber}: ${subject || ''}`,
           html: wrapEmail({
             title: `תגובה חדשה — ${inquiryNumber}`,

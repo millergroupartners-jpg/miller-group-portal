@@ -17,7 +17,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL } from '../_lib/monday.js';
-import { sendMail, wrapEmail } from '../_lib/email.js';
+import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
 
 const PROPERTIES_BOARD_ID = 1997938102;
 const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
@@ -265,9 +265,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>`);
     }
 
-    const adminEmail = (process.env.GMAIL_USER || '').trim();
     await sendMail({
-      to: adminEmail,
+      to: getAdminRecipients(),
       subject: `סיכום יומי — ${totalAlerts} התראות | Miller Group`,
       html: wrapEmail({
         title: 'סיכום יומי',

@@ -21,7 +21,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mondayQuery, INQUIRIES_BOARD_ID, INQ_COL, INQ_STATUS, INQ_DIRECTION, esc, jsonEsc, appendToMessageColumn } from '../_lib/monday.js';
-import { sendMail, wrapEmail } from '../_lib/email.js';
+import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -97,13 +97,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Send email notification
-    const adminEmail = process.env.GMAIL_USER!;
     const inquiryNumber = `INQ-${inquiryId.slice(-6)}`;
 
     try {
       if (direction === 'investor-to-admin') {
         await sendMail({
-          to: adminEmail,
+          to: getAdminRecipients(),
           subject: `פנייה חדשה מאת ${investorName} — ${inquiryNumber}`,
           html: wrapEmail({
             title: `פנייה חדשה — ${inquiryNumber}`,
