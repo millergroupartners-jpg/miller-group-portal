@@ -14,6 +14,7 @@ import { AdminClosingsScreen } from './components/screens/admin/AdminClosingsScr
 import { AdminInquiriesScreen } from './components/screens/admin/AdminInquiriesScreen';
 import { AdminRenovationsScreen } from './components/screens/admin/AdminRenovationsScreen';
 import { InquiriesScreen } from './components/screens/InquiriesScreen';
+import { InvestorRenovationsScreen } from './components/screens/InvestorRenovationsScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
@@ -21,7 +22,7 @@ import { MobileTopActions } from './components/common/MobileTopActions';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
-  'dashboard','property-detail','documents','media','inquiries','settings',
+  'dashboard','property-detail','documents','media','inquiries','settings','renovations',
   'admin-dashboard','admin-investors','admin-investor-detail','admin-properties','admin-mg-deals','admin-closings','admin-inquiries','admin-renovations',
 ];
 
@@ -44,6 +45,7 @@ export default function App() {
       {screen === 'documents'           && <DocumentsScreen />}
       {screen === 'media'               && <MediaScreen />}
       {screen === 'inquiries'           && <InquiriesScreen />}
+      {screen === 'renovations'         && <InvestorRenovationsScreen />}
       {screen === 'settings'            && <SettingsScreen />}
 
       {/* ── Admin screens ── */}

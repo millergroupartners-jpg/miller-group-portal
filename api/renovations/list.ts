@@ -147,6 +147,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(query);
     const items = data?.boards?.[0]?.items_page?.items ?? [];
 
+    // Mirror columns (lookup_*) unreliably return null text via Monday's GraphQL.
+    // Fetch the authoritative values for שיפוץ ללקוח / שיפוץ שלנו straight from
+    // the Properties board for all linked property ids in a single batch query.
+    const linkedPropertyIds = Array.from(new Set(
+      items
+        .map(it => it.column_values.find(cv => cv.id === RENOV_COL.property)?.linked_items?.[0]?.id)
+        .filter((x): x is string => Boolean(x))
+    ));
+    const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string }>();
+    if (linkedPropertyIds.length > 0) {
+      try {
+        const ids = linkedPropertyIds.join(',');
+        const costsQuery = `query {
+          items(ids: [${ids}]) {
+            id
+            column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
+              id text
+              ... on BoardRelationValue { linked_items { id name } }
+            }
+          }
+        }`;
+        type Row = { id: string; column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[] };
+        const cd = await mondayQuery<{ items: Row[] }>(costsQuery);
+        for (const it of cd.items ?? []) {
+          const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
+          propertyCosts.set(it.id, {
+            clientCost:   parseNumber(map['numeric_mkrzk78b']?.text),
+            ourCost:      parseNumber(map['numeric_mkvjrbnp']?.text),
+            status:       map['color_mm1fv8p0']?.text || '',
+            investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
+            investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
+          });
+        }
+      } catch (e) {
+        console.error('renovations-list property cost fetch failed:', e);
+      }
+    }
+
     const renovations = items.map(item => {
       const cols = Object.fromEntries(item.column_values.map(cv => [cv.id, cv]));
       const propertyLinked = cols[RENOV_COL.property]?.linked_items?.[0];
@@ -170,6 +208,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const totalPaid = subitems.reduce((s, x) => s + x.amount, 0);
 
+      // Prefer authoritative values from the Properties board over mirror columns
+      // (mirror `text` can come back null from Monday's GraphQL).
+      const fromProp = propertyCosts.get(propertyLinked?.id || '') || { clientCost: 0, ourCost: 0, status: '', investorName: '' };
+      const clientCost   = fromProp.clientCost || parseNumber(cols['lookup_mkvjdzs']?.text);
+      const ourCost      = fromProp.ourCost    || parseNumber(cols['lookup_mkvjwr8v']?.text);
+      const status       = fromProp.status       || cols['lookup_mm01qppw']?.text || '';
+      const investorName = fromProp.investorName || cols['lookup_mkt3ey7s']?.text || '';
+
       return {
         id:              item.id,
         name:            item.name,
@@ -177,11 +223,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         groupTitle:      item.group?.title || '',
         propertyId:      propertyLinked?.id || '',
         propertyName:    propertyLinked?.name || '',
-        status:          cols['lookup_mm01qppw']?.text || '',
-        investorName:    cols['lookup_mkt3ey7s']?.text || '',
+        status,
+        investorName,
         contractorName:  cols['lookup_mkt3hy1k']?.text || '',
-        ourCost:         parseNumber(cols['lookup_mkvjwr8v']?.text),
-        clientCost:      parseNumber(cols['lookup_mkvjdzs']?.text),
+        ourCost,
+        clientCost,
         approvedAddons:  parseNumber(cols[RENOV_COL.addons]?.text),
         updatedAt:       item.updated_at,
         subitems,
@@ -194,10 +240,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       filtered = filtered.filter(r => r.propertyId === propertyId);
     }
     if (investorId) {
-      // Investor mirror column can't be filtered by id (text mirror) — so we filter
-      // by the linked relation on the property side. For now we trust propertyId as
-      // the primary filter; investorId is a fallback used by admin views.
-      filtered = filtered.filter(r => r.investorName); // pass-through; UI can refine
+      // Match renovations whose linked property points at this investor.
+      filtered = filtered.filter(r => {
+        const fp = propertyCosts.get(r.propertyId);
+        return fp?.investorId === investorId;
+      });
     }
 
     filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
