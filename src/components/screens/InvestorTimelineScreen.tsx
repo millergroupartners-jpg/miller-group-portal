@@ -15,7 +15,7 @@ import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../se
 
 const GOLD = '#C9A84C';
 
-type FilterKey = 'all' | 'status' | 'inquiry';
+type FilterKey = 'all' | 'status' | 'inquiry' | 'utility';
 
 export function InvestorTimelineScreen() {
   const { navigate, goBack } = useNavigation();
@@ -40,8 +40,9 @@ export function InvestorTimelineScreen() {
 
   const filtered = useMemo(() => {
     if (filter === 'all') return events;
-    if (filter === 'status') return events.filter(e => e.kind === 'status-change');
+    if (filter === 'status')  return events.filter(e => e.kind === 'status-change');
     if (filter === 'inquiry') return events.filter(e => e.kind === 'inquiry-new' || e.kind === 'inquiry-reply');
+    if (filter === 'utility') return events.filter(e => e.kind === 'utility-scheduled' || e.kind === 'utility-activated');
     return events;
   }, [events, filter]);
 
@@ -83,6 +84,7 @@ export function InvestorTimelineScreen() {
           {([
             { key: 'all' as FilterKey,     label: 'הכל' },
             { key: 'status' as FilterKey,  label: '🔄 סטטוס' },
+            { key: 'utility' as FilterKey, label: '⚡ Utilities' },
             { key: 'inquiry' as FilterKey, label: '💬 פניות' },
           ]).map(c => (
             <button

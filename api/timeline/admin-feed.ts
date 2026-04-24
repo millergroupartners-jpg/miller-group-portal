@@ -30,11 +30,19 @@ import {
   RENOV_SUB_COL,
   INQUIRIES_BOARD_ID,
   INQ_COL,
+  UTILITIES_BOARD_ID,
+  UTIL_COL,
 } from '../_lib/monday.js';
 
 interface AdminFeedEvent {
   id: string;
-  kind: 'status-change' | 'inquiry-new' | 'inquiry-reply' | 'renovation-payment';
+  kind:
+    | 'status-change'
+    | 'inquiry-new'
+    | 'inquiry-reply'
+    | 'renovation-payment'
+    | 'utility-activated'
+    | 'utility-scheduled';
   at: string;
   title: string;
   subtitle?: string;
@@ -85,14 +93,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 1. Status changes on Properties board — last 200 activity logs, filter to rentalStatus column
+    // 1. Status changes on Properties board. When filtered by investor we scope
+    // activity_logs to only their property item ids (so we don't lose events to
+    // the global 200-log tail). In admin/global mode we still pull the last 500.
     try {
+      const scopedItemIds = investorPropertyIds ? Array.from(investorPropertyIds) : null;
+      const itemIdsArg = scopedItemIds && scopedItemIds.length > 0
+        ? `, item_ids: [${scopedItemIds.join(',')}]`
+        : '';
+      const logLimit = scopedItemIds ? 200 : 500;
       const propLogsQuery = `query {
         boards(ids: [${PROPERTIES_BOARD_ID}]) {
-          activity_logs(limit: 200) {
+          activity_logs(limit: ${logLimit}${itemIdsArg}) {
             id event data created_at entity
           }
-          items_page(limit: 200) { items { id name } }
+          items_page(limit: 500) { items { id name } }
         }
       }`;
       type Log = { id: string; event: string; data: string; created_at: string; entity: string };
@@ -219,6 +234,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } catch (e) {
       console.error('admin-feed renovations failed:', e);
+    }
+
+    // 5. Utility milestones — scheduled-in dates and "activated" (group="topics")
+    //    transitions proxied via updated_at. Scoped to investor's properties if given.
+    try {
+      const utilsQuery = `query {
+        boards(ids: [${UTILITIES_BOARD_ID}]) {
+          items_page(limit: 300) {
+            items {
+              id name updated_at
+              group { id title }
+              column_values(ids: ["${UTIL_COL.property}", "${UTIL_COL.serviceCompany}", "${UTIL_COL.scheduledIn}"]) {
+                id text
+                ... on BoardRelationValue { linked_items { id name } }
+              }
+            }
+          }
+        }
+      }`;
+      const ud = await mondayQuery<{ boards: { items_page: { items: any[] } }[] }>(utilsQuery);
+      const utils = ud.boards?.[0]?.items_page?.items ?? [];
+      for (const u of utils) {
+        const cols = Object.fromEntries(u.column_values.map((c: any) => [c.id, c]));
+        const linked = cols[UTIL_COL.property]?.linked_items?.[0];
+        const propId = linked?.id || '';
+        if (!propId) continue;
+        // Per-investor filter
+        if (investorPropertyIds && !investorPropertyIds.has(propId)) continue;
+
+        const service = cols[UTIL_COL.serviceCompany]?.text || 'Utility';
+        const scheduledIn = cols[UTIL_COL.scheduledIn]?.text || '';
+        const propName = linked?.name || '';
+
+        if (scheduledIn) {
+          events.push({
+            id: `util-sched-${u.id}`,
+            kind: 'utility-scheduled',
+            at: scheduledIn,
+            title: `${service} — מתוכנן להפעלה`,
+            subtitle: u.name ? `חשבון ${u.name}` : undefined,
+            icon: '📅',
+            color: '#4eccc6',
+            propertyId: propId,
+            propertyName: propName,
+          });
+        }
+        if (u.group?.id === 'topics' && u.updated_at) {
+          events.push({
+            id: `util-active-${u.id}`,
+            kind: 'utility-activated',
+            at: u.updated_at,
+            title: `${service} — הופעל`,
+            subtitle: u.name ? `חשבון ${u.name}` : undefined,
+            icon: '✅',
+            color: '#00c875',
+            propertyId: propId,
+            propertyName: propName,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('admin-feed utilities failed:', e);
     }
 
     // Sort desc + cap

@@ -47,10 +47,16 @@ export async function fetchPropertyTimeline(
   return data.events;
 }
 
-/** Admin-only global activity feed for the admin dashboard. */
+/** Global activity feed — used both for admin dashboard and investor dashboard. */
 export interface AdminFeedEvent {
   id: string;
-  kind: 'status-change' | 'inquiry-new' | 'inquiry-reply' | 'renovation-payment';
+  kind:
+    | 'status-change'
+    | 'inquiry-new'
+    | 'inquiry-reply'
+    | 'renovation-payment'
+    | 'utility-scheduled'
+    | 'utility-activated';
   at: string;
   title: string;
   subtitle?: string;
