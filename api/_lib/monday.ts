@@ -96,24 +96,60 @@ function getToken(): string {
   return token;
 }
 
+/**
+ * Run a GraphQL query against Monday's API, retrying on 429 "Complexity
+ * budget exhausted" errors using the `retry_in_seconds` hint the server
+ * returns. We retry up to 3 times with a small safety cap so a serverless
+ * function never blocks forever.
+ */
 export async function mondayQuery<T>(query: string, variables?: object): Promise<T> {
-  const res = await fetch(MONDAY_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: getToken(),
-      'API-Version': '2024-01',
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const MAX_RETRIES = 3;
+  let lastErr: unknown;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Monday API HTTP ${res.status}: ${body}`);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(MONDAY_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: getToken(),
+        'API-Version': '2024-01',
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    // HTTP-level 429 — read retry-after and try again
+    if (res.status === 429 && attempt < MAX_RETRIES) {
+      const body = await res.text().catch(() => '');
+      const match = body.match(/"retry_in_seconds"\s*:\s*(\d+)/);
+      const waitSec = Math.min(match ? parseInt(match[1], 10) : 4, 12);
+      await new Promise(r => setTimeout(r, waitSec * 1000));
+      continue;
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Monday API HTTP ${res.status}: ${body}`);
+    }
+
+    const json = await res.json();
+
+    // Monday also returns 200 with a complexity-exhausted error in the body
+    const firstErr = json.errors?.[0];
+    if (firstErr) {
+      const isComplexity = /complexity budget exhausted/i.test(firstErr.message || '')
+        || /COMPLEXITY_BUDGET_EXHAUSTED/i.test(firstErr.extensions?.code || '');
+      if (isComplexity && attempt < MAX_RETRIES) {
+        const waitSec = Math.min(firstErr.extensions?.retry_in_seconds || 4, 12);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+        continue;
+      }
+      throw new Error(firstErr.message);
+    }
+
+    return json.data as T;
   }
-  const json = await res.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json.data as T;
+
+  throw (lastErr instanceof Error ? lastErr : new Error('Monday API retry exhausted'));
 }
 
 /** Escape user-provided strings for GraphQL literal insertion */

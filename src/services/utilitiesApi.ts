@@ -19,11 +19,17 @@ export interface Utility {
   groupTitle: string;
   propertyId: string;
   propertyName: string;
+  /** Group id of the linked property on the Properties board. Used so the
+   *  admin utilities screen can switch between investors and Miller Group. */
+  propertyGroupId: string;
   investorId: string;
   investorName: string;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Miller Group own-deals group id on the Properties board. */
+export const MG_PROPERTY_GROUP_ID = 'group_mkw9are4';
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);

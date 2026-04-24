@@ -17,6 +17,7 @@ export type Screen =
   | 'admin-inquiries'
   | 'admin-renovations'
   | 'admin-utilities'
+  | 'admin-timeline'
   | 'renovations'
   | 'utilities'
   | 'timeline'

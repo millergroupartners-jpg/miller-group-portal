@@ -203,20 +203,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .map(it => it.column_values.find(cv => cv.id === RENOV_COL.property)?.linked_items?.[0]?.id)
         .filter((x): x is string => Boolean(x))
     ));
-    const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string }>();
+    const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string; groupId: string }>();
     if (linkedPropertyIds.length > 0) {
       try {
         const ids = linkedPropertyIds.join(',');
         const costsQuery = `query {
           items(ids: [${ids}]) {
             id
+            group { id title }
             column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
               id text
               ... on BoardRelationValue { linked_items { id name } }
             }
           }
         }`;
-        type Row = { id: string; column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[] };
+        type Row = {
+          id: string;
+          group: { id: string; title: string };
+          column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[];
+        };
         const cd = await mondayQuery<{ items: Row[] }>(costsQuery);
         for (const it of cd.items ?? []) {
           const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
@@ -226,6 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status:       map['color_mm1fv8p0']?.text || '',
             investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
             investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
+            groupId:      it.group?.id || '',
           });
         }
       } catch (e) {
@@ -254,11 +260,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
       });
 
-      const totalPaid = subitems.reduce((s, x) => s + x.amount, 0);
+      // "שולם" semantics = how much the INVESTOR actually transferred (paidBy=הלקוח).
+      // Subitems with paidBy=אנחנו are money we advanced (e.g. paid the contractor
+      // on behalf of the client), which should not inflate the "client paid" figure
+      // otherwise admin sees a number higher than what the investor really sent.
+      const totalPaid = subitems
+        .filter(s => s.paidBy === 'הלקוח')
+        .reduce((s, x) => s + x.amount, 0);
 
       // Prefer authoritative values from the Properties board over mirror columns
       // (mirror `text` can come back null from Monday's GraphQL).
-      const fromProp = propertyCosts.get(propertyLinked?.id || '') || { clientCost: 0, ourCost: 0, status: '', investorName: '' };
+      const fromProp = propertyCosts.get(propertyLinked?.id || '') || { clientCost: 0, ourCost: 0, status: '', investorName: '', investorId: '', groupId: '' };
       const clientCost   = fromProp.clientCost || parseNumber(cols['lookup_mkvjdzs']?.text);
       const ourCost      = fromProp.ourCost    || parseNumber(cols['lookup_mkvjwr8v']?.text);
       const status       = fromProp.status       || cols['lookup_mm01qppw']?.text || '';
@@ -271,6 +283,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         groupTitle:      item.group?.title || '',
         propertyId:      propertyLinked?.id || '',
         propertyName:    propertyLinked?.name || '',
+        propertyGroupId: fromProp.groupId,   // "group_mkw9are4" = Miller Group, else = investors
         status,
         investorName,
         contractorName:  cols['lookup_mkt3hy1k']?.text || '',

@@ -16,10 +16,14 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   listRenovations, calcBalance, paidToColor, paidByColor,
   listRenovationUpdates, postRenovationUpdate,
+  MG_PROPERTY_GROUP_ID,
   type Renovation, type RenovationUpdate,
 } from '../../../services/renovationsApi';
 import { MGLogo } from '../../common/MGLogo';
 import { useNavigation } from '../../../context/NavigationContext';
+
+/** Source toggle — which set of properties the admin wants to see renovations for. */
+type SourceKey = 'investors' | 'mg';
 
 /** Property rental statuses — used for the primary filter. Ordered by "most relevant to renovations first". */
 const STATUS_FILTERS = [
@@ -162,6 +166,7 @@ export function AdminRenovationsScreen() {
   /** Filter by the property's rental status, not by the renovations-board group.
    *  Default = "בשיפוץ" per product request. */
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('בשיפוץ');
+  const [source, setSource] = useState<SourceKey>('investors');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -175,22 +180,37 @@ export function AdminRenovationsScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  // Count renovations per status so the filter chips can show a badge
+  // Per-source counts for the toggle badge
+  const sourceCounts = useMemo(() => ({
+    investors: items.filter(r => r.propertyGroupId !== MG_PROPERTY_GROUP_ID).length,
+    mg:        items.filter(r => r.propertyGroupId === MG_PROPERTY_GROUP_ID).length,
+  }), [items]);
+
+  // Items after source filter — status counts and list operate on this subset
+  const sourceItems = useMemo(() => {
+    return items.filter(r =>
+      source === 'mg'
+        ? r.propertyGroupId === MG_PROPERTY_GROUP_ID
+        : r.propertyGroupId !== MG_PROPERTY_GROUP_ID
+    );
+  }, [items, source]);
+
+  // Count renovations per status (within selected source) so filter chips can show a badge
   const statusCounts = useMemo(() => {
     const m: Record<string, number> = {};
-    items.forEach(r => { if (r.status) m[r.status] = (m[r.status] || 0) + 1; });
+    sourceItems.forEach(r => { if (r.status) m[r.status] = (m[r.status] || 0) + 1; });
     return m;
-  }, [items]);
+  }, [sourceItems]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter(r => {
+    return sourceItems.filter(r => {
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (!q) return true;
       return [r.name, r.propertyName, r.investorName, r.contractorName]
         .some(v => (v || '').toLowerCase().includes(q));
     });
-  }, [items, statusFilter, search]);
+  }, [sourceItems, statusFilter, search]);
 
   // Aggregates across filtered set — include balance sums.
   // Approved addons add equally to what the client owes AND to what the
@@ -264,6 +284,32 @@ export function AdminRenovationsScreen() {
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'right' }}>
             🔒 נתונים פנימיים — לא חשופים למשקיעים
           </div>
+        </div>
+
+        {/* Source toggle — investor-owned renovations vs Miller Group's own */}
+        <div style={{
+          display: 'inline-flex', gap: 4, padding: 3, borderRadius: 100,
+          background: 'var(--bg-chip)', border: '1px solid var(--border)',
+          flexDirection: 'row-reverse', alignSelf: 'flex-end',
+        }}>
+          {([
+            { key: 'investors' as SourceKey, label: `משקיעים (${sourceCounts.investors})` },
+            { key: 'mg'        as SourceKey, label: `Miller Group (${sourceCounts.mg})` },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSource(opt.key)}
+              style={{
+                padding: '6px 14px', borderRadius: 100, border: 'none',
+                background: source === opt.key ? GOLD : 'transparent',
+                color: source === opt.key ? '#000' : 'var(--text-secondary)',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {/* Search + group filter */}

@@ -25,6 +25,9 @@ export interface Renovation {
   groupTitle: string;
   propertyId: string;
   propertyName: string;
+  /** Group id of the linked PROPERTY on the properties board. Used to decide
+   *  investor-owned vs Miller-Group-owned: "group_mkw9are4" = MG. */
+  propertyGroupId?: string;
   status: string;
   investorName: string;
   contractorName: string;
@@ -35,6 +38,10 @@ export interface Renovation {
   subitems: RenovationSubitem[];
   totalPaid: number;
 }
+
+/** Group id on Properties board for Miller Group own deals. Shared so screens
+ *  can filter investor-owned vs MG without re-declaring the magic string. */
+export const MG_PROPERTY_GROUP_ID = 'group_mkw9are4';
 
 /**
  * Derived balance per renovation project:

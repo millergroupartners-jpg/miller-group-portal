@@ -83,6 +83,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(query);
     const items = data?.boards?.[0]?.items_page?.items ?? [];
 
+    // Build a map of property-id → property-group-id so we can tag each utility
+    // as investor-owned vs Miller-Group-owned (for admin screen toggle). Group
+    // "group_mkw9are4" on the Properties board = MG own deals.
+    const linkedPropertyIds = Array.from(new Set(
+      items
+        .map(it => it.column_values.find(cv => cv.id === UTIL_COL.property)?.linked_items?.[0]?.id)
+        .filter((x): x is string => Boolean(x))
+    ));
+    const propertyGroups = new Map<string, string>();
+    if (linkedPropertyIds.length > 0) {
+      try {
+        const ids = linkedPropertyIds.join(',');
+        const groupQ = `query {
+          items(ids: [${ids}]) { id group { id } }
+        }`;
+        type Row = { id: string; group: { id: string } };
+        const gd = await mondayQuery<{ items: Row[] }>(groupQ);
+        for (const it of gd.items ?? []) {
+          propertyGroups.set(it.id, it.group?.id || '');
+        }
+      } catch (e) {
+        console.error('utilities-list property group fetch failed:', e);
+      }
+    }
+
     const utilities = items.map(item => {
       const cols = Object.fromEntries(item.column_values.map(cv => [cv.id, cv]));
       const linkedProperty = cols[UTIL_COL.property]?.linked_items?.[0];
@@ -110,6 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         groupTitle:        item.group?.title || '',
         propertyId:        linkedProperty?.id || '',
         propertyName:      linkedProperty?.name || '',
+        propertyGroupId:   propertyGroups.get(linkedProperty?.id || '') || '',
         investorId:        linkedInvestor?.id || '',
         investorName:      linkedInvestor?.name || '',
         createdAt:         item.created_at,

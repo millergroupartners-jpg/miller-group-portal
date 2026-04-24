@@ -340,7 +340,20 @@ export function AdminDashboardScreen() {
             flexDirection: 'row-reverse', marginBottom: 12, gap: 8,
           }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>ציר זמן · שינויים אחרונים</span>
-            {feedLoading && <span style={{ fontSize: 10, color: GOLD }}>⏳</span>}
+            {feedLoading
+              ? <span style={{ fontSize: 10, color: GOLD }}>⏳</span>
+              : feed.length > 0 && (
+                  <button
+                    onClick={() => navigate('admin-timeline')}
+                    style={{
+                      background: 'transparent', border: 'none', color: GOLD,
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    צפה בציר זמן מלא ←
+                  </button>
+                )
+            }
           </div>
           {!feedLoading && feed.length === 0 && (
             <div style={{ textAlign: 'center', padding: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
@@ -348,7 +361,7 @@ export function AdminDashboardScreen() {
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {feed.slice(0, 12).map(ev => {
+            {feed.slice(0, 8).map(ev => {
               const isClickable = Boolean(ev.propertyId || ev.inquiryId);
               const handleClick = () => {
                 if (ev.propertyId) navigate('property-detail', { propertyId: ev.propertyId });
@@ -376,6 +389,12 @@ export function AdminDashboardScreen() {
                       fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{ev.title}</div>
+                    {ev.propertyName && (
+                      <div style={{
+                        fontSize: 10, color: GOLD, fontWeight: 600, marginBottom: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>📍 {ev.propertyName}</div>
+                    )}
                     {ev.subtitle && (
                       <div style={{
                         fontSize: 10, color: 'var(--text-secondary)',

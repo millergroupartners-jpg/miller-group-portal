@@ -10,7 +10,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { MGLogo } from '../../common/MGLogo';
-import { listUtilities, utilityIcon, statusColor, type Utility, type UtilityStatus } from '../../../services/utilitiesApi';
+import { listUtilities, utilityIcon, statusColor, MG_PROPERTY_GROUP_ID, type Utility, type UtilityStatus } from '../../../services/utilitiesApi';
+
+type SourceKey = 'investors' | 'mg';
 
 const GOLD = '#C9A84C';
 
@@ -37,6 +39,7 @@ export function AdminUtilitiesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('all');
+  const [source, setSource] = useState<SourceKey>('investors');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -49,22 +52,33 @@ export function AdminUtilitiesScreen() {
     return () => { cancelled = true; };
   }, []);
 
+  const sourceCounts = useMemo(() => ({
+    investors: items.filter(u => u.propertyGroupId !== MG_PROPERTY_GROUP_ID).length,
+    mg:        items.filter(u => u.propertyGroupId === MG_PROPERTY_GROUP_ID).length,
+  }), [items]);
+
+  const sourceItems = useMemo(() => items.filter(u =>
+    source === 'mg'
+      ? u.propertyGroupId === MG_PROPERTY_GROUP_ID
+      : u.propertyGroupId !== MG_PROPERTY_GROUP_ID
+  ), [items, source]);
+
   // Counts per status for filter chip badges
   const counts = useMemo(() => {
     const m: Record<string, number> = {};
-    items.forEach(u => { m[u.status] = (m[u.status] || 0) + 1; });
+    sourceItems.forEach(u => { m[u.status] = (m[u.status] || 0) + 1; });
     return m;
-  }, [items]);
+  }, [sourceItems]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter(u => {
+    return sourceItems.filter(u => {
       if (statusFilter !== 'all' && u.status !== statusFilter) return false;
       if (!q) return true;
       return [u.accountNumber, u.serviceCompany, u.propertyName, u.investorName]
         .some(v => (v || '').toLowerCase().includes(q));
     });
-  }, [items, statusFilter, search]);
+  }, [sourceItems, statusFilter, search]);
 
   // Group filtered rows by property for readability
   const grouped = useMemo(() => {
@@ -97,6 +111,32 @@ export function AdminUtilitiesScreen() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Source toggle — investors vs Miller Group */}
+        <div style={{
+          display: 'inline-flex', gap: 4, padding: 3, borderRadius: 100,
+          background: 'var(--bg-chip)', border: '1px solid var(--border)',
+          flexDirection: 'row-reverse', alignSelf: 'flex-end',
+        }}>
+          {([
+            { key: 'investors' as SourceKey, label: `משקיעים (${sourceCounts.investors})` },
+            { key: 'mg'        as SourceKey, label: `Miller Group (${sourceCounts.mg})` },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSource(opt.key)}
+              style={{
+                padding: '6px 14px', borderRadius: 100, border: 'none',
+                background: source === opt.key ? GOLD : 'transparent',
+                color: source === opt.key ? '#000' : 'var(--text-secondary)',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {/* Search */}
         <input
           className="mg-input"
