@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
+import { fetchAdminFeed, relativeTimeHe, type AdminFeedEvent } from '../../../services/timelineApi';
 
 const GOLD = '#C9A84C';
 
@@ -26,6 +28,19 @@ export function AdminDashboardScreen() {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
   const { investors, properties, mgProperties, loading, hasToken } = useMondayData();
+
+  // Admin-only activity feed — recent events across the whole system
+  const [feed, setFeed] = useState<AdminFeedEvent[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setFeedLoading(true);
+    fetchAdminFeed(20)
+      .then(list => { if (!cancelled) setFeed(list); })
+      .catch(err => console.error('admin feed fetch failed:', err))
+      .finally(() => { if (!cancelled) setFeedLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Aggregate metrics
   const totalAllIn   = properties.reduce((s, p) => s + p.allIn, 0);
@@ -316,6 +331,63 @@ export function AdminDashboardScreen() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Global activity feed — admin only */}
+        <div className="gold-card" style={{ padding: 14 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexDirection: 'row-reverse', marginBottom: 12, gap: 8,
+          }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>ציר זמן · שינויים אחרונים</span>
+            {feedLoading && <span style={{ fontSize: 10, color: GOLD }}>⏳</span>}
+          </div>
+          {!feedLoading && feed.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
+              אין אירועים אחרונים
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {feed.slice(0, 12).map(ev => {
+              const isClickable = Boolean(ev.propertyId || ev.inquiryId);
+              const handleClick = () => {
+                if (ev.propertyId) navigate('property-detail', { propertyId: ev.propertyId });
+                else if (ev.inquiryId) navigate('admin-inquiries');
+              };
+              return (
+                <div
+                  key={ev.id}
+                  onClick={isClickable ? handleClick : undefined}
+                  className={isClickable ? 'interactive' : undefined}
+                  style={{
+                    display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
+                    gap: 10, padding: 10, borderRadius: 10, background: 'var(--bg-chip)',
+                    cursor: isClickable ? 'pointer' : 'default',
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: `${ev.color}18`, border: `1px solid ${ev.color}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, flexShrink: 0,
+                  }}>{ev.icon}</div>
+                  <div style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{ev.title}</div>
+                    {ev.subtitle && (
+                      <div style={{
+                        fontSize: 10, color: 'var(--text-secondary)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{ev.subtitle}</div>
+                    )}
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>{relativeTimeHe(ev.at)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Open Monday board button */}

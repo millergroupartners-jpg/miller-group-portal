@@ -47,6 +47,24 @@ export async function fetchPropertyTimeline(
   return data.events;
 }
 
+/** Admin-only global activity feed for the admin dashboard. */
+export interface AdminFeedEvent {
+  id: string;
+  kind: 'status-change' | 'inquiry-new' | 'inquiry-reply' | 'renovation-payment';
+  at: string;
+  title: string;
+  subtitle?: string;
+  icon: string;
+  color: string;
+  propertyId?: string;
+  inquiryId?: string;
+}
+
+export async function fetchAdminFeed(limit: number = 30): Promise<AdminFeedEvent[]> {
+  const data = await fetchJson<{ ok: true; events: AdminFeedEvent[] }>(`/api/timeline/admin-feed?limit=${limit}`);
+  return data.events;
+}
+
 /** Friendly relative time in Hebrew: "לפני 3 ימים" / "לפני שעה" */
 export function relativeTimeHe(iso: string): string {
   if (!iso) return '';
