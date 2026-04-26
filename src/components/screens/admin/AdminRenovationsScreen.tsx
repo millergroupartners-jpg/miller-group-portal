@@ -16,11 +16,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   listRenovations, calcBalance, paidToColor, paidByColor,
   listRenovationUpdates, postRenovationUpdate,
-  MG_PROPERTY_GROUP_ID,
   type Renovation, type RenovationUpdate,
 } from '../../../services/renovationsApi';
 import { MGLogo } from '../../common/MGLogo';
 import { useNavigation } from '../../../context/NavigationContext';
+import { useMondayData } from '../../../context/MondayDataContext';
 
 /** Source toggle — which set of properties the admin wants to see renovations for. */
 type SourceKey = 'investors' | 'mg';
@@ -160,6 +160,13 @@ function fmtDate(iso: string): string {
 
 export function AdminRenovationsScreen() {
   const { navigate } = useNavigation();
+  // The Monday context already has the canonical "investor deals" vs
+  // "Miller Group deals" split via two separate group fetches. We use that
+  // set instead of trying to read the property group id off the renovations
+  // API (which is unreliable — items(ids:){group} doesn't always populate).
+  const { mgProperties } = useMondayData();
+  const mgPropertyIds = useMemo(() => new Set(mgProperties.map(p => p.mondayId)), [mgProperties]);
+
   const [items, setItems] = useState<Renovation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -182,18 +189,16 @@ export function AdminRenovationsScreen() {
 
   // Per-source counts for the toggle badge
   const sourceCounts = useMemo(() => ({
-    investors: items.filter(r => r.propertyGroupId !== MG_PROPERTY_GROUP_ID).length,
-    mg:        items.filter(r => r.propertyGroupId === MG_PROPERTY_GROUP_ID).length,
-  }), [items]);
+    investors: items.filter(r => !mgPropertyIds.has(r.propertyId)).length,
+    mg:        items.filter(r =>  mgPropertyIds.has(r.propertyId)).length,
+  }), [items, mgPropertyIds]);
 
   // Items after source filter — status counts and list operate on this subset
   const sourceItems = useMemo(() => {
     return items.filter(r =>
-      source === 'mg'
-        ? r.propertyGroupId === MG_PROPERTY_GROUP_ID
-        : r.propertyGroupId !== MG_PROPERTY_GROUP_ID
+      source === 'mg' ? mgPropertyIds.has(r.propertyId) : !mgPropertyIds.has(r.propertyId)
     );
-  }, [items, source]);
+  }, [items, source, mgPropertyIds]);
 
   // Count renovations per status (within selected source) so filter chips can show a badge
   const statusCounts = useMemo(() => {

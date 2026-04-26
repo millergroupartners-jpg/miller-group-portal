@@ -9,8 +9,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
+import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
-import { listUtilities, utilityIcon, statusColor, MG_PROPERTY_GROUP_ID, type Utility, type UtilityStatus } from '../../../services/utilitiesApi';
+import { listUtilities, utilityIcon, statusColor, type Utility, type UtilityStatus } from '../../../services/utilitiesApi';
 
 type SourceKey = 'investors' | 'mg';
 
@@ -35,6 +36,12 @@ function fmtDate(iso: string): string {
 
 export function AdminUtilitiesScreen() {
   const { navigate } = useNavigation();
+  // Use the already-fetched MG vs investor split from MondayDataContext to
+  // classify each utility's property — the propertyGroupId from the utilities
+  // API isn't reliable (items(ids:){group} sometimes returns empty).
+  const { mgProperties } = useMondayData();
+  const mgPropertyIds = useMemo(() => new Set(mgProperties.map(p => p.mondayId)), [mgProperties]);
+
   const [items, setItems] = useState<Utility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,15 +60,13 @@ export function AdminUtilitiesScreen() {
   }, []);
 
   const sourceCounts = useMemo(() => ({
-    investors: items.filter(u => u.propertyGroupId !== MG_PROPERTY_GROUP_ID).length,
-    mg:        items.filter(u => u.propertyGroupId === MG_PROPERTY_GROUP_ID).length,
-  }), [items]);
+    investors: items.filter(u => !mgPropertyIds.has(u.propertyId)).length,
+    mg:        items.filter(u =>  mgPropertyIds.has(u.propertyId)).length,
+  }), [items, mgPropertyIds]);
 
   const sourceItems = useMemo(() => items.filter(u =>
-    source === 'mg'
-      ? u.propertyGroupId === MG_PROPERTY_GROUP_ID
-      : u.propertyGroupId !== MG_PROPERTY_GROUP_ID
-  ), [items, source]);
+    source === 'mg' ? mgPropertyIds.has(u.propertyId) : !mgPropertyIds.has(u.propertyId)
+  ), [items, source, mgPropertyIds]);
 
   // Counts per status for filter chip badges
   const counts = useMemo(() => {
