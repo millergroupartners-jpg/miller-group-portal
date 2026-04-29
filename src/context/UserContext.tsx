@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../data/user';
+import { clearAllCached } from '../services/cache';
 
 interface UserContextValue {
   currentUser: User | null;
@@ -35,12 +36,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Hydrate from localStorage so a browser refresh keeps the user logged in.
   const [currentUser, setCurrentUserState] = useState<User | null>(() => readStoredUser());
 
-  // Mirror every change back to localStorage. setting null logs out cleanly.
+  // Mirror every change back to localStorage. setting null logs out cleanly
+  // and also wipes the per-app data caches so a different user signing in
+  // on the same device doesn't briefly see the previous user's data.
   const setCurrentUser = (user: User | null) => {
     setCurrentUserState(user);
     try {
-      if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      else      localStorage.removeItem(STORAGE_KEY);
+      if (user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        clearAllCached();
+      }
     } catch { /* private mode etc — non-fatal */ }
   };
 

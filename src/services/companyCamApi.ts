@@ -63,6 +63,11 @@ export function addressMatchesProject(propertyAddress: string, project: CCProjec
 let _projectsCache: CCProject[] | null = null;
 let _projectsFetchPromise: Promise<CCProject[]> | null = null;
 
+// Cross-session cache — survives page refreshes via localStorage so the
+// thumbnails on the dashboard show up instantly on the second visit.
+import { getCachedAny, setCached } from './cache';
+const CC_PROJECTS_KEY = 'cc_projects_v1';
+
 async function _doFetchProjects(): Promise<CCProject[]> {
   const token = ccToken();
   if (!token) throw new Error('CompanyCam token is missing — check VITE_COMPANYCAM_TOKEN in .env');
@@ -103,13 +108,32 @@ async function _doFetchProjects(): Promise<CCProject[]> {
   }
   _projectsCache = projects;
   _projectsFetchPromise = null;
+  setCached<CCProject[]>(CC_PROJECTS_KEY, projects);
   return projects;
 }
 
-/** Fetch ALL projects (paginates automatically, cached after first load) */
+/**
+ * Fetch ALL projects. Cached three layers deep so thumbnails appear instantly:
+ *   1. In-memory module cache (fastest, lasts for the page lifetime)
+ *   2. localStorage (survives reloads)
+ *   3. Network (paginates automatically)
+ *
+ * Strategy: if localStorage has data we return it instantly AND fire a
+ * background refetch so the in-memory copy is fresh for the next call.
+ */
 export function fetchAllCCProjects(): Promise<CCProject[]> {
   if (_projectsCache) return Promise.resolve(_projectsCache);
   if (_projectsFetchPromise) return _projectsFetchPromise;
+
+  // Warm-start from localStorage if we have it from a previous session
+  const cached = getCachedAny<CCProject[]>(CC_PROJECTS_KEY);
+  if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+    _projectsCache = cached.data;
+    // Fire a silent background refresh so the next call sees fresh data
+    _projectsFetchPromise = _doFetchProjects().catch(() => cached.data);
+    return Promise.resolve(cached.data);
+  }
+
   _projectsFetchPromise = _doFetchProjects();
   return _projectsFetchPromise;
 }
