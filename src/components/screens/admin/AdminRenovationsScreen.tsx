@@ -485,9 +485,10 @@ export function AdminRenovationsScreen() {
                     background: 'rgba(34,80,145,0.06)', border: '1px solid rgba(34,80,145,0.25)', borderRadius: 8, padding: 8,
                   }}>
                     {[
+                      ...(!rowIsMg ? [{ l: 'שולם לנו', v: fmtMoney(bal.clientPaidToUs), c: GOLD }] : []),
                       { l: 'שולם לקבלן',      v: fmtMoney(paidToContractor),    c: '#225091' },
                       { l: 'שולם לקבלן משנה', v: fmtMoney(paidToSubContractor), c: '#5e8ad6' },
-                      { l: 'סה״כ שולם',       v: fmtMoney(paidTotalAll),        c: '#4CAF50' },
+                      { l: 'סה״כ שולם',       v: fmtMoney(rowIsMg ? paidTotalAll : bal.clientPaidTotal), c: '#4CAF50' },
                     ].map(k => (
                       <div key={k.l} style={{ textAlign: 'center', minWidth: 0 }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
