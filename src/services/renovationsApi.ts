@@ -36,7 +36,11 @@ export interface Renovation {
   approvedAddons: number;
   updatedAt: string;
   subitems: RenovationSubitem[];
+  /** Sum of subitems where paidBy='הלקוח'. Use for investor-owned renovations. */
   totalPaid: number;
+  /** Sum of every subitem regardless of paidBy. Use for Miller Group's own
+   *  deals where there's no investor and every transfer counts as "we paid". */
+  totalPaidAll?: number;
 }
 
 /** Group id on Properties board for Miller Group own deals. Shared so screens
@@ -65,12 +69,27 @@ export interface RenovationBalance {
   remainingToUs: number;         // remaining − remainingToContractor
 }
 
-export function calcBalance(r: Renovation): RenovationBalance {
+/**
+ * Compute the balance for a renovation row.
+ *
+ *   mode='investor' (default) — investor-owned renovation. "Paid" = what the
+ *     investor actually transferred (paidBy=הלקוח). The remaining balance is
+ *     split between "still owed to us" (our margin) and "still owed to the
+ *     contractor".
+ *
+ *   mode='mg' — Miller Group's own deal. There's no investor in the middle,
+ *     so every transfer (paidBy=הלקוח OR paidBy=אנחנו) counts as paid. The
+ *     "us vs contractor" split collapses to just "remaining to the contractor"
+ *     since we ARE the client. remainingToUs is always 0 in this mode.
+ */
+export function calcBalance(r: Renovation, mode: 'investor' | 'mg' = 'investor'): RenovationBalance {
   const subs = r.subitems;
   const sumWhere = (pred: (s: RenovationSubitem) => boolean) =>
     subs.filter(pred).reduce((s, x) => s + (x.amount || 0), 0);
 
-  const clientPaidTotal = sumWhere(s => s.paidBy === 'הלקוח');
+  const clientPaidTotal = mode === 'mg'
+    ? subs.reduce((s, x) => s + (x.amount || 0), 0)
+    : sumWhere(s => s.paidBy === 'הלקוח');
   const clientPaidToUs = sumWhere(s => s.paidBy === 'הלקוח' && s.paidTo === 'לנו');
   const clientPaidToContractor = sumWhere(s =>
     s.paidBy === 'הלקוח' && (s.paidTo === 'לקבלן' || s.paidTo === 'קבלן משנה')
@@ -88,7 +107,8 @@ export function calcBalance(r: Renovation): RenovationBalance {
   const remainingTotal = Math.max(0, effectiveClientTotal - clientPaidTotal);
   const contractorNeedsMore = Math.max(0, effectiveOurCost - contractorReceivedTotal);
   const remainingToContractor = Math.min(remainingTotal, contractorNeedsMore);
-  const remainingToUs = Math.max(0, remainingTotal - remainingToContractor);
+  // No "us" leg in MG mode — we are the client.
+  const remainingToUs = mode === 'mg' ? 0 : Math.max(0, remainingTotal - remainingToContractor);
 
   return {
     clientPaidTotal, clientPaidToUs, clientPaidToContractor,

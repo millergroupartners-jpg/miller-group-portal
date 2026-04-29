@@ -263,13 +263,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
       });
 
-      // "שולם" semantics = how much the INVESTOR actually transferred (paidBy=הלקוח).
-      // Subitems with paidBy=אנחנו are money we advanced (e.g. paid the contractor
-      // on behalf of the client), which should not inflate the "client paid" figure
-      // otherwise admin sees a number higher than what the investor really sent.
+      // For investor-owned renovations, "שולם" = how much the INVESTOR transferred
+      // (paidBy=הלקוח); subitems with paidBy=אנחנו are money we advanced and shouldn't
+      // inflate the client-paid figure. For Miller Group's own deals there's no
+      // investor in the middle, so the relevant "שולם" is the sum of EVERY subitem
+      // — that's what the admin needs to see what's left to pay overall.
       const totalPaid = subitems
         .filter(s => s.paidBy === 'הלקוח')
         .reduce((s, x) => s + x.amount, 0);
+      const totalPaidAll = subitems.reduce((s, x) => s + x.amount, 0);
 
       // Combine three sources, in priority order, to be resilient to either
       // path returning null/empty:
@@ -308,6 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedAt:       item.updated_at,
         subitems,
         totalPaid,
+        totalPaidAll,
       };
     });
 

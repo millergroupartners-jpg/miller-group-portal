@@ -229,24 +229,26 @@ export function AdminRenovationsScreen() {
   }, [sourceItems, statusFilter, search]);
 
   // Aggregates across filtered set — include balance sums.
-  // Approved addons add equally to what the client owes AND to what the
-  // contractor should get, so profit stays on (clientCost - ourCost).
+  // For MG rows, "paid" sums every transfer (no investor in the middle) and
+  // profit doesn't apply (we are both the client and the company).
+  const isMgMode = source === 'mg';
   const totals = useMemo(() => filtered.reduce(
     (acc, r) => {
-      const b = calcBalance(r);
+      const b = calcBalance(r, isMgMode ? 'mg' : 'investor');
+      const rowPaid = isMgMode ? (r.totalPaidAll ?? r.totalPaid) : r.totalPaid;
       return {
-        paid:               acc.paid               + r.totalPaid,
+        paid:               acc.paid               + rowPaid,
         our:                acc.our                + r.ourCost,
         client:             acc.client             + r.clientCost,
         addons:             acc.addons             + (r.approvedAddons || 0),
-        profit:             acc.profit             + (r.clientCost - r.ourCost),
+        profit:             acc.profit             + (isMgMode ? 0 : (r.clientCost - r.ourCost)),
         remainingTotal:     acc.remainingTotal     + b.remainingTotal,
         remainingToUs:      acc.remainingToUs      + b.remainingToUs,
         remainingToContr:   acc.remainingToContr   + b.remainingToContractor,
       };
     },
     { paid: 0, our: 0, client: 0, addons: 0, profit: 0, remainingTotal: 0, remainingToUs: 0, remainingToContr: 0 }
-  ), [filtered]);
+  ), [filtered, isMgMode]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
@@ -261,36 +263,50 @@ export function AdminRenovationsScreen() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* KPI summary */}
+        {/* KPI summary — adapts to MG mode (no investor / no profit). */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
-            {[
-              { label: 'סה״כ שולם',      value: fmtMoney(totals.paid),   c: '#4CAF50' },
-              { label: 'רווח משיפוצים',   value: fmtMoney(totals.profit), c: GOLD },
-              { label: 'שיפוץ שלנו',     value: fmtMoney(totals.our),    c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
-              { label: 'שיפוץ ללקוח',    value: fmtMoney(totals.client), c: '#ff9800', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
-            ].map(k => (
+            {(isMgMode
+              ? [
+                  { label: 'סה״כ שולם',  value: fmtMoney(totals.paid),                       c: '#4CAF50', extra: '' },
+                  { label: 'תקציב שיפוץ', value: fmtMoney(totals.our || totals.client),       c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+                ]
+              : [
+                  { label: 'סה״כ שולם',    value: fmtMoney(totals.paid),   c: '#4CAF50', extra: '' },
+                  { label: 'רווח משיפוצים', value: fmtMoney(totals.profit), c: GOLD,      extra: '' },
+                  { label: 'שיפוץ שלנו',   value: fmtMoney(totals.our),    c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+                  { label: 'שיפוץ ללקוח',  value: fmtMoney(totals.client), c: '#ff9800', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+                ]
+            ).map(k => (
               <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexDirection: 'row-reverse' }}>
                   <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
-                  {(k as any).extra && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>{(k as any).extra}</span>
+                  {k.extra && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>{k.extra}</span>
                   )}
                 </div>
               </div>
             ))}
           </div>
-          {/* What's still owed — 3 columns */}
+          {/* What's still owed — 2 columns in MG mode (no "נותר לנו"). */}
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+            display: 'grid',
+            gridTemplateColumns: isMgMode ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+            gap: 8,
             background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 10, padding: 10,
           }}>
-            {[
-              { l: 'נותר לתשלום',   v: fmtMoney(totals.remainingTotal),   c: '#ff9800' },
-              { l: 'נותר לנו',      v: fmtMoney(totals.remainingToUs),    c: GOLD },
-              { l: 'נותר לקבלן',    v: fmtMoney(totals.remainingToContr), c: '#225091' },
-            ].map(k => (
+            {(isMgMode
+              ? [
+                  { l: 'נותר לתשלום', v: fmtMoney(totals.remainingTotal),   c: '#ff9800' },
+                  { l: 'נותר לקבלן',  v: fmtMoney(totals.remainingToContr), c: '#225091' },
+                ]
+              : [
+                  { l: 'נותר לתשלום', v: fmtMoney(totals.remainingTotal),   c: '#ff9800' },
+                  { l: 'נותר לנו',    v: fmtMoney(totals.remainingToUs),    c: GOLD },
+                  { l: 'נותר לקבלן',  v: fmtMoney(totals.remainingToContr), c: '#225091' },
+                ]
+            ).map(k => (
               <div key={k.l} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, letterSpacing: 0.5 }}>{k.l}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
@@ -384,8 +400,10 @@ export function AdminRenovationsScreen() {
 
         {filtered.map(r => {
           const isOpen = openId === r.id;
-          const profit = r.clientCost - r.ourCost;
-          const bal = calcBalance(r);
+          const rowIsMg = mgPropertyIds.has(r.propertyId);
+          const profit = rowIsMg ? 0 : (r.clientCost - r.ourCost);
+          const bal = calcBalance(r, rowIsMg ? 'mg' : 'investor');
+          const rowPaid = rowIsMg ? (r.totalPaidAll ?? r.totalPaid) : r.totalPaid;
           return (
             <div key={r.id} className="gold-card" style={{ padding: 0, overflow: 'hidden' }}>
               <button
@@ -410,7 +428,7 @@ export function AdminRenovationsScreen() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 140 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(rowPaid)}</b></div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>נותר · <b style={{ color: '#ff9800' }}>{fmtMoney(bal.remainingTotal)}</b></div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"
@@ -421,16 +439,25 @@ export function AdminRenovationsScreen() {
 
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px 16px', background: 'var(--bg-surface)' }}>
-                  {/* Balance breakdown — what's left to pay */}
+                  {/* Balance breakdown — what's left to pay. For MG rows we
+                      drop the "נותר לנו" column (no investor in the middle). */}
                   <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10,
+                    display: 'grid',
+                    gridTemplateColumns: rowIsMg ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gap: 6, marginBottom: 10,
                     background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 8, padding: 8,
                   }}>
-                    {[
-                      { l: 'נותר לתשלום',   v: fmtMoney(bal.remainingTotal),        c: '#ff9800' },
-                      { l: 'נותר לנו',      v: fmtMoney(bal.remainingToUs),         c: GOLD },
-                      { l: 'נותר לקבלן',    v: fmtMoney(bal.remainingToContractor), c: '#225091' },
-                    ].map(k => (
+                    {(rowIsMg
+                      ? [
+                          { l: 'נותר לתשלום', v: fmtMoney(bal.remainingTotal),        c: '#ff9800' },
+                          { l: 'נותר לקבלן',  v: fmtMoney(bal.remainingToContractor), c: '#225091' },
+                        ]
+                      : [
+                          { l: 'נותר לתשלום', v: fmtMoney(bal.remainingTotal),        c: '#ff9800' },
+                          { l: 'נותר לנו',    v: fmtMoney(bal.remainingToUs),         c: GOLD },
+                          { l: 'נותר לקבלן',  v: fmtMoney(bal.remainingToContractor), c: '#225091' },
+                        ]
+                    ).map(k => (
                       <div key={k.l} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
@@ -438,15 +465,25 @@ export function AdminRenovationsScreen() {
                     ))}
                   </div>
 
-                  {/* Detail money grid — admin only. Addons shown as a small
-                      "+" badge next to both "שיפוץ שלנו" and "שיפוץ ללקוח" since
-                      addons pass through at cost (profit unchanged). */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
-                    {[
-                      { l: 'שיפוץ שלנו',  v: fmtMoney(r.ourCost),    c: '#64B5F6', addon: r.approvedAddons > 0 },
-                      { l: 'שיפוץ ללקוח', v: fmtMoney(r.clientCost), c: '#ff9800', addon: r.approvedAddons > 0 },
-                      { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : '#ff4d4d', addon: false },
-                    ].map(k => (
+                  {/* Detail money grid — for investor rows we show ourCost /
+                      clientCost / profit. For MG rows there's no client/our
+                      split — we show "תקציב שיפוץ" + addons instead. */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: rowIsMg ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gap: 6, marginBottom: 10,
+                  }}>
+                    {(rowIsMg
+                      ? [
+                          { l: 'תקציב שיפוץ', v: fmtMoney(r.ourCost || r.clientCost), c: '#64B5F6', addon: r.approvedAddons > 0 },
+                          { l: 'Addons',      v: fmtMoney(r.approvedAddons),          c: GOLD,      addon: false },
+                        ]
+                      : [
+                          { l: 'שיפוץ שלנו',  v: fmtMoney(r.ourCost),    c: '#64B5F6', addon: r.approvedAddons > 0 },
+                          { l: 'שיפוץ ללקוח', v: fmtMoney(r.clientCost), c: '#ff9800', addon: r.approvedAddons > 0 },
+                          { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : '#ff4d4d', addon: false },
+                        ]
+                    ).map(k => (
                       <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
