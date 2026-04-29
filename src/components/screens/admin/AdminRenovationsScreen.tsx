@@ -207,6 +207,17 @@ export function AdminRenovationsScreen() {
     return m;
   }, [sourceItems]);
 
+  // If the user switched source and the current status filter has no matching
+  // items (e.g. switched to "Miller Group" while filter was "בשיפוץ" and MG has
+  // none in that status), fall back to "הכל" so the screen isn't deceptively
+  // empty.
+  useEffect(() => {
+    if (sourceItems.length === 0) return;
+    if (statusFilter === 'all') return;
+    const matched = sourceItems.filter(r => r.status === statusFilter).length;
+    if (matched === 0) setStatusFilter('all');
+  }, [source, sourceItems.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return sourceItems.filter(r => {
@@ -335,7 +346,9 @@ export function AdminRenovationsScreen() {
           flexDirection: 'row-reverse', justifyContent: 'flex-start',
         }}>
           {(['בשיפוץ', ...STATUS_FILTERS.filter(s => s !== 'בשיפוץ'), 'all'] as StatusFilter[]).map(s => {
-            const count = s === 'all' ? items.length : (statusCounts[s] || 0);
+            // "הכל" reflects the count after the source toggle (משקיעים / MG),
+            // not the raw items list — otherwise the badge mismatches the rows.
+            const count = s === 'all' ? sourceItems.length : (statusCounts[s] || 0);
             return (
               <button
                 key={s}

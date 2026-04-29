@@ -154,7 +154,8 @@ export function AdminUtilitiesScreen() {
         {/* Status filter chips — flex-wrap so every chip is reachable on desktop */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: 'row-reverse', justifyContent: 'flex-start' }}>
           {STATUS_CHIPS.map(c => {
-            const count = c.key === 'all' ? items.length : (counts[c.key] || 0);
+            // "הכל" reflects the count after the source toggle, not raw items.
+            const count = c.key === 'all' ? sourceItems.length : (counts[c.key] || 0);
             const active = statusFilter === c.key;
             return (
               <button
