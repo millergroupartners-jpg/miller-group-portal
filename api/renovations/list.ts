@@ -53,6 +53,8 @@ interface RawColumnValue {
   value: string | null;
   linked_items?: RawLinked[];
   files?: { name: string; assetId?: string; url?: string; public_url?: string }[];
+  /** Returned for MirrorValue columns (lookup_*). The mirrored cell's text. */
+  display_value?: string | null;
 }
 interface RawAsset { id: string; name: string; public_url: string; url_thumbnail?: string | null }
 interface RawSubitem {
@@ -168,6 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 text
                 value
                 ... on BoardRelationValue { linked_items { id name } }
+                ... on MirrorValue { display_value }
               }
               subitems {
                 id
@@ -268,13 +271,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(s => s.paidBy === 'הלקוח')
         .reduce((s, x) => s + x.amount, 0);
 
-      // Prefer authoritative values from the Properties board over mirror columns
-      // (mirror `text` can come back null from Monday's GraphQL).
+      // Combine three sources, in priority order, to be resilient to either
+      // path returning null/empty:
+      //   1. Properties-board direct fetch (authoritative, but the secondary
+      //      query can be partial under heavy load — that's why some items
+      //      were missing earlier).
+      //   2. Mirror column display_value (the "סטטוס" / "שיפוץ ללקוח" /
+      //      "משקיע" columns on the renovations board are mirrors of the
+      //      property — display_value reliably returns the rendered text).
+      //   3. Mirror column text (legacy, often null).
       const fromProp = propertyCosts.get(propertyLinked?.id || '') || { clientCost: 0, ourCost: 0, status: '', investorName: '', investorId: '', groupId: '' };
-      const clientCost   = fromProp.clientCost || parseNumber(cols['lookup_mkvjdzs']?.text);
-      const ourCost      = fromProp.ourCost    || parseNumber(cols['lookup_mkvjwr8v']?.text);
-      const status       = fromProp.status       || cols['lookup_mm01qppw']?.text || '';
-      const investorName = fromProp.investorName || cols['lookup_mkt3ey7s']?.text || '';
+      const mirrorStatus      = cols['lookup_mm01qppw']?.display_value || cols['lookup_mm01qppw']?.text || '';
+      const mirrorClientCost  = parseNumber(cols['lookup_mkvjdzs']?.display_value  || cols['lookup_mkvjdzs']?.text);
+      const mirrorOurCost     = parseNumber(cols['lookup_mkvjwr8v']?.display_value || cols['lookup_mkvjwr8v']?.text);
+      const mirrorInvestor    = cols['lookup_mkt3ey7s']?.display_value || cols['lookup_mkt3ey7s']?.text || '';
+
+      const clientCost   = fromProp.clientCost   || mirrorClientCost;
+      const ourCost      = fromProp.ourCost      || mirrorOurCost;
+      const status       = fromProp.status       || mirrorStatus;
+      const investorName = fromProp.investorName || mirrorInvestor;
 
       return {
         id:              item.id,
