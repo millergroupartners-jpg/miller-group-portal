@@ -404,6 +404,12 @@ export function AdminRenovationsScreen() {
           const profit = rowIsMg ? 0 : (r.clientCost - r.ourCost);
           const bal = calcBalance(r, rowIsMg ? 'mg' : 'investor');
           const rowPaid = rowIsMg ? (r.totalPaidAll ?? r.totalPaid) : r.totalPaid;
+          // Per-recipient totals — same regardless of investor/MG mode.
+          // "סה״כ שולם" here means everything that's gone OUT (any subitem),
+          // matching how the user thinks about contractor payment progress.
+          const paidToContractor    = r.subitems.filter(s => s.paidTo === 'לקבלן').reduce((s, x) => s + (x.amount || 0), 0);
+          const paidToSubContractor = r.subitems.filter(s => s.paidTo === 'קבלן משנה').reduce((s, x) => s + (x.amount || 0), 0);
+          const paidTotalAll        = r.subitems.reduce((s, x) => s + (x.amount || 0), 0);
           return (
             <div key={r.id} className="gold-card" style={{ padding: 0, overflow: 'hidden' }}>
               <button
@@ -458,6 +464,27 @@ export function AdminRenovationsScreen() {
                           { l: 'נותר לקבלן',  v: fmtMoney(bal.remainingToContractor), c: '#225091' },
                         ]
                     ).map(k => (
+                      <div key={k.l} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Where the money has actually gone out — paid to the main
+                      contractor, paid to a sub-contractor, and the grand total
+                      across every subitem. Useful in both modes; in MG it's
+                      "what the company paid out", in investor it's "what the
+                      contractors have received regardless of who funded it". */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10,
+                    background: 'rgba(34,80,145,0.06)', border: '1px solid rgba(34,80,145,0.25)', borderRadius: 8, padding: 8,
+                  }}>
+                    {[
+                      { l: 'שולם לקבלן',      v: fmtMoney(paidToContractor),    c: '#225091' },
+                      { l: 'שולם לקבלן משנה', v: fmtMoney(paidToSubContractor), c: '#5e8ad6' },
+                      { l: 'סה״כ שולם',       v: fmtMoney(paidTotalAll),        c: '#4CAF50' },
+                    ].map(k => (
                       <div key={k.l} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
