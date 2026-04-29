@@ -265,7 +265,7 @@ export function AdminRenovationsScreen() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* KPI summary — adapts to MG mode (no investor / no profit). */}
         <div className="gold-card" style={{ padding: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 10 }}>
             {(isMgMode
               ? [
                   { label: 'סה״כ שולם',  value: fmtMoney(totals.paid),                       c: '#4CAF50', extra: '' },
@@ -289,10 +289,10 @@ export function AdminRenovationsScreen() {
               </div>
             ))}
           </div>
-          {/* What's still owed — 2 columns in MG mode (no "נותר לנו"). */}
+          {/* What's still owed — auto-fit so it fits any screen width. */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMgMode ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
             gap: 8,
             background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 10, padding: 10,
           }}>
@@ -444,12 +444,16 @@ export function AdminRenovationsScreen() {
               </button>
 
               {isOpen && (
-                <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px 16px', background: 'var(--bg-surface)' }}>
+                <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px 16px', background: 'var(--bg-surface)' }}>
+                  {/* All grids below use auto-fit + minmax so they keep 3
+                      columns on desktop and gracefully wrap to 2 / 1 columns
+                      on narrow phone widths instead of clipping money values. */}
+
                   {/* Balance breakdown — what's left to pay. For MG rows we
                       drop the "נותר לנו" column (no investor in the middle). */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: rowIsMg ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
                     gap: 6, marginBottom: 10,
                     background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 8, padding: 8,
                   }}>
@@ -464,20 +468,20 @@ export function AdminRenovationsScreen() {
                           { l: 'נותר לקבלן',  v: fmtMoney(bal.remainingToContractor), c: '#225091' },
                         ]
                     ).map(k => (
-                      <div key={k.l} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                      <div key={k.l} style={{ textAlign: 'center', minWidth: 0 }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Where the money has actually gone out — paid to the main
                       contractor, paid to a sub-contractor, and the grand total
-                      across every subitem. Useful in both modes; in MG it's
-                      "what the company paid out", in investor it's "what the
-                      contractors have received regardless of who funded it". */}
+                      across every subitem. */}
                   <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
+                    gap: 6, marginBottom: 10,
                     background: 'rgba(34,80,145,0.06)', border: '1px solid rgba(34,80,145,0.25)', borderRadius: 8, padding: 8,
                   }}>
                     {[
@@ -485,9 +489,9 @@ export function AdminRenovationsScreen() {
                       { l: 'שולם לקבלן משנה', v: fmtMoney(paidToSubContractor), c: '#5e8ad6' },
                       { l: 'סה״כ שולם',       v: fmtMoney(paidTotalAll),        c: '#4CAF50' },
                     ].map(k => (
-                      <div key={k.l} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                      <div key={k.l} style={{ textAlign: 'center', minWidth: 0 }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                       </div>
                     ))}
                   </div>
@@ -497,7 +501,7 @@ export function AdminRenovationsScreen() {
                       split — we show "תקציב שיפוץ" + addons instead. */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: rowIsMg ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
                     gap: 6, marginBottom: 10,
                   }}>
                     {(rowIsMg
@@ -511,12 +515,12 @@ export function AdminRenovationsScreen() {
                           { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : '#ff4d4d', addon: false },
                         ]
                     ).map(k => (
-                      <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                      <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center', minWidth: 0 }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                           {k.addon && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: GOLD }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: GOLD, whiteSpace: 'nowrap' }}>
                               +{fmtMoney(r.approvedAddons)}
                             </span>
                           )}
