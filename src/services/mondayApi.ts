@@ -126,7 +126,7 @@ export interface MondayInvestor {
 
 // ─── GraphQL client ────────────────────────────────────────────────────────
 
-async function mondayQuery<T>(query: string, variables?: object): Promise<T> {
+export async function mondayQuery<T>(query: string, variables?: object): Promise<T> {
   const token = import.meta.env.VITE_MONDAY_API_TOKEN as string | undefined;
   if (!token) throw new Error('VITE_MONDAY_API_TOKEN is not set in .env');
 
