@@ -9,6 +9,7 @@ import { FOLDERS } from '../../data/documents';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useCCThumbnail } from '../../hooks/useCCThumbnail';
 import { RenovationsTab } from './property/RenovationsTab';
+import { LoanTab } from './property/LoanTab';
 import { UtilitiesTab } from './property/UtilitiesTab';
 import { TimelineTab } from './property/TimelineTab';
 
@@ -18,7 +19,7 @@ import { TimelineTab } from './property/TimelineTab';
  *   investors would reveal Miller Group's internal margins. The tab is not
  *   rendered at all for investor users.
  */
-type MondayTabKey = 'details' | 'utilities' | 'timeline' | 'renovations';
+type MondayTabKey = 'details' | 'utilities' | 'timeline' | 'renovations' | 'loan';
 
 const GOLD = '#C9A84C';
 
@@ -88,6 +89,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
       { key: 'utilities',  label: 'Utilities' },
       { key: 'timeline',   label: 'ציר זמן' },
       { key: 'renovations',label: 'שיפוצים' },
+      { key: 'loan',       label: 'הלוואת שיפוץ' },
     ];
 
     const mondayItemUrl = `https://real-estate-usa-eden.monday.com/boards/1997938102/pulses/${mp.mondayId}`;
@@ -257,6 +259,13 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           )}
           {mondayTab === 'renovations' && (
             <RenovationsTab propertyId={mp.mondayId} role={isAdmin ? 'admin' : 'investor'} />
+          )}
+          {mondayTab === 'loan' && (
+            <LoanTab
+              propertyId={mp.mondayId}
+              propertyAddress={`${mp.address} ${mp.city}`.trim()}
+              role={isAdmin ? 'admin' : 'investor'}
+            />
           )}
         </div>
       </div>

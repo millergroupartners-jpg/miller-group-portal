@@ -185,6 +185,20 @@ const ADMIN_TABS: Tab[] = [
       </svg>
     ),
   },
+  {
+    id: 'admin-loans',
+    label: 'הלוואות',
+    icon: active => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition: 'stroke 0.15s' }}>
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2.5" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
+    ),
+  },
 ];
 
 interface BottomTabBarProps {
