@@ -88,6 +88,19 @@ const INVESTOR_TABS: Tab[] = [
       </svg>
     ),
   },
+  {
+    id: 'deal-room',
+    label: 'עסקאות',
+    icon: active => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        style={{ transition: 'stroke 0.15s' }}>
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+      </svg>
+    ),
+  },
 ];
 
 const ADMIN_TABS: Tab[] = [

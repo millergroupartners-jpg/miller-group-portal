@@ -22,6 +22,8 @@ export type Screen =
   | 'renovations'
   | 'utilities'
   | 'timeline'
+  | 'deal-room'
+  | 'analytics'
   | 'set-password';
 
 export type BadgeType = 'gold' | 'green' | 'blue';

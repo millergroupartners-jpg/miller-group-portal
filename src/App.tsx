@@ -20,6 +20,8 @@ import { InvestorUtilitiesScreen } from './components/screens/InvestorUtilitiesS
 import { InquiriesScreen } from './components/screens/InquiriesScreen';
 import { InvestorRenovationsScreen } from './components/screens/InvestorRenovationsScreen';
 import { InvestorTimelineScreen } from './components/screens/InvestorTimelineScreen';
+import { DealRoomScreen } from './components/screens/DealRoomScreen';
+import { AnalyticsScreen } from './components/screens/AnalyticsScreen';
 import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
@@ -27,7 +29,7 @@ import { MobileTopActions } from './components/common/MobileTopActions';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
-  'dashboard','property-detail','documents','media','inquiries','settings','renovations','utilities','timeline',
+  'dashboard','property-detail','documents','media','inquiries','settings','renovations','utilities','timeline','deal-room','analytics',
   'admin-dashboard','admin-investors','admin-investor-detail','admin-properties','admin-mg-deals','admin-closings','admin-inquiries','admin-renovations','admin-loans','admin-utilities','admin-timeline',
 ];
 
@@ -53,6 +55,8 @@ export default function App() {
       {screen === 'renovations'         && <InvestorRenovationsScreen />}
       {screen === 'utilities'           && <InvestorUtilitiesScreen />}
       {screen === 'timeline'            && <InvestorTimelineScreen />}
+      {screen === 'deal-room'           && <DealRoomScreen />}
+      {screen === 'analytics'           && <AnalyticsScreen />}
       {screen === 'settings'            && <SettingsScreen />}
 
       {/* ── Admin screens ── */}

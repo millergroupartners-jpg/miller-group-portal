@@ -143,7 +143,8 @@ export function DashboardScreen() {
 
       {/* Summary strip */}
       {isMondayMode ? (
-        <div style={{ padding: '6px 20px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: '6px 20px 10px', flexShrink: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'סה"כ נכסים', value: String(propCount), color: GOLD },
             { label: 'Equity',      value: equity,            color: '#4CAF50' },
@@ -160,6 +161,25 @@ export function DashboardScreen() {
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
+        </div>
+        <button
+          onClick={() => navigate('analytics')}
+          style={{
+            width: '100%', marginTop: 8, padding: '8px 12px', borderRadius: 10,
+            border: '1px solid var(--border)', background: 'var(--bg-chip)',
+            color: GOLD, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'var(--font-ui)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          צפה באנליטיקות של התיק ←
+        </button>
         </div>
       ) : (
         <div style={{ padding: '6px 20px 10px', display: 'flex', gap: 10, flexShrink: 0 }}>

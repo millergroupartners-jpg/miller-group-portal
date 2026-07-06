@@ -167,8 +167,17 @@ function parseAddress(fullName: string): { address: string; city: string } {
   return { address: fullName, city: '' };
 }
 
+/**
+ * Status label on "סטטוס השכרה" that marks an MG deal as published to the
+ * investor-facing deal room. Set/unset on Monday to publish/unpublish a deal.
+ * Must match the Monday label EXACTLY — a typo silently empties the deal room.
+ */
+export const OPEN_FOR_INVESTMENT_STATUS = 'פתוח להשקעה';
+
 function mapRentalStatus(text: string): { status: string; statusType: 'gold' | 'green' | 'blue' } {
   switch (text) {
+    case OPEN_FOR_INVESTMENT_STATUS:
+      return { status: OPEN_FOR_INVESTMENT_STATUS, statusType: 'gold' };
     case 'מושכר':
       return { status: 'מושכר', statusType: 'green' };
     case 'מעבר לניהול':
