@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
-import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut } from '../../services/notificationPrefs';
+import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut, getDealEmailOptOut, setDealEmailOptOut } from '../../services/notificationPrefs';
 
 const GOLD = '#C9A84C';
 
@@ -75,6 +75,9 @@ export function SettingsScreen() {
   // silence just the monthly bill reminder without losing photo summaries).
   const [utilRemEnabled, setUtilRemEnabled] = useState<boolean | null>(null);
   const [savingUtilRem, setSavingUtilRem] = useState(false);
+  // Deal-room announcement opt-out (default on for everyone)
+  const [dealEmailsEnabled, setDealEmailsEnabled] = useState<boolean | null>(null);
+  const [savingDealEmails, setSavingDealEmails] = useState(false);
   const investorMondayId = user.mondayInvestorId || '';
 
   useEffect(() => {
@@ -85,6 +88,9 @@ export function SettingsScreen() {
     getUtilityReminderOptOut(investorMondayId)
       .then(optedOut => setUtilRemEnabled(!optedOut))
       .catch(() => setUtilRemEnabled(true));
+    getDealEmailOptOut(investorMondayId)
+      .then(optedOut => setDealEmailsEnabled(!optedOut))
+      .catch(() => setDealEmailsEnabled(true));
   }, [investorMondayId]);
 
   const toggleEmails = async () => {
@@ -116,6 +122,21 @@ export function SettingsScreen() {
       alert('שמירה נכשלה, נסה שוב');
     } finally {
       setSavingUtilRem(false);
+    }
+  };
+
+  const toggleDealEmails = async () => {
+    if (dealEmailsEnabled === null || savingDealEmails || !investorMondayId) return;
+    const next = !dealEmailsEnabled;
+    setSavingDealEmails(true);
+    setDealEmailsEnabled(next);
+    try {
+      await setDealEmailOptOut(investorMondayId, !next);
+    } catch (e) {
+      setDealEmailsEnabled(!next);
+      alert('שמירה נכשלה, נסה שוב');
+    } finally {
+      setSavingDealEmails(false);
     }
   };
 
@@ -217,7 +238,7 @@ export function SettingsScreen() {
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>התראות במייל</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      {emailsEnabled === null ? 'טוען...' : emailsEnabled ? 'פעיל — תקבל סיכום על תמונות חדשות' : 'מושבת'}
+                      {emailsEnabled === null ? 'טוען...' : emailsEnabled ? 'פעיל — מתג ראשי לכל המיילים מהפורטל' : 'מושבת — לא יישלחו מיילים כלל'}
                     </div>
                   </div>
                 </div>
@@ -274,6 +295,48 @@ export function SettingsScreen() {
                     position: 'absolute', top: 3,
                     right: utilRemEnabled ? 3 : undefined,
                     left: utilRemEnabled ? undefined : 3,
+                    transition: 'left 0.2s, right 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  }} />
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* New-deal announcement email toggle */}
+              <div
+                onClick={toggleDealEmails}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  cursor: dealEmailsEnabled === null ? 'default' : 'pointer',
+                  opacity: dealEmailsEnabled === null ? 0.6 : 1,
+                  flexDirection: 'row-reverse', transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (dealEmailsEnabled !== null) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface-hover)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    💼
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>מייל על עסקאות חדשות</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {dealEmailsEnabled === null ? 'טוען...' : dealEmailsEnabled ? 'פעיל — תקבל מייל כשעסקה נפתחת להשקעה' : 'מושבת'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{
+                  width: 44, height: 26, borderRadius: 13,
+                  background: dealEmailsEnabled ? GOLD : '#ddd',
+                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3,
+                    right: dealEmailsEnabled ? 3 : undefined,
+                    left: dealEmailsEnabled ? undefined : 3,
                     transition: 'left 0.2s, right 0.2s',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                   }} />

@@ -9,6 +9,8 @@ const INVESTORS_BOARD_ID = 1997938105;
 const OPTOUT_COLUMN_ID         = 'boolean_mm2pee1j';
 /** Utility-reminder-specific opt-out — only silences the monthly utility email. */
 const UTILITY_OPTOUT_COLUMN_ID = 'boolean_mm2qp6qn';
+/** Deal-room-specific opt-out — only silences the new-deal announcement email. */
+const DEAL_OPTOUT_COLUMN_ID    = 'boolean_mm50326f';
 
 async function mondayQuery<T>(query: string): Promise<T> {
   const token = import.meta.env.VITE_MONDAY_API_TOKEN as string;
@@ -78,6 +80,35 @@ export async function setUtilityReminderOptOut(investorId: string, optedOut: boo
         board_id: ${INVESTORS_BOARD_ID},
         item_id: ${investorId},
         column_id: "${UTILITY_OPTOUT_COLUMN_ID}",
+        value: "${value}"
+      ) { id }
+    }`,
+  );
+}
+
+/** Returns true if the investor is OPTED OUT of new-deal announcement emails. */
+export async function getDealEmailOptOut(investorId: string): Promise<boolean> {
+  if (!investorId) return false;
+  const data = await mondayQuery<{ items: { column_values: { id: string; value: string | null }[] }[] }>(
+    `query {
+      items(ids: [${investorId}]) {
+        column_values(ids: ["${DEAL_OPTOUT_COLUMN_ID}"]) { id value }
+      }
+    }`,
+  );
+  const raw = data?.items?.[0]?.column_values?.[0]?.value ?? '';
+  return /"checked":"?true"?/i.test(raw);
+}
+
+export async function setDealEmailOptOut(investorId: string, optedOut: boolean): Promise<void> {
+  if (!investorId) throw new Error('Missing investorId');
+  const value = optedOut ? '{\\"checked\\":\\"true\\"}' : '{\\"checked\\":\\"false\\"}';
+  await mondayQuery(
+    `mutation {
+      change_column_value(
+        board_id: ${INVESTORS_BOARD_ID},
+        item_id: ${investorId},
+        column_id: "${DEAL_OPTOUT_COLUMN_ID}",
         value: "${value}"
       ) { id }
     }`,

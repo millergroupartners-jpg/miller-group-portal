@@ -3,7 +3,7 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { listInquiries, parseReplyAuthor, type Inquiry } from '../../services/inquiriesApi';
-import type { MondayProperty } from '../../services/mondayApi';
+import { OPEN_FOR_INVESTMENT_STATUS, type MondayProperty } from '../../services/mondayApi';
 
 const GOLD = '#C9A84C';
 
@@ -20,7 +20,7 @@ interface Notification {
   title: string;
   body: string;
   date: string;
-  target?: { screen: 'inquiries' | 'admin-inquiries' | 'admin-closings' | 'property-detail'; propertyId?: string };
+  target?: { screen: 'inquiries' | 'admin-inquiries' | 'admin-closings' | 'property-detail' | 'deal-room'; propertyId?: string };
   accentColor?: string;
 }
 
@@ -60,9 +60,24 @@ function buildNotifications(opts: {
   investorMondayId: string;
   inquiries: Inquiry[];
   relevantProperties: MondayProperty[];
+  openDeals: MondayProperty[];
 }): Notification[] {
-  const { isAdmin, investorMondayId, inquiries, relevantProperties } = opts;
+  const { isAdmin, investorMondayId, inquiries, relevantProperties, openDeals } = opts;
   const out: Notification[] = [];
+
+  // ── New deals in the deal room (investors only) ────────────────
+  if (!isAdmin) {
+    for (const d of openDeals) {
+      out.push({
+        id: `new-deal-${d.mondayId}`,
+        title: 'עסקה חדשה בחדר העסקאות 💼',
+        body: `${d.address}${d.city ? ` · ${d.city}` : ''} — פתוחה להשקעה`,
+        date: '',
+        target: { screen: 'deal-room' },
+        accentColor: GOLD,
+      });
+    }
+  }
 
   // ── System notifications (welcome + portal version) ────────────
   // Welcome — ONLY for an investor, once per investorId (different each investor)
@@ -182,9 +197,14 @@ export function NotificationsPanel() {
     return inv?.properties ?? [];
   }, [currentUser, isAdmin, investorMondayId, properties, mgProperties, investors]);
 
+  const openDeals = useMemo<MondayProperty[]>(
+    () => mgProperties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS),
+    [mgProperties],
+  );
+
   const all = useMemo(() => buildNotifications({
-    isAdmin, investorMondayId, inquiries, relevantProperties,
-  }), [isAdmin, investorMondayId, inquiries, relevantProperties]);
+    isAdmin, investorMondayId, inquiries, relevantProperties, openDeals,
+  }), [isAdmin, investorMondayId, inquiries, relevantProperties, openDeals]);
 
   const unread = all.filter(n => !dismissed.has(n.id));
   const unreadCount = unread.length;

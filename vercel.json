@@ -4,7 +4,7 @@
   ],
   "crons": [
     { "path": "/api/cron/daily-alerts",            "schedule": "0 7 * * *" },
-    { "path": "/api/cron/investor-media",          "schedule": "15 7 * * *" },
+    { "path": "/api/cron/investor-emails",         "schedule": "15 7 * * *" },
     { "path": "/api/cron/monthly-utility-check",   "schedule": "30 7 1 * *" }
   ]
 }
