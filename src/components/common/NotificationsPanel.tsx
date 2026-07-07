@@ -198,8 +198,8 @@ export function NotificationsPanel() {
   }, [currentUser, isAdmin, investorMondayId, properties, mgProperties, investors]);
 
   const openDeals = useMemo<MondayProperty[]>(
-    () => mgProperties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS),
-    [mgProperties],
+    () => properties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS && !p.investorMondayId),
+    [properties],
   );
 
   const all = useMemo(() => buildNotifications({

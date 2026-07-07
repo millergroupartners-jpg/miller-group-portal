@@ -76,10 +76,14 @@ function DealCard({ p, i, onInterest }: { p: MondayProperty; i: number; onIntere
 
 export function DealRoomScreen() {
   const { currentUser } = useUser();
-  const { mgProperties, loading } = useMondayData();
+  const { properties, loading } = useMondayData();
   const user = currentUser ?? MOCK_USER;
 
-  const deals = mgProperties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS);
+  // "Open for investment" = a deal in the investor-deals pipeline that has no
+  // linked investor yet (available to claim) and is flagged with the status.
+  // Requiring no linked investor guarantees we never expose a property that
+  // already belongs to a real investor.
+  const deals = properties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS && !p.investorMondayId);
 
   // Interest modal state
   const [selected, setSelected] = useState<MondayProperty | null>(null);

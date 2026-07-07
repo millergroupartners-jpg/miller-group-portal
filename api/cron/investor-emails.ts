@@ -29,13 +29,16 @@ import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
 
 const PROPERTIES_BOARD_ID = 1997938102;
 const INVESTORS_BOARD_ID  = 1997938105;
-const MG_DEALS_GROUP      = 'group_mkw9are4';
+/** "עסקאות של משקיעים" — the investor-deals pipeline. Deals open for investment
+ *  live here with NO linked investor yet (not the private "Miller Group" group). */
+const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
 
 const OPEN_FOR_INVESTMENT_STATUS = 'פתוח להשקעה';
 
 // Properties board columns (client-facing only)
 const PROP_COL = {
   rentalStatus:   'color_mm1fv8p0',   // "סטטוס השכרה"
+  investor:       'board_relation_mkrzrtny', // "משקיע" — linked investor (empty = available)
   purchaseClient: 'numeric_mkrzmmy',  // "רכישה ללקוח ($)"
   renovClient:    'numeric_mkrzk78b', // "שיפוץ ללקוח ($)"
   closingCosts:   'numeric_mks3rebm', // "עלויות סגירה ($)"
@@ -75,7 +78,7 @@ function fmtUSD(text: string | null | undefined): string {
   return '$' + n.toLocaleString('en-US');
 }
 
-interface RawCV { id: string; text: string | null; value: string | null }
+interface RawCV { id: string; text: string | null; value: string | null; linked_items?: { id: string }[] }
 interface RawItem { id: string; name: string; column_values: RawCV[] }
 
 function colMap(item: RawItem): Record<string, RawCV> {
@@ -155,18 +158,21 @@ interface Deal {
 }
 
 async function fetchUnannouncedDeals(): Promise<Deal[]> {
-  const colIds = [PROP_COL.rentalStatus, PROP_COL.purchaseClient, PROP_COL.renovClient, PROP_COL.arv, PROP_COL.rent, PROP_COL.dealEmailSent]
+  const colIds = [PROP_COL.rentalStatus, PROP_COL.investor, PROP_COL.purchaseClient, PROP_COL.renovClient, PROP_COL.arv, PROP_COL.rent, PROP_COL.dealEmailSent]
     .map(id => `"${id}"`).join(', ');
   const q = `query {
     boards(ids: [${PROPERTIES_BOARD_ID}]) {
       items_page(
-        limit: 100
-        query_params: { rules: [{ column_id: "group", compare_value: ["${MG_DEALS_GROUP}"] }] }
+        limit: 200
+        query_params: { rules: [{ column_id: "group", compare_value: ["${INVESTOR_DEALS_GROUP}"] }] }
       ) {
         items {
           id
           name
-          column_values(ids: [${colIds}]) { id text value }
+          column_values(ids: [${colIds}]) {
+            id text value
+            ... on BoardRelationValue { linked_items { id } }
+          }
         }
       }
     }
@@ -178,7 +184,10 @@ async function fetchUnannouncedDeals(): Promise<Deal[]> {
       const cols = colMap(it);
       const isOpen = (cols[PROP_COL.rentalStatus]?.text ?? '').trim() === OPEN_FOR_INVESTMENT_STATUS;
       const alreadySent = Boolean(cols[PROP_COL.dealEmailSent]?.text?.trim());
-      return isOpen && !alreadySent;
+      // Available = no investor linked yet. Never announce a property that
+      // already belongs to a real investor.
+      const hasInvestor = (cols[PROP_COL.investor]?.linked_items?.length ?? 0) > 0;
+      return isOpen && !alreadySent && !hasInvestor;
     })
     .map(it => {
       const cols = colMap(it);
