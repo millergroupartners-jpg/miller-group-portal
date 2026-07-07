@@ -122,6 +122,28 @@ async function fetchInvestors(): Promise<Investor[]> {
   }).filter(inv => inv.email);
 }
 
+/**
+ * The investors board sometimes carries multiple rows per person (one per
+ * deal). De-dupe by email so nobody gets the same announcement twice; a
+ * person opted out on ANY of their rows is treated as opted out.
+ */
+function dedupeByEmail(list: Investor[]): Investor[] {
+  const byEmail = new Map<string, Investor>();
+  for (const inv of list) {
+    const key = inv.email.toLowerCase();
+    const prev = byEmail.get(key);
+    if (!prev) {
+      byEmail.set(key, { ...inv });
+    } else {
+      prev.registered = prev.registered || inv.registered;
+      prev.blanketOptOut = prev.blanketOptOut || inv.blanketOptOut;
+      prev.dealOptOut = prev.dealOptOut || inv.dealOptOut;
+      prev.reminderOptOut = prev.reminderOptOut || inv.reminderOptOut;
+    }
+  }
+  return [...byEmail.values()];
+}
+
 interface Deal {
   id: string;
   address: string;
@@ -211,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const portalUrl = process.env.PORTAL_URL || 'https://miller-group-portal.vercel.app';
-    const investors = await fetchInvestors();
+    const investors = dedupeByEmail(await fetchInvestors());
     const result: Record<string, unknown> = { ok: true };
 
     // ── A. New-deal announcement ──────────────────────────────────────────
