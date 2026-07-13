@@ -20,6 +20,7 @@ const LOG_COL = {
   body:       'long_text_mm57nrqb',
   sendStatus: 'color_mm576egg',     // נשלח / נכשל
   count:      'numeric_mm57e4gd',
+  sentAt:     'date_mm57xpvq',      // מועד שליחה — allows historical (backfilled) entries
 } as const;
 
 const SCHED_COL = {
@@ -65,10 +66,13 @@ export async function fetchEmailLog(): Promise<EmailLogEntry[]> {
   return items
     .map(it => {
       const cols = colMap(it);
+      // Prefer the explicit "מועד שליחה" column (supports backfilled history);
+      // fall back to the item's creation time. Normalize "YYYY-MM-DD HH:MM" → ISO.
+      const explicit = (cols[LOG_COL.sentAt]?.text ?? '').trim().replace(' ', 'T');
       return {
         id: it.id,
         subject: it.name,
-        sentAt: it.created_at ?? '',
+        sentAt: explicit || it.created_at || '',
         recipients: cols[LOG_COL.recipients]?.text ?? '',
         recipientCount: parseInt(cols[LOG_COL.count]?.text ?? '0', 10) || 0,
         kind: cols[LOG_COL.kind]?.text ?? '',
@@ -77,7 +81,7 @@ export async function fetchEmailLog(): Promise<EmailLogEntry[]> {
         ok: (cols[LOG_COL.sendStatus]?.text ?? 'נשלח') !== 'נכשל',
       };
     })
-    .sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''));
+    .sort((a, b) => (Date.parse(b.sentAt) || 0) - (Date.parse(a.sentAt) || 0));
 }
 
 // ─── Scheduled broadcasts ────────────────────────────────────────────────────

@@ -23,9 +23,11 @@
   z-index: 1;
   border-radius: var(--radius-card) var(--radius-card) 0 0;
 }
-/* Photo wrapper inside card — rounds top corners and clips image.
-   Load-bearing: property cards depend on this structural selector. */
-.gold-card > div:first-of-type {
+/* Photo inside a card — rounds its top corners to match the card and clips
+   the image. Scoped to the PropPhoto element itself (not "first child") so it
+   never clips text in the top corners of content-only cards (e.g. the first
+   letter of a heading getting cut off by the rounded corner + overflow). */
+.gold-card .prop-photo {
   border-radius: var(--radius-card) var(--radius-card) 0 0;
   overflow: hidden;
 }

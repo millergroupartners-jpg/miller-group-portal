@@ -24,6 +24,7 @@ const LOG_COL = {
   body:       'long_text_mm57nrqb', // תוכן (טקסט נקי, קטוע)
   sendStatus: 'color_mm576egg',     // סטטוס שליחה: נשלח / נכשל
   count:      'numeric_mm57e4gd',   // מספר נמענים
+  sentAt:     'date_mm57xpvq',      // מועד שליחה (מאפשר גם רשומות היסטוריות)
 } as const;
 
 export interface EmailLogMeta {
@@ -50,6 +51,7 @@ async function logEmail(
 ): Promise<void> {
   try {
     const recipients = Array.isArray(opts.to) ? opts.to : [opts.to];
+    const now = new Date();
     const columnValues = {
       [LOG_COL.recipients]: { text: recipients.join(', ') },
       [LOG_COL.kind]:       { label: meta.kind ?? 'אוטומטי' },
@@ -57,6 +59,7 @@ async function logEmail(
       [LOG_COL.body]:       { text: htmlToPreview(opts.html) },
       [LOG_COL.sendStatus]: { label: ok ? 'נשלח' : 'נכשל' },
       [LOG_COL.count]:      String(recipients.length),
+      [LOG_COL.sentAt]:     { date: now.toISOString().slice(0, 10), time: now.toISOString().slice(11, 19) },
     };
     await mondayQuery(
       `mutation ($board: ID!, $name: String!, $cols: JSON!) {
