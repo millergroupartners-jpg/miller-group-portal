@@ -169,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const investors: OptMap = {};
     if (investorIds.length > 0) {
       const invQuery = `query {
-        items(ids: [${investorIds.join(',')}]) {
+        items(ids: [${investorIds.join(',')}], limit: ${investorIds.length}) {
           id
           column_values(ids: ["${INV_COL_EMAIL}", "${INV_COL_PASSWORD}", "${INV_COL_NOTIF_OPTOUT}", "${INV_COL_UTIL_OPTOUT}"]) {
             id text value
@@ -265,6 +265,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const recipients = toAdmin ? getAdminRecipients() : key;
       try {
         await sendMail({
+          log: { category: 'תזכורת Utilities' },
           to: recipients,
           subject: `תזכורת חודשית · תשלומי utilities · ${bundle.items.length} חשבונות`,
           html: wrapEmail({

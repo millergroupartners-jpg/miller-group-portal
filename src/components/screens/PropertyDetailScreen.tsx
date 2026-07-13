@@ -21,7 +21,7 @@ import { TimelineTab } from './property/TimelineTab';
  */
 type MondayTabKey = 'details' | 'utilities' | 'timeline' | 'renovations' | 'loan';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 const COLOR_PAIRS: [string, string][] = [
   ['#2a3a52', '#3d5a8a'], ['#3a2a1e', '#5a3d2a'], ['#1e3a2a', '#2a5a3d'],
@@ -103,7 +103,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
 
     const detailsContent = (
       <>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
+        <div className="stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
           {[
             { label: 'מחיר רכישה', value: mp.purchasePrice, gold: false },
             { label: 'ARV',         value: mp.arv,           gold: true },
@@ -112,9 +112,9 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             { label: 'עלות שיפוץ', value: mp.renovCost,     gold: false },
             { label: 'All-in',      value: '$' + mp.allIn.toLocaleString('en-US'), gold: false },
           ].map(s => (
-            <div key={s.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.gold ? '#C9A84C' : 'var(--text-primary)' }}>{s.value}</div>
+            <div key={s.label} className="stat-chip">
+              <div className="stat-label" style={{ fontSize: 9 }}>{s.label}</div>
+              <div className="stat-value num" style={{ fontSize: 15, color: s.gold ? GOLD : undefined }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -125,7 +125,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 10,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#C9A84C' }}>{mp.loanStatus}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: GOLD }}>{mp.loanStatus}</span>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>סטטוס הלוואה</span>
           </div>
         )}
@@ -147,11 +147,11 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             {[{ label: 'ROI', value: roi ?? '—' }, { label: 'Equity', value: equity ?? '—' }].map(s => (
               <div key={s.label} style={{
-                background: 'rgba(76,175,80,0.10)', border: '1px solid rgba(76,175,80,0.28)',
-                borderRadius: 10, padding: '12px 14px', textAlign: 'center',
+                background: 'var(--success-dim)', border: '1px solid var(--success-border)',
+                borderRadius: 'var(--radius-sm)', padding: '12px 14px', textAlign: 'center',
               }}>
-                <div style={{ fontSize: 9, color: 'rgba(76,175,80,0.7)', marginBottom: 4, letterSpacing: 1 }}>{s.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#4CAF50', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: 'var(--success)', opacity: 0.75, marginBottom: 4, letterSpacing: 1 }}>{s.label}</div>
+                <div className="num" style={{ fontSize: 22, fontWeight: 800, color: 'var(--success)', lineHeight: 1 }}>{s.value}</div>
               </div>
             ))}
           </div>
@@ -160,7 +160,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
         {mp.statusType !== 'blue' && (
           <div className="gold-card" style={{ padding: '14px', marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: '#C9A84C', fontWeight: 600 }}>{mp.progress}%</span>
+              <span className="num" style={{ fontSize: 12, color: GOLD, fontWeight: 600 }}>{mp.progress}%</span>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>התקדמות פרויקט</span>
             </div>
             <ProgressBar target={mp.progress} />
@@ -190,8 +190,8 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
                   לא הוגדרה חברת ניהול. פתח את הפריט ב-Monday להגדרת עמודת <b>"מנהל הנכס"</b>.
                 </div>
                 <a href={mondayItemUrl} target="_blank" rel="noopener noreferrer" style={{
-                  textAlign: 'center', padding: '10px 14px', borderRadius: 10,
-                  background: `${GOLD}18`, border: `1px solid ${GOLD}55`, color: GOLD,
+                  textAlign: 'center', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+                  background: 'var(--gold-dim)', border: '1px solid var(--gold-border)', color: GOLD,
                   fontSize: 12, fontWeight: 700, textDecoration: 'none',
                 }}>
                   פתח ב-Monday להוספת מנהל ↗
@@ -212,7 +212,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             width: 36, height: 36, borderRadius: '50%',
             background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', backdropFilter: 'blur(8px)',
+            cursor: 'pointer',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
               <path d="M15 18l-6-6 6-6" />
@@ -220,13 +220,13 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           </button>
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
-            background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+            background: 'linear-gradient(transparent 25%, rgba(8,8,10,0.82))',
             padding: '30px 16px 14px',
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <StatusBadge type={mp.statusType}>{mp.status}</StatusBadge>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{mp.address}</div>
+                <div className="display-title" style={{ fontSize: 19, fontWeight: 700, color: '#fff' }}>{mp.address}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{mp.city}</div>
               </div>
             </div>
@@ -291,7 +291,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             background: 'rgba(0,0,0,0.55)',
             border: '1px solid rgba(255,255,255,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', backdropFilter: 'blur(8px)',
+            cursor: 'pointer',
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
@@ -301,13 +301,13 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
         {/* Hero overlay */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+          background: 'linear-gradient(transparent 25%, rgba(8,8,10,0.82))',
           padding: '20px 16px 10px',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <StatusBadge type={property.statusType}>{property.status}</StatusBadge>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{property.address}</div>
+              <div className="display-title" style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{property.address}</div>
             </div>
           </div>
         </div>
@@ -331,7 +331,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
         {activeTab === 'details' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* 2×2 stats grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="stagger" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
                 { label: 'מחיר קנייה', value: property.purchasePrice, gold: false },
                 { label: 'עלות שיפוץ', value: property.renovCost, gold: false },
@@ -340,7 +340,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
               ].map(s => (
                 <div key={s.label} className="gold-card" style={{ padding: '14px 12px' }}>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 5 }}>{s.label}</div>
-                  <div style={{
+                  <div className="num" style={{
                     fontFamily: 'var(--font-ui)',
                     fontSize: 20,
                     fontWeight: 700,
@@ -355,7 +355,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             {/* Progress card */}
             <div className="gold-card" style={{ padding: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: GOLD, fontWeight: 700 }}>{property.progress}%</span>
+                <span className="num" style={{ fontSize: 12, color: GOLD, fontWeight: 700 }}>{property.progress}%</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>התקדמות השיפוץ</span>
               </div>
               <ProgressBar target={property.progress} height={8} />
@@ -404,8 +404,8 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
                 </div>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: 'rgba(201,168,76,0.12)',
-                  border: '1px solid rgba(201,168,76,0.2)',
+                  background: 'var(--gold-dim)',
+                  border: '1px solid var(--gold-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round">
@@ -422,7 +422,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, textAlign: 'right' }}>
               אפריל 2026
             </div>
-            <div className="photo-grid">
+            <div className="photo-grid stagger">
               {Array.from({ length: 6 }).map((_, i) => {
                 const [bg, accent] = COLOR_PAIRS[i % COLOR_PAIRS.length];
                 return (
@@ -465,7 +465,7 @@ export function PropertyDetailScreen({ propertyId }: PropertyDetailScreenProps) 
           >
             ×
           </button>
-          <div style={{ width: '80%', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: `1px solid ${GOLD}44` }}>
+          <div style={{ width: '80%', aspectRatio: '1', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--gold-border)' }}>
             {(() => {
               const [bg, accent] = COLOR_PAIRS[lightbox % COLOR_PAIRS.length];
               return (

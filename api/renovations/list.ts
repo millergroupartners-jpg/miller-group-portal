@@ -209,33 +209,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string; groupId: string }>();
     if (linkedPropertyIds.length > 0) {
       try {
-        const ids = linkedPropertyIds.join(',');
-        const costsQuery = `query {
-          items(ids: [${ids}]) {
-            id
-            group { id title }
-            column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
-              id text
-              ... on BoardRelationValue { linked_items { id name } }
+        // items(ids:) silently caps at 25 results unless `limit` is passed, and
+        // accepts at most 100 ids per call — chunk to stay under both.
+        const CHUNK = 100;
+        for (let i = 0; i < linkedPropertyIds.length; i += CHUNK) {
+          const chunk = linkedPropertyIds.slice(i, i + CHUNK);
+          const costsQuery = `query {
+            items(ids: [${chunk.join(',')}], limit: ${chunk.length}) {
+              id
+              group { id title }
+              column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
+                id text
+                ... on BoardRelationValue { linked_items { id name } }
+              }
             }
+          }`;
+          type Row = {
+            id: string;
+            group: { id: string; title: string };
+            column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[];
+          };
+          const cd = await mondayQuery<{ items: Row[] }>(costsQuery);
+          for (const it of cd.items ?? []) {
+            const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
+            propertyCosts.set(it.id, {
+              clientCost:   parseNumber(map['numeric_mkrzk78b']?.text),
+              ourCost:      parseNumber(map['numeric_mkvjrbnp']?.text),
+              status:       map['color_mm1fv8p0']?.text || '',
+              investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
+              investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
+              groupId:      it.group?.id || '',
+            });
           }
-        }`;
-        type Row = {
-          id: string;
-          group: { id: string; title: string };
-          column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[];
-        };
-        const cd = await mondayQuery<{ items: Row[] }>(costsQuery);
-        for (const it of cd.items ?? []) {
-          const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
-          propertyCosts.set(it.id, {
-            clientCost:   parseNumber(map['numeric_mkrzk78b']?.text),
-            ourCost:      parseNumber(map['numeric_mkvjrbnp']?.text),
-            status:       map['color_mm1fv8p0']?.text || '',
-            investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
-            investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
-            groupId:      it.group?.id || '',
-          });
         }
       } catch (e) {
         console.error('renovations-list property cost fetch failed:', e);
@@ -275,9 +280,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Combine three sources, in priority order, to be resilient to either
       // path returning null/empty:
-      //   1. Properties-board direct fetch (authoritative, but the secondary
-      //      query can be partial under heavy load — that's why some items
-      //      were missing earlier).
+      //   1. Properties-board direct fetch (authoritative).
       //   2. Mirror column display_value (the "סטטוס" / "שיפוץ ללקוח" /
       //      "משקיע" columns on the renovations board are mirrors of the
       //      property — display_value reliably returns the rendered text).

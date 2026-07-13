@@ -9,7 +9,7 @@ import { OPEN_FOR_INVESTMENT_STATUS, type MondayProperty } from '../../services/
 import { createInquiry } from '../../services/inquiriesApi';
 import { MOCK_USER } from '../../data/user';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 /**
  * Investor-facing deal room: MG deals flagged "פתוח להשקעה" on Monday.
@@ -19,9 +19,9 @@ const GOLD = '#C9A84C';
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+    <div className="stat-chip">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value num" style={{ fontSize: 13, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
     </div>
   );
 }
@@ -35,7 +35,7 @@ function DealCard({ p, i, onInterest }: { p: MondayProperty; i: number; onIntere
         <PropPhoto index={i} heightRatio={48} photoUrl={thumb} />
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+          background: 'linear-gradient(transparent 25%, rgba(8,8,10,0.82))',
           padding: '18px 12px 10px',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -55,15 +55,15 @@ function DealCard({ p, i, onInterest }: { p: MondayProperty; i: number; onIntere
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Stat label="שכירות חזויה" value={p.rentMonthly} color="var(--text-primary)" />
-          <Stat label="תשואה חזויה" value={p.rentYield} color="#4CAF50" />
-          <Stat label="Equity" value={equity} color="#4CAF50" />
+          <Stat label="תשואה חזויה" value={p.rentYield} color="var(--success)" />
+          <Stat label="Equity" value={equity} color="var(--success)" />
         </div>
         <button
           onClick={() => onInterest(p)}
           style={{
             marginTop: 4, padding: '12px 16px', borderRadius: 12, border: 'none',
-            background: `linear-gradient(135deg, ${GOLD}, #8a6a28)`,
-            color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            background: 'var(--gold-grad)',
+            color: '#1A1508', fontSize: 14, fontWeight: 700, cursor: 'pointer',
             fontFamily: 'var(--font-ui)',
           }}
         >
@@ -137,7 +137,9 @@ export function DealRoomScreen() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading && deals.length === 0 && (
-          <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0' }}>⏳ טוען עסקאות...</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: GOLD, fontSize: 13, padding: '40px 0' }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען עסקאות...
+          </div>
         )}
 
         {!loading && deals.length === 0 && (
@@ -157,7 +159,7 @@ export function DealRoomScreen() {
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right' }}>
               {deals.length} עסקאות פתוחות להשקעה · המספרים הם צפי ואינם מהווים התחייבות
             </div>
-            <div className="property-grid" style={{ padding: 0 }}>
+            <div className="property-grid stagger" style={{ padding: 0 }}>
               {deals.map((p, i) => <DealCard key={p.mondayId} p={p} i={i} onInterest={openModal} />)}
             </div>
           </>
@@ -170,7 +172,7 @@ export function DealRoomScreen() {
           onClick={() => !sending && setSelected(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)',
+            background: 'rgba(0,0,0,0.6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
           }}
         >
@@ -197,15 +199,15 @@ export function DealRoomScreen() {
                 fontFamily: 'var(--font-ui)', direction: 'rtl',
               }}
             />
-            {sendError && <div style={{ fontSize: 12, color: '#ff6b6b', textAlign: 'right' }}>{sendError}</div>}
+            {sendError && <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'right' }}>{sendError}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={send}
                 disabled={sending}
                 style={{
                   flex: 1, padding: '12px 16px', borderRadius: 12, border: 'none',
-                  background: `linear-gradient(135deg, ${GOLD}, #8a6a28)`,
-                  color: '#000', fontSize: 14, fontWeight: 700,
+                  background: 'var(--gold-grad)',
+                  color: '#1A1508', fontSize: 14, fontWeight: 700,
                   cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.7 : 1,
                   fontFamily: 'var(--font-ui)',
                 }}
@@ -232,9 +234,9 @@ export function DealRoomScreen() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', zIndex: 1001,
-          background: '#1d3323', border: '1px solid #4CAF50', color: '#a5e0aa',
+          background: 'var(--bg-surface)', border: '1px solid var(--success-border)', color: 'var(--success)',
           borderRadius: 100, padding: '10px 20px', fontSize: 13, fontWeight: 600,
-          whiteSpace: 'nowrap', boxShadow: '0 6px 24px rgba(0,0,0,0.4)',
+          whiteSpace: 'nowrap', boxShadow: 'var(--shadow-3)',
         }}>
           ✓ {toast}
         </div>

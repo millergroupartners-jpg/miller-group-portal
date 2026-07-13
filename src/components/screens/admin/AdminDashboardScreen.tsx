@@ -5,16 +5,16 @@ import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import { fetchAdminFeed, relativeTimeHe, type AdminFeedEvent } from '../../../services/timelineApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 /** Ordered pipeline stages (aligns with progressFromStatus in mondayApi) */
 const PIPELINE_STAGES = [
-  { label: 'על חוזה',               color: '#64B5F6' },
+  { label: 'על חוזה',               color: 'var(--info)' },
   { label: 'בשלבי הלוואה וחתימות',  color: '#9575CD' },
   { label: 'בשיפוץ',                color: GOLD },
   { label: 'מעבר לניהול',           color: '#4DB6AC' },
   { label: 'מרקט',                  color: '#81C784' },
-  { label: 'מושכר',                 color: '#4CAF50' },
+  { label: 'מושכר',                 color: 'var(--success)' },
 ] as const;
 
 function fmtUSD(n: number): string {
@@ -113,32 +113,34 @@ export function AdminDashboardScreen() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
         {!hasToken && (
           <div style={{
-            background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)',
-            borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#ff6b6b',
+            background: 'var(--danger-dim)', border: '1px solid var(--danger-border)',
+            borderRadius: 'var(--radius-sm)', padding: '12px 14px', fontSize: 12, color: 'var(--danger)',
           }}>
             ⚠️ VITE_MONDAY_API_TOKEN חסר — לא ניתן לטעון נתונים חיים
           </div>
         )}
 
         {loading && (
-          <div style={{ fontSize: 12, color: GOLD, textAlign: 'center' }}>⏳ טוען נתונים מ-Monday...</div>
+          <div style={{ fontSize: 12, color: GOLD, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען נתונים מ-Monday...
+          </div>
         )}
 
         {/* KPI row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           {[
             { label: 'AUM',           value: fmtUSD(totalArv),     color: GOLD },
-            { label: 'Equity כולל',   value: fmtUSD(totalEquity),  color: '#4CAF50' },
-            { label: 'ROI ממוצע',     value: roi,                  color: '#4CAF50' },
+            { label: 'Equity כולל',   value: fmtUSD(totalEquity),  color: 'var(--success)' },
+            { label: 'ROI ממוצע',     value: roi,                  color: 'var(--success)' },
             { label: 'משקיעים',       value: String(investors.length),    color: 'var(--text-primary)' },
             { label: 'נכסים פעילים',  value: String(properties.length),   color: 'var(--text-primary)' },
           ].map(s => (
             <div key={s.label} className="gold-card" style={{ padding: '16px 14px', textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>{s.label}</div>
             </div>
           ))}
@@ -166,7 +168,7 @@ export function AdminDashboardScreen() {
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
                 >
-                  <span style={{ color: '#ff9800', fontWeight: 700 }}>{closingsThisWeek}</span>
+                  <span className="num" style={{ color: '#ff9800', fontWeight: 700 }}>{closingsThisWeek}</span>
                   <span>סגירות השבוע →</span>
                 </div>
               )}
@@ -180,7 +182,7 @@ export function AdminDashboardScreen() {
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
                 >
-                  <span style={{ color: '#ff9800', fontWeight: 700 }}>{investorsWithoutPassword.length}</span>
+                  <span className="num" style={{ color: '#ff9800', fontWeight: 700 }}>{investorsWithoutPassword.length}</span>
                   <span>משקיעים ללא סיסמת פורטל →</span>
                 </div>
               )}
@@ -190,11 +192,11 @@ export function AdminDashboardScreen() {
                   onClick={() => navigate('admin-closings', { highlightClosingMode: 'overdue' })}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px 12px', background: 'rgba(255,77,77,0.08)', borderRadius: 8,
+                    padding: '8px 12px', background: 'var(--danger-dim)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
                 >
-                  <span style={{ color: '#ff4d4d', fontWeight: 700 }}>{overdueProperties.length}</span>
+                  <span className="num" style={{ color: 'var(--danger)', fontWeight: 700 }}>{overdueProperties.length}</span>
                   <span>נכסים שעברו תאריך סגירה ועדיין בחוזה / הלוואה →</span>
                 </div>
               )}
@@ -204,11 +206,11 @@ export function AdminDashboardScreen() {
                   onClick={() => navigate('admin-properties', { highlightPropertyMode: 'no-manager' })}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px 12px', background: 'rgba(255,77,77,0.08)', borderRadius: 8,
+                    padding: '8px 12px', background: 'var(--danger-dim)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
                 >
-                  <span style={{ color: '#ff4d4d', fontWeight: 700 }}>{propertiesMissingManager.length}</span>
+                  <span className="num" style={{ color: 'var(--danger)', fontWeight: 700 }}>{propertiesMissingManager.length}</span>
                   <span>נכסים בניהול / מרקט / מושכר ללא חברת ניהול →</span>
                 </div>
               )}
@@ -223,7 +225,7 @@ export function AdminDashboardScreen() {
             onClick={() => navigate('property-detail', { propertyId: nextClosing.p.mondayId })}
             style={{
               padding: '16px 18px', cursor: 'pointer',
-              background: `linear-gradient(90deg, ${GOLD}08, transparent)`,
+              background: 'linear-gradient(90deg, var(--gold-dim), transparent)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -236,10 +238,10 @@ export function AdminDashboardScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
               <div style={{
                 width: 64, minWidth: 64, textAlign: 'center',
-                padding: '10px 6px', borderRadius: 10,
-                background: `${GOLD}15`, border: `1px solid ${GOLD}44`,
+                padding: '10px 6px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
               }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: GOLD, lineHeight: 1 }}>
+                <div className={daysToNext === 0 ? undefined : 'num'} style={{ fontSize: 22, fontWeight: 800, color: GOLD, lineHeight: 1 }}>
                   {daysToNext === 0 ? 'היום' : daysToNext}
                 </div>
                 {daysToNext !== 0 && (
@@ -271,7 +273,7 @@ export function AdminDashboardScreen() {
               return (
                 <div key={s.label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                    <span style={{ color: s.color, fontWeight: 700 }}>{s.count}</span>
+                    <span className="num" style={{ color: s.color, fontWeight: 700 }}>{s.count}</span>
                     <span style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
                   </div>
                   <div style={{ height: 6, background: 'var(--progress-track)', borderRadius: 100, overflow: 'hidden' }}>
@@ -314,7 +316,7 @@ export function AdminDashboardScreen() {
                   >
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: `${GOLD}22`, border: `1px solid ${GOLD}44`,
+                      background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0,
                     }}>{inv.initials}</div>
@@ -323,7 +325,7 @@ export function AdminDashboardScreen() {
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{inv.properties.length} נכסים</div>
                     </div>
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{fmtUSD(arv)}</div>
+                      <div className="num" style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{fmtUSD(arv)}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>ARV</div>
                     </div>
                   </div>
@@ -341,7 +343,7 @@ export function AdminDashboardScreen() {
           }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>ציר זמן · שינויים אחרונים</span>
             {feedLoading
-              ? <span style={{ fontSize: 10, color: GOLD }}>⏳</span>
+              ? <span className="mg-spinner" style={{ width: 12, height: 12 }} />
               : feed.length > 0 && (
                   <button
                     onClick={() => navigate('admin-timeline')}
@@ -374,7 +376,7 @@ export function AdminDashboardScreen() {
                   className={isClickable ? 'interactive' : undefined}
                   style={{
                     display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
-                    gap: 10, padding: 10, borderRadius: 10, background: 'var(--bg-chip)',
+                    gap: 10, padding: 10, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)',
                     cursor: isClickable ? 'pointer' : 'default',
                   }}
                 >
@@ -417,7 +419,7 @@ export function AdminDashboardScreen() {
         >
           <div className="gold-card" style={{
             padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 10, border: `1px solid ${GOLD}44`, background: `${GOLD}08`,
+            gap: 10, border: '1px solid var(--gold-border)', background: 'var(--gold-dim)',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />

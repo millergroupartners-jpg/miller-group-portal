@@ -14,6 +14,10 @@
  *   investorEmail: string;
  *   subject: string;    // for email subject line (original inquiry subject)
  * }
+ *
+ * Also handles { action: 'resolve', inquiryId } — marks the inquiry Resolved.
+ * (Folded in from the old /api/inquiries/resolve endpoint to stay under the
+ * Vercel 12-function cap.)
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -26,7 +30,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { inquiryId, message, replyFrom, investorName, investorEmail, subject } = req.body || {};
+    const { inquiryId, message, replyFrom, investorName, investorEmail, subject, action } = req.body || {};
+
+    // ── action: 'resolve' — status change only, no reply/email ──
+    if (action === 'resolve') {
+      if (!inquiryId) return res.status(400).json({ error: 'Missing inquiryId' });
+      await mondayQuery(`
+        mutation {
+          change_simple_column_value(
+            item_id: ${inquiryId},
+            board_id: ${Number((process.env.INQUIRIES_BOARD_ID || '5095120333').trim())},
+            column_id: "${INQ_COL.status}",
+            value: "${INQ_STATUS.RESOLVED.label}"
+          ) { id }
+        }
+      `);
+      return res.status(200).json({ ok: true });
+    }
 
     if (!inquiryId || !message || !replyFrom || !investorEmail) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -79,6 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (replyFrom === 'investor') {
         // Investor replied → notify admin (no reply-to: admin should reply via portal)
         await sendMail({
+          log: { category: 'פניות' },
           to: getAdminRecipients(),
           subject: `תגובה מ-${investorName} — ${inquiryNumber}: ${subject || ''}`,
           html: wrapEmail({
@@ -99,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } else {
         // Admin replied → notify investor
         await sendMail({
+          log: { category: 'פניות' },
           to: investorEmail,
           subject: `תגובה לפנייתך — ${esc(subject || inquiryNumber)}`,
           html: wrapEmail({

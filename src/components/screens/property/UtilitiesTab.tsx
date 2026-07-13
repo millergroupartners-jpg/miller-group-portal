@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { listUtilities, utilityIcon, statusColor, type Utility } from '../../../services/utilitiesApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function fmtDate(iso: string): string {
   if (!iso) return '';
@@ -40,7 +40,7 @@ export function UtilitiesTab({ propertyId }: Props) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>;
   }
   if (error) {
-    return <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>;
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>;
   }
   if (items.length === 0) {
     return (
@@ -52,7 +52,7 @@ export function UtilitiesTab({ propertyId }: Props) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+    <div className="stagger" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
       {items.map(u => (
         <div key={u.id} className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'flex', flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>

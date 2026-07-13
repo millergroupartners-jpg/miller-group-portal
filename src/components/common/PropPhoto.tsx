@@ -1,4 +1,4 @@
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold)';
 
 const PALETTES: [string, string, string][] = [
   ['#2a3a52', '#3d5a8a', '#1e2a3a'],

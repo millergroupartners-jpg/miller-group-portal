@@ -5,7 +5,7 @@ import { MGLogo } from './MGLogo';
 import { NotificationsPanel } from './NotificationsPanel';
 import type { Screen } from '../../types';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold)';
 
 const INVESTOR_TABS = [
   {
@@ -219,6 +219,18 @@ const ADMIN_TABS = [
     ),
   },
   {
+    id: 'admin-emails' as Screen,
+    label: 'מיילים',
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke={active ? GOLD : 'var(--tab-icon)'}
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+    ),
+  },
+  {
     id: 'settings' as Screen,
     label: 'הגדרות',
     icon: (active: boolean) => (
@@ -261,27 +273,12 @@ export function DesktopSidebar({ active }: { active: Screen }) {
       {/* "Back to admin menu" button — only when admin is in investor-style view */}
       {adminInInvestorView && (
         <div style={{ padding: '14px 12px 4px' }}>
-          <button
-            onClick={() => navigate('admin-dashboard')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-              background: `${GOLD}12`, border: `1px solid ${GOLD}33`,
-              width: '100%', textAlign: 'right',
-              transition: 'background 0.15s',
-            }}
-            onMouseOver={e => (e.currentTarget.style.background = `${GOLD}22`)}
-            onMouseOut={e => (e.currentTarget.style.background = `${GOLD}12`)}
-          >
+          <button className="side-admin-back" onClick={() => navigate('admin-dashboard')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            <span style={{
-              fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, color: GOLD,
-            }}>
-              חזרה לתפריט אדמין
-            </span>
+            <span>חזרה לתפריט אדמין</span>
           </button>
         </div>
       )}
@@ -296,27 +293,11 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           return (
             <button
               key={tab.id}
+              className={`side-nav-item${isActive ? ' active' : ''}`}
               onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: isActive ? `${GOLD}15` : 'transparent',
-                width: '100%', textAlign: 'right',
-                transition: 'background 0.15s',
-              }}
             >
               {tab.icon(isActive)}
-              <span style={{
-                fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: isActive ? 700 : 500,
-                color: isActive ? GOLD : 'var(--text-secondary)',
-              }}>
-                {tab.label}
-              </span>
-              {isActive && (
-                <div style={{
-                  marginRight: 'auto', width: 4, height: 4, borderRadius: '50%', background: GOLD,
-                }} />
-              )}
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -324,17 +305,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
 
       {/* Theme toggle */}
       <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)' }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-            background: 'transparent', width: '100%', textAlign: 'right',
-            transition: 'background 0.15s',
-          }}
-          onMouseOver={e => (e.currentTarget.style.background = `${GOLD}10`)}
-          onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
-        >
+        <button className="side-nav-item" onClick={toggleTheme}>
           {theme === 'dark' ? (
             /* Sun icon (click to go light) */
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -349,12 +320,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           )}
-          <span style={{
-            fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 500,
-            color: 'var(--text-secondary)',
-          }}>
-            {theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}
-          </span>
+          <span>{theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}</span>
         </button>
       </div>
 
@@ -364,12 +330,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           padding: '16px', borderTop: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: `${GOLD}22`, border: `1px solid ${GOLD}44`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0,
-          }}>
+          <div className="avatar-gold">
             {currentUser.initials}
           </div>
           <div style={{ overflow: 'hidden' }}>

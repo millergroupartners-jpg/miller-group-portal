@@ -20,7 +20,7 @@
 import { useEffect, useState } from 'react';
 import { listRenovations, calcBalance, paidToColor, paidByColor, type Renovation } from '../../../services/renovationsApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
 /** Investor-facing label. Must stay neutral — the renovation company is ours
  *  but we don't want the investor to know that, and we also don't want them to
@@ -63,7 +63,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען שיפוצים…</div>;
   }
   if (error) {
-    return <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>;
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>;
   }
   if (items.length === 0) {
     return (
@@ -113,27 +113,27 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Summary card — different KPIs per role */}
       <div className="gold-card" style={{ padding: 14 }}>
         {isAdmin ? (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
               {[
-                { label: 'סה״כ שולם',     value: fmtMoney(totalsAdmin.paid),   c: '#4CAF50' },
+                { label: 'סה״כ שולם',     value: fmtMoney(totalsAdmin.paid),   c: 'var(--success)' },
                 { label: 'רווח משיפוצים',  value: fmtMoney(totalsAdmin.profit), c: GOLD },
-                { label: 'שיפוץ שלנו',    value: fmtMoney(totalsAdmin.our),    c: '#64B5F6' },
+                { label: 'שיפוץ שלנו',    value: fmtMoney(totalsAdmin.our),    c: 'var(--info)' },
                 { label: 'שיפוץ ללקוח',   value: fmtMoney(totalsAdmin.client), c: '#ff9800' },
               ].map(k => (
-                <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
-                  <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+                <div key={k.label} className="stat-chip">
+                  <div className="stat-label" style={{ fontSize: 9, letterSpacing: 0.5 }}>{k.label}</div>
+                  <div className="stat-value num" style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
                 </div>
               ))}
             </div>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
-              background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 10, padding: 10,
+              background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 'var(--radius-sm)', padding: 10,
             }}>
               {[
                 { l: 'נותר לתשלום', v: fmtMoney(totalsAdmin.remaining),       c: '#ff9800' },
@@ -142,7 +142,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
               ].map(k => (
                 <div key={k.l} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, letterSpacing: 0.5 }}>{k.l}</div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
+                  <div className="num" style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
                 </div>
               ))}
             </div>
@@ -156,13 +156,13 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
               { label: 'תקציב שיפוץ', value: fmtMoney(totalsInvestor.budget),    c: '#ff9800', addon: totalsInvestor.addons > 0 },
-              { label: 'העברת עד כה', value: fmtMoney(totalsInvestor.paid),      c: '#4CAF50', addon: false },
+              { label: 'העברת עד כה', value: fmtMoney(totalsInvestor.paid),      c: 'var(--success)', addon: false },
               { label: 'נותר להעברה', value: fmtMoney(totalsInvestor.remaining), c: GOLD,      addon: totalsInvestor.addons > 0 },
             ].map(k => (
-              <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '12px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
+              <div key={k.label} className="stat-chip" style={{ padding: '12px 10px', textAlign: 'center' }}>
+                <div className="stat-label" style={{ fontSize: 9, letterSpacing: 0.3 }}>{k.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  <div className="num" style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
                   {k.addon && (
                     <span
                       title="תוספות מאושרות מעבר לתקציב המקורי"
@@ -203,7 +203,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                 </div>
               </div>
               <div style={{ textAlign: 'left', marginInlineStart: 10 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</div>
+                <div className="num" style={{ fontSize: 15, fontWeight: 800, color: 'var(--success)' }}>{fmtMoney(r.totalPaid)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                   {isAdmin ? (
                     `${r.subitems.length} תשלומים · נותר ${fmtMoney(bal!.remainingTotal)}`
@@ -240,7 +240,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                     ].map(k => (
                       <div key={k.l} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                        <div className="num" style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
                       </div>
                     ))}
                   </div>
@@ -255,7 +255,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                     {r.subitems.map(sub => (
                       <div key={sub.id} style={{
                         display: 'flex', flexDirection: 'row-reverse', alignItems: 'center',
-                        gap: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-chip)',
+                        gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)',
                       }}>
                         <div style={{ flex: 1, textAlign: 'right' }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
@@ -266,7 +266,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(sub.amount)}</div>
+                          <div className="num" style={{ fontSize: 14, fontWeight: 800, color: 'var(--success)' }}>{fmtMoney(sub.amount)}</div>
                           {isAdmin && (
                             <div style={{ display: 'flex', gap: 4 }}>
                               {sub.paidTo && (
@@ -286,7 +286,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
                         </div>
                         {sub.receiptUrl && (
                           <a href={sub.receiptUrl} target="_blank" rel="noopener noreferrer" style={{
-                            width: 32, height: 32, borderRadius: 8, background: `${GOLD}18`, border: `1px solid ${GOLD}55`,
+                            width: 32, height: 32, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, textDecoration: 'none',
                           }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2">
@@ -302,7 +302,7 @@ export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
 
                 {isAdmin && (
                   <a href={`${MONDAY_BOARD_URL}/pulses/${r.id}`} target="_blank" rel="noopener noreferrer" style={{
-                    display: 'block', marginTop: 10, padding: '8px 12px', borderRadius: 8, background: `${GOLD}14`,
+                    display: 'block', marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--gold-dim)',
                     color: GOLD, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center',
                   }}>
                     פתח פרויקט ב-Monday ↗

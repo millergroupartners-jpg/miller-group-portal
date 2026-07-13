@@ -14,7 +14,7 @@ function needsManager(p: MondayProperty): boolean {
     && !(p.managerContactName || p.managerCompanyName || p.managerPhone || p.managerEmail);
 }
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 const STATUS_FILTERS = ['הכל', 'חסר מנהל', 'על חוזה', 'בשלבי הלוואה וחתימות', 'בשיפוץ', 'מעבר לניהול', 'מרקט', 'מושכר'];
 
@@ -51,17 +51,17 @@ function Card({ p, i, flash }: { p: MondayProperty; i: number; flash?: boolean }
           </div>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
+          <div className="stat-chip">
+            <div className="stat-label">מחיר קנייה</div>
+            <div className="stat-value num">{p.purchasePrice}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>ARV</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.arv}</div>
+          <div className="stat-chip">
+            <div className="stat-label">ARV</div>
+            <div className="stat-value num" style={{ color: GOLD }}>{p.arv}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>Equity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>
+          <div className="stat-chip">
+            <div className="stat-label">Equity</div>
+            <div className="stat-value num" style={{ color: 'var(--success)' }}>
               {p.arvRaw > 0 && p.allIn > 0 ? '$' + (p.arvRaw - p.allIn).toLocaleString('en-US') : '—'}
             </div>
           </div>
@@ -69,7 +69,7 @@ function Card({ p, i, flash }: { p: MondayProperty; i: number; flash?: boolean }
         {p.statusType !== 'blue' && (
           <div style={{ marginTop: 2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
+              <span className="num" style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>התקדמות</span>
             </div>
             <ProgressBar target={p.progress} height={8} />
@@ -189,13 +189,7 @@ export function AdminPropertiesScreen() {
               <button
                 key={opt.key}
                 onClick={() => setSource(opt.key)}
-                style={{
-                  padding: '6px 14px', borderRadius: 100, border: 'none',
-                  background: source === opt.key ? GOLD : 'transparent',
-                  color: source === opt.key ? '#000' : 'var(--text-secondary)',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
+                className={'chip-filter' + (source === opt.key ? ' active' : '')}
               >
                 {opt.label}
               </button>
@@ -227,22 +221,14 @@ export function AdminPropertiesScreen() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              style={{
-                flexShrink: 0,
-                padding: '6px 12px', borderRadius: 100,
-                border: active ? 'none' : '1px solid var(--border)',
-                background: active ? GOLD : 'var(--bg-chip)',
-                color: active ? '#000' : 'var(--text-secondary)',
-                fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-ui)',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}
+              className={'chip-filter' + (active ? ' active' : '')}
+              style={{ flexShrink: 0 }}
             >
               {status}
-              <span style={{
+              <span className="num" style={{
                 fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
-                background: active ? 'rgba(0,0,0,0.15)' : 'var(--border)',
-                color: active ? '#000' : 'var(--text-muted)',
+                background: active ? 'var(--gold-border)' : 'var(--border)',
+                color: active ? 'var(--gold-text)' : 'var(--text-muted)',
               }}>{count}</span>
             </button>
           );
@@ -268,12 +254,7 @@ export function AdminPropertiesScreen() {
             <button
               key={opt.key}
               onClick={() => setViewMode(opt.key)}
-              style={{
-                padding: '5px 12px', borderRadius: 100, border: 'none',
-                background: viewMode === opt.key ? GOLD : 'transparent',
-                color: viewMode === opt.key ? '#000' : 'var(--text-secondary)',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              }}
+              className={'chip-filter' + (viewMode === opt.key ? ' active' : '')}
             >
               {opt.label}
             </button>
@@ -282,14 +263,18 @@ export function AdminPropertiesScreen() {
       </div>
 
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 20px' }}>
-        {loading && <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0' }}>⏳ טוען...</div>}
+        {loading && (
+          <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען...
+          </div>
+        )}
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, padding: '40px 0' }}>
             אין נכסים בסינון זה
           </div>
         )}
         {viewMode === 'cards' ? (
-          <div className="property-grid" style={{ padding: 0 }}>
+          <div className="property-grid stagger" style={{ padding: 0 }}>
             {filtered.map((p, i) => (
               <Card key={p.mondayId} p={p} i={i} flash={flashIds.has(p.mondayId)} />
             ))}
@@ -306,7 +291,7 @@ export function AdminPropertiesScreen() {
 function ListView({ properties, flashIds }: { properties: MondayProperty[]; flashIds: Set<string> }) {
   const { navigate } = useNavigation();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="data-table stagger">
       {properties.map(p => {
         const equity = (p.arvRaw > 0 && p.allIn > 0) ? (p.arvRaw - p.allIn) : 0;
         const flash = flashIds.has(p.mondayId);
@@ -315,9 +300,9 @@ function ListView({ properties, flashIds }: { properties: MondayProperty[]; flas
             key={p.mondayId}
             data-flash={flash ? 'true' : undefined}
             onClick={() => navigate('property-detail', { propertyId: p.mondayId })}
-            className={`gold-card interactive${flash ? ' flash-highlight' : ''}`}
+            className={`data-row interactive${flash ? ' flash-highlight' : ''}`}
             style={{
-              padding: '10px 14px', cursor: 'pointer', display: 'flex',
+              cursor: 'pointer', display: 'flex',
               flexDirection: 'row-reverse', alignItems: 'center', gap: 12,
             }}
           >
@@ -328,7 +313,7 @@ function ListView({ properties, flashIds }: { properties: MondayProperty[]; flas
                 </span>
                 <span style={{
                   fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-                  background: `${GOLD}22`, color: GOLD, whiteSpace: 'nowrap',
+                  background: 'var(--gold-dim)', color: GOLD, whiteSpace: 'nowrap',
                 }}>
                   {p.status || '—'}
                 </span>
@@ -340,15 +325,15 @@ function ListView({ properties, flashIds }: { properties: MondayProperty[]; flas
             <div style={{ display: 'flex', gap: 14, flexShrink: 0 }}>
               <div style={{ textAlign: 'center', minWidth: 70 }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>מחיר</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
+                <div className="num" style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
               </div>
               <div style={{ textAlign: 'center', minWidth: 70 }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>ARV</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: GOLD }}>{p.arv}</div>
+                <div className="num" style={{ fontSize: 12, fontWeight: 700, color: GOLD }}>{p.arv}</div>
               </div>
               <div style={{ textAlign: 'center', minWidth: 70 }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Equity</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: equity > 0 ? '#4CAF50' : 'var(--text-muted)' }}>
+                <div className="num" style={{ fontSize: 12, fontWeight: 700, color: equity > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
                   {equity > 0 ? '$' + equity.toLocaleString('en-US') : '—'}
                 </div>
               </div>

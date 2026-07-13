@@ -3,7 +3,7 @@ import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function fmtUSD(n: number): string {
   if (!n) return '—';
@@ -78,14 +78,16 @@ export function InvestorsListScreen() {
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
         {!hasToken && (
           <div style={{
-            background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)',
-            borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#ff6b6b', marginBottom: 12,
+            background: 'var(--danger-dim)', border: '1px solid var(--danger-border)',
+            borderRadius: 'var(--radius-sm)', padding: '12px 14px', fontSize: 12, color: 'var(--danger)', marginBottom: 12,
           }}>
             ⚠️ חסר Monday token — טוען Mock data
           </div>
         )}
         {loading && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: GOLD, fontSize: 13 }}>⏳ טוען משקיעים...</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: GOLD, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען משקיעים...
+          </div>
         )}
 
         {!loading && filtered.length === 0 && (
@@ -94,7 +96,7 @@ export function InvestorsListScreen() {
           </div>
         )}
 
-        <div className="property-grid" style={{ padding: 0 }}>
+        <div className="property-grid stagger" style={{ padding: 0 }}>
           {filtered.map(inv => {
             const arv    = inv.properties.reduce((s, p) => s + p.arvRaw, 0);
             const allIn  = inv.properties.reduce((s, p) => s + p.allIn, 0);
@@ -113,7 +115,7 @@ export function InvestorsListScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row-reverse' }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #C9A84C, #8a6a28)',
+                    background: 'var(--gold-grad)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 16, fontWeight: 700, color: '#000', flexShrink: 0,
                   }}>{inv.initials}</div>
@@ -127,9 +129,9 @@ export function InvestorsListScreen() {
                   </div>
                   <div style={{
                     fontSize: 9, padding: '3px 8px', borderRadius: 100,
-                    background: hasPassword ? 'rgba(76,175,80,0.15)' : 'rgba(255,193,7,0.15)',
-                    border: `1px solid ${hasPassword ? 'rgba(76,175,80,0.3)' : 'rgba(255,193,7,0.3)'}`,
-                    color: hasPassword ? '#4CAF50' : '#FFC107',
+                    background: hasPassword ? 'var(--success-dim)' : 'rgba(255,193,7,0.15)',
+                    border: `1px solid ${hasPassword ? 'var(--success-border)' : 'rgba(255,193,7,0.3)'}`,
+                    color: hasPassword ? 'var(--success)' : '#FFC107',
                     flexShrink: 0,
                   }}>
                     {hasPassword ? '✓ פעיל' : 'ללא סיסמה'}
@@ -138,17 +140,17 @@ export function InvestorsListScreen() {
 
                 {/* Stats row */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 10px', flex: 1 }}>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>נכסים</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{inv.properties.length}</div>
+                  <div className="stat-chip">
+                    <div className="stat-label">נכסים</div>
+                    <div className="stat-value num">{inv.properties.length}</div>
                   </div>
-                  <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 10px', flex: 1 }}>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>ARV</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{fmtUSD(arv)}</div>
+                  <div className="stat-chip">
+                    <div className="stat-label">ARV</div>
+                    <div className="stat-value num" style={{ color: GOLD }}>{fmtUSD(arv)}</div>
                   </div>
-                  <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 10px', flex: 1 }}>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>Equity</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>{fmtUSD(equity)}</div>
+                  <div className="stat-chip">
+                    <div className="stat-label">Equity</div>
+                    <div className="stat-value num" style={{ color: 'var(--success)' }}>{fmtUSD(equity)}</div>
                   </div>
                 </div>
               </div>

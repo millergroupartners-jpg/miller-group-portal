@@ -7,7 +7,7 @@ import { PropPhoto } from '../../common/PropPhoto';
 import { useCCThumbnail } from '../../../hooks/useCCThumbnail';
 import type { MondayProperty } from '../../../services/mondayApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function fmtUSD(n: number): string {
   if (!n) return '—';
@@ -38,17 +38,17 @@ function PropCard({ p, i, onPress }: { p: MondayProperty; i: number; onPress: ()
       </div>
       <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
+          <div className="stat-chip">
+            <div className="stat-label">מחיר קנייה</div>
+            <div className="stat-value num">{p.purchasePrice}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>ARV</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.arv}</div>
+          <div className="stat-chip">
+            <div className="stat-label">ARV</div>
+            <div className="stat-value num" style={{ color: GOLD }}>{p.arv}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>Equity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>
+          <div className="stat-chip">
+            <div className="stat-label">Equity</div>
+            <div className="stat-value num" style={{ color: 'var(--success)' }}>
               {p.arvRaw > 0 && p.allIn > 0 ? '$' + (p.arvRaw - p.allIn).toLocaleString('en-US') : '—'}
             </div>
           </div>
@@ -56,7 +56,7 @@ function PropCard({ p, i, onPress }: { p: MondayProperty; i: number; onPress: ()
         {p.statusType !== 'blue' && (
           <div style={{ marginTop: 2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
+              <span className="num" style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>התקדמות</span>
             </div>
             <ProgressBar target={p.progress} height={8} />
@@ -131,7 +131,7 @@ export function InvestorDetailScreen({ investorId }: Props) {
         <div className="gold-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 16, flexDirection: 'row-reverse' }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #C9A84C, #8a6a28)',
+            background: 'var(--gold-grad)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 22, fontWeight: 700, color: '#000', flexShrink: 0,
           }}>{inv.initials}</div>
@@ -147,11 +147,11 @@ export function InvestorDetailScreen({ investorId }: Props) {
           {[
             { label: 'נכסים',     value: String(inv.properties.length), color: 'var(--text-primary)' },
             { label: 'ARV',       value: fmtUSD(arv),                   color: GOLD },
-            { label: 'Equity',    value: fmtUSD(equity),                color: '#4CAF50' },
-            { label: 'ROI',       value: roi,                           color: '#4CAF50' },
+            { label: 'Equity',    value: fmtUSD(equity),                color: 'var(--success)' },
+            { label: 'ROI',       value: roi,                           color: 'var(--success)' },
           ].map(s => (
             <div key={s.label} className="gold-card" style={{ padding: '14px', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 20, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
@@ -167,8 +167,8 @@ export function InvestorDetailScreen({ investorId }: Props) {
               onClick={() => navigate('set-password', { investorId: inv.mondayId, investorName: inv.fullName })}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '11px 14px', borderRadius: 10,
-                background: `${GOLD}15`, border: `1px solid ${GOLD}44`,
+                padding: '11px 14px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
                 color: GOLD, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-ui)',
               }}
@@ -184,7 +184,7 @@ export function InvestorDetailScreen({ investorId }: Props) {
               onClick={copyInvite}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '11px 14px', borderRadius: 10,
+                padding: '11px 14px', borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-chip)', border: '1px solid var(--border)',
                 color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-ui)',
@@ -202,7 +202,7 @@ export function InvestorDetailScreen({ investorId }: Props) {
                 href={waUrl} target="_blank" rel="noopener noreferrer"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  padding: '11px 14px', borderRadius: 10,
+                  padding: '11px 14px', borderRadius: 'var(--radius-sm)',
                   background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.3)',
                   color: '#25D366', fontSize: 12, fontWeight: 600,
                   textDecoration: 'none', fontFamily: 'var(--font-ui)',
@@ -220,7 +220,7 @@ export function InvestorDetailScreen({ investorId }: Props) {
                 href={mailUrl}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  padding: '11px 14px', borderRadius: 10,
+                  padding: '11px 14px', borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-chip)', border: '1px solid var(--border)',
                   color: 'var(--text-primary)', fontSize: 12, fontWeight: 600,
                   textDecoration: 'none', fontFamily: 'var(--font-ui)',
@@ -246,7 +246,7 @@ export function InvestorDetailScreen({ investorId }: Props) {
               <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{inv.properties.length} נכסים</span>
               <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>הנכסים של המשקיע</span>
             </div>
-            <div className="property-grid" style={{ padding: 0 }}>
+            <div className="property-grid stagger" style={{ padding: 0 }}>
               {inv.properties.map((p, i) => (
                 <PropCard
                   key={p.mondayId}

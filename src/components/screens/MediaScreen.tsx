@@ -12,7 +12,7 @@ import {
   type CCPhoto,
 } from '../../services/companyCamApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 interface PropertyMedia {
   address: string;
@@ -137,16 +137,8 @@ export function MediaScreen() {
             <button
               key={m.address}
               onClick={() => setSelectedProperty(m.address)}
-              style={{
-                flexShrink: 0,
-                padding: '6px 14px',
-                borderRadius: 20,
-                border: selectedProperty === m.address ? 'none' : '1px solid var(--border)',
-                background: selectedProperty === m.address ? GOLD : 'var(--bg-chip)',
-                color: selectedProperty === m.address ? '#000' : 'var(--text-secondary)',
-                fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-ui)',
-              }}
+              className={'chip-filter' + (selectedProperty === m.address ? ' active' : '')}
+              style={{ flexShrink: 0 }}
             >
               {m.address.split(',')[0]}
             </button>
@@ -158,13 +150,14 @@ export function MediaScreen() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
 
         {loading && (
-          <div style={{ textAlign: 'center', paddingTop: 60, color: GOLD, fontSize: 13 }}>
-            ⏳ טוען תמונות מ-CompanyCam...
+          <div style={{ paddingTop: 60, color: GOLD, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} />
+            טוען תמונות מ-CompanyCam...
           </div>
         )}
 
         {error && (
-          <div style={{ textAlign: 'center', paddingTop: 60, color: '#ff4d4d', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--danger)', fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -216,14 +209,14 @@ export function MediaScreen() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: GOLD, fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>
                       {formatDate(groups.get(key)![0].capturedAt)}
                     </span>
-                    <div style={{ flex: 1, height: 1, background: `${GOLD}33` }} />
+                    <div style={{ flex: 1, height: 1, background: 'var(--gold-border)' }} />
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {groups.get(key)!.length} {groups.get(key)!.length === 1 ? 'תמונה' : 'תמונות'}
                     </span>
                   </div>
 
                   {/* Grid for this day */}
-                  <div className="photo-grid">
+                  <div className="photo-grid stagger">
                     {groups.get(key)!.map(photo => (
                       <div
                         key={photo.id}
@@ -255,7 +248,7 @@ export function MediaScreen() {
                             {photo.tags.slice(0, 3).map(tag => (
                               <span key={tag} style={{
                                 background: 'rgba(0,0,0,0.7)',
-                                border: `1px solid ${GOLD}66`,
+                                border: '1px solid var(--gold-border)',
                                 borderRadius: 4,
                                 padding: '2px 6px',
                                 fontSize: 9,
@@ -294,9 +287,9 @@ export function MediaScreen() {
               >
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  padding: '11px 0', borderRadius: 12,
-                  border: `1px solid ${GOLD}44`,
-                  background: `${GOLD}0D`,
+                  padding: '11px 0', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--gold-border)',
+                  background: 'var(--gold-dim)',
                 }}>
                   {/* Camera icon */}
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -396,7 +389,7 @@ export function MediaScreen() {
           <img
             src={lightboxPhoto.original || lightboxPhoto.web}
             alt=""
-            style={{ width: '85%', maxWidth: 1100, maxHeight: '70vh', objectFit: 'contain', borderRadius: 10, border: `1px solid ${GOLD}44` }}
+            style={{ width: '85%', maxWidth: 1100, maxHeight: '70vh', objectFit: 'contain', borderRadius: 10, border: '1px solid var(--gold-border)' }}
             onClick={e => e.stopPropagation()}
           />
 
@@ -409,7 +402,7 @@ export function MediaScreen() {
               <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {lightboxPhoto.tags.map(tag => (
                   <span key={tag} style={{
-                    background: `${GOLD}22`, border: `1px solid ${GOLD}44`,
+                    background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
                     borderRadius: 20, padding: '4px 12px',
                     fontSize: 11, fontWeight: 600, color: GOLD,
                     fontFamily: 'var(--font-ui)',

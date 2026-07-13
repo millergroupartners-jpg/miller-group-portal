@@ -9,18 +9,7 @@ import { useUser } from '../../context/UserContext';
 import { NotificationsPanel } from './NotificationsPanel';
 import type { Screen } from '../../types';
 
-const GOLD = '#C9A84C';
-
-const iconBtnStyle: React.CSSProperties = {
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 10,
-  width: 36, height: 36,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'background 0.15s',
-  padding: 0,
-};
+const GOLD = 'var(--gold)';
 
 export function MobileTopActions({ active }: { active: Screen }) {
   const { navigate } = useNavigation();
@@ -34,11 +23,7 @@ export function MobileTopActions({ active }: { active: Screen }) {
     <div className="mobile-top-actions">
       <NotificationsPanel />
 
-      <button
-        onClick={() => navigate('settings')}
-        title="הגדרות"
-        style={iconBtnStyle}
-      >
+      <button className="icon-btn glass-panel" onClick={() => navigate('settings')} title="הגדרות">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke={active === 'settings' ? GOLD : 'var(--tab-icon)'}
           strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -49,20 +34,14 @@ export function MobileTopActions({ active }: { active: Screen }) {
 
       {showBackToAdmin && (
         <button
+          className="side-admin-back"
           onClick={() => navigate('admin-dashboard')}
           title="חזרה לתפריט אדמין"
-          style={{
-            ...iconBtnStyle,
-            background: `${GOLD}15`,
-            borderColor: `${GOLD}55`,
-            paddingRight: 8, paddingLeft: 10,
-            width: 'auto',
-            gap: 4,
-          }}
+          style={{ width: 'auto', padding: '8px 12px', fontSize: 11, gap: 4 }}
         >
-          <span style={{ fontSize: 11, fontWeight: 700, color: GOLD, whiteSpace: 'nowrap' }}>לאדמין</span>
+          <span style={{ whiteSpace: 'nowrap' }}>לאדמין</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>

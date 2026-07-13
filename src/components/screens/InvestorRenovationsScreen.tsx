@@ -14,7 +14,7 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { listRenovations, type Renovation } from '../../services/renovationsApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function fmtMoney(n: number): string {
   if (!n) return '$0';
@@ -73,19 +73,19 @@ export function InvestorRenovationsScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>שיפוצים</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Summary KPIs — addons shown as small "+$X" next to budget & remaining */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
               { label: 'תקציב כולל',   value: fmtMoney(totals.budget),    c: '#ff9800', addon: totals.addons > 0 },
-              { label: 'העברת עד כה', value: fmtMoney(totals.paid),      c: '#4CAF50', addon: false },
+              { label: 'העברת עד כה', value: fmtMoney(totals.paid),      c: 'var(--success)', addon: false },
               { label: 'נותר להעברה', value: fmtMoney(totals.remaining), c: GOLD,      addon: totals.addons > 0 },
             ].map(k => (
-              <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '12px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
+              <div key={k.label} className="stat-chip" style={{ padding: '12px 10px', textAlign: 'center' }}>
+                <div className="stat-label" style={{ fontSize: 9, marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse' }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  <div className="stat-value num" style={{ fontSize: 15, fontWeight: 800, color: k.c }}>{k.value}</div>
                   {k.addon && (
                     <span title="תוספות מאושרות מעבר לתקציב המקורי" style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>
                       +{fmtMoney(totals.addons)}
@@ -98,7 +98,7 @@ export function InvestorRenovationsScreen() {
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>}
         {!loading && items.length === 0 && !error && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
             אין פרויקטי שיפוצים זמינים עבור הנכסים שלך
@@ -128,9 +128,9 @@ export function InvestorRenovationsScreen() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 150 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(r.totalPaid)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b className="num" style={{ color: 'var(--success)' }}>{fmtMoney(r.totalPaid)}</b></div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                    נותר · <b style={{ color: GOLD }}>{fmtMoney(remaining)}</b>
+                    נותר · <b className="num" style={{ color: GOLD }}>{fmtMoney(remaining)}</b>
                     {addons > 0 && (
                       <span style={{ color: GOLD, fontWeight: 700, marginInlineStart: 4, fontSize: 10 }}>
                         (+{fmtMoney(addons)})
@@ -149,13 +149,13 @@ export function InvestorRenovationsScreen() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
                     {[
                       { l: 'תקציב', v: fmtMoney(r.clientCost), c: '#ff9800', addon: addons > 0 },
-                      { l: 'שולם',  v: fmtMoney(r.totalPaid),  c: '#4CAF50', addon: false },
+                      { l: 'שולם',  v: fmtMoney(r.totalPaid),  c: 'var(--success)', addon: false },
                       { l: 'נותר',  v: fmtMoney(remaining),    c: GOLD,      addon: addons > 0 },
                     ].map(k => (
-                      <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2 }}>{k.l}</div>
+                      <div key={k.l} className="stat-chip" style={{ padding: '7px 10px', textAlign: 'center' }}>
+                        <div className="stat-label" style={{ fontSize: 9, marginBottom: 2 }}>{k.l}</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 3, flexDirection: 'row-reverse' }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
+                          <div className="stat-value num" style={{ fontSize: 13, fontWeight: 800, color: k.c }}>{k.v}</div>
                           {k.addon && (
                             <span style={{ fontSize: 9, fontWeight: 700, color: GOLD }}>+{fmtMoney(addons)}</span>
                           )}
@@ -183,7 +183,7 @@ export function InvestorRenovationsScreen() {
                               {fmtDate(sub.date || sub.createdAt)}{sub.category ? ` · ${sub.category}` : ''}
                             </div>
                           </div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(sub.amount)}</div>
+                          <div className="num" style={{ fontSize: 13, fontWeight: 800, color: 'var(--success)' }}>{fmtMoney(sub.amount)}</div>
                         </div>
                       ))}
                     </div>

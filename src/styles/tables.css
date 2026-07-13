@@ -1,0 +1,55 @@
+/* ══════════════════════════════════════════════════════════════
+   Data tables — admin list screens
+   The lists are flex/grid rows (no <table> elements). These
+   classes give them a modern data-table treatment; column
+   templates stay inline (gridTemplateColumns) per screen.
+   ══════════════════════════════════════════════════════════════ */
+
+.data-table {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+
+.data-table-head {
+  display: grid;
+  align-items: center;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.data-row {
+  display: grid;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--divider);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.data-row:last-child {
+  border-bottom: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .data-row.interactive:hover,
+  .data-row[style*="cursor: pointer"]:hover {
+    background: var(--bg-surface-hover);
+  }
+}
+
+/* Below the desktop breakpoint the head disappears and rows read
+   as stacked cards (screens already render mobile-friendly rows). */
+@media (max-width: 899px) {
+  .data-table-head {
+    display: none;
+  }
+}

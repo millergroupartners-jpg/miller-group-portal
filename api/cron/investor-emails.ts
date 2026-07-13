@@ -25,7 +25,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mondayQuery } from '../_lib/monday.js';
-import { sendMail, wrapEmail, getAdminRecipients } from '../_lib/email.js';
+import { sendMail, wrapEmail, getAdminRecipients, logEmailBatch } from '../_lib/email.js';
 
 const PROPERTIES_BOARD_ID = 1997938102;
 const INVESTORS_BOARD_ID  = 1997938105;
@@ -34,6 +34,17 @@ const INVESTORS_BOARD_ID  = 1997938105;
 const INVESTOR_DEALS_GROUP = 'group_mkrzmwnf';
 
 const OPEN_FOR_INVESTMENT_STATUS = 'פתוח להשקעה';
+
+/** "מיילים מתוזמנים" — admin-defined scheduled/recurring broadcasts. */
+const SCHEDULED_BOARD_ID = 5100220064;
+const SCHED_COL = {
+  body:       'long_text_mm578sm4', // תוכן
+  audience:   'color_mm579a95',     // קהל: כולם / רשומים / לא רשומים
+  sendOn:     'date_mm57qxs5',      // תאריך שליחה
+  recurrence: 'color_mm576qes',     // תדירות: חד פעמי / שבועי / חודשי
+  lastSent:   'date_mm57vnn2',      // נשלח לאחרונה
+  active:     'boolean_mm57vk42',   // פעיל
+} as const;
 
 // Properties board columns (client-facing only)
 const PROP_COL = {
@@ -237,6 +248,74 @@ function dealCardHtml(d: Deal): string {
     </div>`;
 }
 
+// ─── Scheduled broadcasts ("מיילים מתוזמנים" board) ─────────────────────────
+
+interface ScheduledEmail {
+  id: string;
+  subject: string;   // item name
+  body: string;
+  audience: string;  // כולם / רשומים / לא רשומים
+  sendOn: string;    // YYYY-MM-DD
+  recurrence: string; // חד פעמי / שבועי / חודשי
+  lastSent: string;  // YYYY-MM-DD or ''
+}
+
+async function fetchDueScheduledEmails(today: string): Promise<ScheduledEmail[]> {
+  const colIds = Object.values(SCHED_COL).map(id => `"${id}"`).join(', ');
+  const q = `query {
+    boards(ids: [${SCHEDULED_BOARD_ID}]) {
+      items_page(limit: 100) {
+        items { id name column_values(ids: [${colIds}]) { id text value } }
+      }
+    }
+  }`;
+  const data = await mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(q);
+  const items = data?.boards?.[0]?.items_page?.items ?? [];
+  return items
+    .map(it => {
+      const cols = colMap(it);
+      return {
+        id: it.id,
+        subject: it.name,
+        body: (cols[SCHED_COL.body]?.text ?? '').trim(),
+        audience: (cols[SCHED_COL.audience]?.text ?? 'כולם').trim(),
+        sendOn: (cols[SCHED_COL.sendOn]?.text ?? '').trim(),
+        recurrence: (cols[SCHED_COL.recurrence]?.text ?? 'חד פעמי').trim(),
+        lastSent: (cols[SCHED_COL.lastSent]?.text ?? '').trim(),
+        active: /"checked":"?true"?/i.test(cols[SCHED_COL.active]?.value || ''),
+      };
+    })
+    .filter(s => {
+      if (!s.active || !s.body || !s.sendOn) return false;
+      if (s.sendOn > today) return false;          // not started yet
+      if (s.lastSent === today) return false;      // already ran today
+      if (s.recurrence === 'חד פעמי') return !s.lastSent;
+      const daysSince = s.lastSent
+        ? Math.floor((Date.parse(today) - Date.parse(s.lastSent)) / 86_400_000)
+        : Infinity;
+      if (s.recurrence === 'שבועי')  return daysSince >= 7;
+      if (s.recurrence === 'חודשי') return daysSince >= 28;
+      return false;
+    });
+}
+
+async function markScheduledSent(id: string, today: string, oneTime: boolean): Promise<void> {
+  await mondayQuery(`mutation {
+    change_simple_column_value(
+      board_id: ${SCHEDULED_BOARD_ID}, item_id: ${id},
+      column_id: "${SCHED_COL.lastSent}", value: "${today}"
+    ) { id }
+  }`);
+  if (oneTime) {
+    await mondayQuery(`mutation {
+      change_column_value(
+        board_id: ${SCHEDULED_BOARD_ID}, item_id: ${id},
+        column_id: "${SCHED_COL.active}", value: "{\\"checked\\":\\"false\\"}"
+      ) { id }
+    }`);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!verifyAuth(req)) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -260,24 +339,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         <p style="font-size:11px;color:#aaa;">לא מעוניינים במיילים על עסקאות חדשות? אפשר לבטל במסך ההגדרות בפורטל, או להשיב למייל זה.</p>
       `;
 
+      const dealSubject = deals.length === 1
+        ? `עסקה חדשה נפתחה להשקעה — ${deals[0].address}`
+        : `${deals.length} עסקאות חדשות נפתחו להשקעה`;
       for (const inv of recipients) {
         try {
           await sendMail({
             to: inv.email,
-            subject: deals.length === 1
-              ? `עסקה חדשה נפתחה להשקעה — ${deals[0].address}`
-              : `${deals.length} עסקאות חדשות נפתחו להשקעה`,
+            subject: dealSubject,
             html: wrapEmail({
               title: 'עסקה חדשה בחדר העסקאות',
               bodyHtml: bodyHtml(inv.name),
               cta: { label: 'לצפייה בחדר העסקאות', url: portalUrl },
             }),
+            log: false, // logged once as a batch below
           });
           sent++;
         } catch (err) {
           console.error('deal email failed for', inv.email, err);
           failures.push(inv.email);
         }
+      }
+      // One audit-log entry for the whole broadcast
+      if (recipients.length > 0) {
+        await logEmailBatch({
+          recipients: recipients.map(r => r.email),
+          subject: dealSubject,
+          html: wrapEmail({ title: 'עסקה חדשה בחדר העסקאות', bodyHtml: bodyHtml('משקיע'), cta: { label: 'לצפייה בחדר העסקאות', url: portalUrl } }),
+          meta: { kind: 'אוטומטי', category: 'חדר עסקאות' },
+          ok: failures.length === 0,
+        });
       }
 
       // Stamp each announced deal (only if at least one email went out)
@@ -295,6 +386,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Admin summary
       await sendMail({
         to: getAdminRecipients(),
+        log: { category: 'חדר עסקאות' },
         subject: `מייל עסקאות נשלח: ${deals.length} עסקאות → ${sent} משקיעים`,
         html: wrapEmail({
           title: 'סיכום מייל חדר עסקאות',
@@ -326,6 +418,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           await sendMail({
             to: inv.email,
+            log: false, // logged once as a batch below
             subject: 'הפורטל האישי שלך ב-Miller Group מחכה לך',
             html: wrapEmail({
               title: 'הצטרף לפורטל המשקיעים',
@@ -352,8 +445,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (reminded > 0) {
+        await logEmailBatch({
+          recipients: unregistered.map(r => r.email),
+          subject: 'הפורטל האישי שלך ב-Miller Group מחכה לך',
+          html: 'תזכורת הרשמה שבועית לפורטל — הצטרף לפורטל המשקיעים',
+          meta: { kind: 'אוטומטי', category: 'תזכורת הרשמה' },
+          ok: true,
+        });
         await sendMail({
           to: getAdminRecipients(),
+          log: { category: 'תזכורת הרשמה' },
           subject: `תזכורת הרשמה שבועית נשלחה ל-${reminded} משקיעים`,
           html: wrapEmail({
             title: 'סיכום תזכורות הרשמה',
@@ -366,6 +467,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       result.registrationRemindersSent = reminded;
     }
+
+    // ── C. Scheduled broadcasts (admin-defined on "מיילים מתוזמנים") ──────
+    const today = new Date().toISOString().slice(0, 10);
+    const due = await fetchDueScheduledEmails(today).catch(err => {
+      console.error('scheduled emails fetch failed:', err);
+      return [] as ScheduledEmail[];
+    });
+    let scheduledSent = 0;
+    for (const sched of due) {
+      const audienceFilter = (inv: Investor) => {
+        if (inv.blanketOptOut) return false;
+        if (sched.audience === 'רשומים') return inv.registered;
+        if (sched.audience === 'לא רשומים') return !inv.registered;
+        return true; // כולם
+      };
+      const targets = investors.filter(audienceFilter);
+      if (targets.length === 0) continue;
+
+      let ok = 0;
+      const fails: string[] = [];
+      for (const inv of targets) {
+        try {
+          await sendMail({
+            to: inv.email,
+            log: false, // logged once as a batch below
+            subject: sched.subject,
+            html: wrapEmail({
+              title: sched.subject,
+              bodyHtml: `<p>שלום ${esc(inv.name)},</p><div>${esc(sched.body).replace(/\n/g, '<br>')}</div>`,
+              cta: { label: 'כניסה לפורטל', url: portalUrl },
+            }),
+          });
+          ok++;
+        } catch (err) {
+          console.error('scheduled email failed for', inv.email, err);
+          fails.push(inv.email);
+        }
+      }
+
+      await logEmailBatch({
+        recipients: targets.map(t => t.email),
+        subject: sched.subject,
+        html: sched.body,
+        meta: { kind: 'אוטומטי', category: 'מייל מתוזמן' },
+        ok: fails.length === 0,
+      });
+
+      try {
+        await markScheduledSent(sched.id, today, sched.recurrence === 'חד פעמי');
+      } catch (err) {
+        console.error('markScheduledSent failed for', sched.id, err);
+      }
+      scheduledSent += ok;
+    }
+    if (due.length > 0) result.scheduledBroadcasts = { processed: due.length, emailsSent: scheduledSent };
 
     return res.status(200).json(result);
   } catch (err: any) {

@@ -3,7 +3,7 @@ import { useUser } from '../../context/UserContext';
 import { useOpenInquiryCount } from '../../hooks/useOpenInquiryCount';
 import type { Screen } from '../../types';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold)';
 
 interface Tab {
   id: Screen;
@@ -242,7 +242,7 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
         return (
           <div
             key={tab.id}
-            className="tab-item"
+            className={`tab-item${isActive ? ' active' : ''}`}
             onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
             style={{ position: 'relative' }}
           >
@@ -258,7 +258,7 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
                 height: 16,
                 padding: '0 4px',
                 borderRadius: 100,
-                background: '#ff4d4d',
+                background: 'var(--danger)',
                 color: '#fff',
                 fontSize: 9,
                 fontWeight: 800,

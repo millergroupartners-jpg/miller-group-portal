@@ -7,7 +7,7 @@ import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import type { User } from '../../data/user';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 interface SetPasswordScreenProps {
   investorMondayId: string;
@@ -70,16 +70,14 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
   const firstName = investorName.trim().split(/\s+/)[0] ?? investorName;
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column',
-      background: 'var(--bg-base)', padding: '0 28px', overflowY: 'auto',
-    }}>
+    <div className="login-screen">
+      <div className="login-card">
       {/* Logo */}
-      <div style={{ paddingTop: 48, paddingBottom: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+      <div className="stagger" style={{ paddingTop: 48, paddingBottom: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
         <MGLogo size={56} />
         <GoldDivider />
         <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-ui)', fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>
+          <h1 style={{ fontFamily: 'var(--font-ui)', fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.25, letterSpacing: '-0.02em', marginBottom: 8 }}>
             ברוכים הבאים, {firstName}!
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
@@ -89,7 +87,7 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
       </div>
 
       {/* Form */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>סיסמה (לפחות 6 תווים)</label>
           <input
@@ -114,7 +112,7 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
         </div>
 
         {error && (
-          <div style={{ fontSize: 12, color: '#ff4d4d', textAlign: 'center', marginTop: -4 }}>
+          <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', marginTop: -4 }}>
             {error}
           </div>
         )}
@@ -124,15 +122,22 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
             className="mg-btn"
             onClick={handleSubmit}
             disabled={loading || !pass || !confirm}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            {loading ? '...' : 'הגדר סיסמה וכנס'}
+            {loading && <span className="mg-spinner" style={{ borderTopColor: '#1A1508', borderColor: 'rgba(26,21,8,0.25)' }} />}
+            <span>{loading ? 'שומר...' : 'הגדר סיסמה וכנס'}</span>
           </button>
         </div>
 
         {/* Info chip */}
-        <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px', marginTop: 4 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8, textAlign: 'right' }}>
-            <span style={{ color: GOLD }}>🔒</span> הסיסמה תישמר ותשמש לכניסות עתידיות
+        <div style={{ background: 'var(--bg-chip)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8, textAlign: 'right', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-start' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+            <span>הסיסמה תישמר ותשמש לכניסות עתידיות</span>
           </div>
         </div>
       </div>
@@ -144,6 +149,7 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
           Miller Group Partners LLC<br />
           <span style={{ fontSize: 10 }}>© 2026 · כל הזכויות שמורות</span>
         </p>
+      </div>
       </div>
     </div>
   );

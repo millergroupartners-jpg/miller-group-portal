@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { listInquiries, parseReplyAuthor, type Inquiry } from '../../services/inquiriesApi';
 import { OPEN_FOR_INVESTMENT_STATUS, type MondayProperty } from '../../services/mondayApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold)';
 
 /**
  * Each notification has a stable ID derived from the underlying event
@@ -118,7 +119,7 @@ function buildNotifications(opts: {
           body: inq.subject,
           date: fmtDateHe(inq.updatedAt),
           target: { screen: 'admin-inquiries' },
-          accentColor: '#64B5F6',
+          accentColor: 'var(--info)',
         });
       }
     } else {
@@ -241,18 +242,13 @@ export function NotificationsPanel() {
     <>
       {/* Bell button */}
       <button
+        className="icon-btn"
         onClick={() => setOpen(o => !o)}
         title="התראות"
         style={{
-          background: open ? `${GOLD}12` : 'none',
-          border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 36, height: 36, borderRadius: 10,
-          position: 'relative', transition: 'background 0.15s',
-          flexShrink: 0,
+          position: 'relative',
+          ...(open ? { background: 'var(--gold-dim)', borderColor: 'var(--gold-border)' } : {}),
         }}
-        onMouseOver={e => (e.currentTarget.style.background = `${GOLD}18`)}
-        onMouseOut={e => (e.currentTarget.style.background = open ? `${GOLD}12` : 'none')}
       >
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
           stroke={unreadCount > 0 ? GOLD : 'var(--tab-icon)'}
@@ -264,7 +260,7 @@ export function NotificationsPanel() {
           <div style={{
             position: 'absolute', top: 5, right: 5,
             minWidth: 15, height: 15, padding: '0 3px', borderRadius: '50%',
-            background: '#ff4d4d',
+            background: 'var(--danger)',
             fontSize: 8, fontWeight: 800, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '1.5px solid var(--bg-base)',
@@ -273,21 +269,22 @@ export function NotificationsPanel() {
         )}
       </button>
 
-      {/* Overlay backdrop */}
-      {open && (
+      {/* Overlay + panel are portalled to <body> so their position:fixed is
+          always relative to the viewport, regardless of any transformed or
+          filtered ancestor (e.g. the sidebar) that could otherwise become
+          their containing block and mis-place the panel. */}
+      {open && createPortal(
+        <>
+        {/* Overlay backdrop */}
         <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setOpen(false)} />
-      )}
 
-      {/* Panel */}
-      {open && (
-        <div style={{
+        {/* Panel */}
+        <div className="glass-panel" style={{
           position: 'fixed', top: 72, left: '50%', transform: 'translateX(-50%)',
           width: 'min(420px, calc(100vw - 32px))', zIndex: 201,
-          background: 'var(--bg-surface)',
-          borderRadius: 16, border: '1px solid var(--border)',
-          boxShadow: '0 14px 48px rgba(0,0,0,0.55)',
+          borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
-          animation: 'slideDownNotif 0.2s ease',
+          animation: 'slideDownNotif 200ms var(--ease-out)',
         }}>
           {/* Header */}
           <div style={{
@@ -306,7 +303,7 @@ export function NotificationsPanel() {
               {unreadCount > 0 && (
                 <span style={{
                   fontSize: 9, fontWeight: 800, color: '#fff',
-                  background: '#ff4d4d', borderRadius: '50%',
+                  background: 'var(--danger)', borderRadius: '50%',
                   minWidth: 18, height: 18, padding: '0 4px',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{unreadCount}</span>
@@ -349,7 +346,7 @@ export function NotificationsPanel() {
                       color: 'var(--text-muted)', cursor: 'pointer',
                       fontSize: 18, lineHeight: 1, padding: '0 2px', flexShrink: 0,
                     }}
-                    onMouseOver={e => (e.currentTarget.style.color = '#ff4d4d')}
+                    onMouseOver={e => (e.currentTarget.style.color = 'var(--danger)')}
                     onMouseOut={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                   >×</button>
                 </div>
@@ -357,6 +354,8 @@ export function NotificationsPanel() {
             </div>
           )}
         </div>
+        </>,
+        document.body,
       )}
     </>
   );

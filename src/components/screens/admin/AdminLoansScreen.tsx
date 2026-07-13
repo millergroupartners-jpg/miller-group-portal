@@ -14,7 +14,7 @@ import { LoanSummary, LoanCategoryBreakdown, fmtMoney } from '../../common/LoanD
 import { MGLogo } from '../../common/MGLogo';
 import { useMondayData } from '../../../context/MondayDataContext';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 interface LoanRow extends LoanRecord {
   investorName: string;
@@ -77,19 +77,19 @@ export function AdminLoansScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>הלוואות שיפוץ</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* KPI totals */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
             {[
               { label: 'סה״כ הלוואות', value: fmtMoney(totals.total),     c: 'var(--text-primary)' },
-              { label: 'כבר נמשך',     value: fmtMoney(totals.drawn),     c: '#4CAF50' },
+              { label: 'כבר נמשך',     value: fmtMoney(totals.drawn),     c: 'var(--success)' },
               { label: 'נשאר בהלוואה', value: fmtMoney(totals.remaining), c: GOLD },
-              { label: 'מוכן למשיכה',  value: fmtMoney(totals.ready),     c: '#579bfc' },
+              { label: 'מוכן למשיכה',  value: fmtMoney(totals.ready),     c: 'var(--info)' },
             ].map(k => (
-              <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+              <div key={k.label} className="stat-chip" style={{ textAlign: 'center' }}>
+                <div className="stat-label" style={{ letterSpacing: 0.5 }}>{k.label}</div>
+                <div className="stat-value num" style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -100,14 +100,12 @@ export function AdminLoansScreen() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="חיפוש לפי כתובת / משקיע…"
-          style={{
-            padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)',
-            background: 'var(--bg-chip)', color: 'var(--text-primary)', fontSize: 13, textAlign: 'right',
-          }}
+          className="mg-input"
+          style={{ textAlign: 'right' }}
         />
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>}
         {!loading && !error && filtered.length === 0 && (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>לא נמצאו הלוואות</div>
         )}
@@ -135,7 +133,7 @@ export function AdminLoansScreen() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'left', marginInlineStart: 10 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(r.drawn)}</div>
+                  <div className="num" style={{ fontSize: 15, fontWeight: 800, color: 'var(--success)' }}>{fmtMoney(r.drawn)}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                     מתוך {fmtMoney(r.total)} · נשאר {fmtMoney(r.remaining)}
                   </div>
@@ -151,7 +149,7 @@ export function AdminLoansScreen() {
                   <LoanSummary loan={r} />
                   <LoanCategoryBreakdown loan={r} />
                   <a href={r.mondayUrl} target="_blank" rel="noopener noreferrer" style={{
-                    display: 'block', padding: '8px 12px', borderRadius: 8, background: `${GOLD}14`,
+                    display: 'block', padding: '8px 12px', borderRadius: 8, background: 'var(--gold-dim)',
                     color: GOLD, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center',
                   }}>
                     פתח הלוואה ב-Monday ↗

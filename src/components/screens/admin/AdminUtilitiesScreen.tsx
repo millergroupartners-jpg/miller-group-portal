@@ -15,7 +15,7 @@ import { listUtilities, utilityIcon, statusColor, type Utility, type UtilityStat
 
 type SourceKey = 'investors' | 'mg';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 type StatusFilterKey = UtilityStatus | 'all';
 
@@ -115,7 +115,7 @@ export function AdminUtilitiesScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>Utilities</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Source toggle — investors vs Miller Group */}
         <div style={{
           display: 'inline-flex', gap: 4, padding: 3, borderRadius: 100,
@@ -129,13 +129,7 @@ export function AdminUtilitiesScreen() {
             <button
               key={opt.key}
               onClick={() => setSource(opt.key)}
-              style={{
-                padding: '6px 14px', borderRadius: 100, border: 'none',
-                background: source === opt.key ? GOLD : 'transparent',
-                color: source === opt.key ? '#000' : 'var(--text-secondary)',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
+              className={'chip-filter' + (source === opt.key ? ' active' : '')}
             >
               {opt.label}
             </button>
@@ -161,20 +155,14 @@ export function AdminUtilitiesScreen() {
               <button
                 key={c.key}
                 onClick={() => setStatusFilter(c.key)}
-                style={{
-                  padding: '6px 12px', borderRadius: 100,
-                  background: active ? GOLD : 'var(--bg-chip)',
-                  color: active ? '#000' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}
+                className={'chip-filter' + (active ? ' active' : '')}
+                style={{ flexShrink: 0 }}
               >
                 {c.label}
-                <span style={{
+                <span className="num" style={{
                   fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
-                  background: active ? 'rgba(0,0,0,0.15)' : 'var(--border)',
-                  color: active ? '#000' : 'var(--text-muted)',
+                  background: active ? 'var(--gold-border)' : 'var(--border)',
+                  color: active ? 'var(--gold-text)' : 'var(--text-muted)',
                 }}>{count}</span>
               </button>
             );
@@ -182,7 +170,7 @@ export function AdminUtilitiesScreen() {
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>}
         {!loading && grouped.length === 0 && !error && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
             אין חשבונות תואמים
@@ -207,7 +195,7 @@ export function AdminUtilitiesScreen() {
                   <div style={{ fontSize: 11, color: GOLD, marginTop: 2 }}>👤 {g.investorName}</div>
                 )}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              <div className="num" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                 {g.rows.length} חשבונות
               </div>
             </div>
@@ -223,7 +211,7 @@ export function AdminUtilitiesScreen() {
                   }}
                 >
                   <div style={{
-                    width: 36, height: 36, borderRadius: 10,
+                    width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                     background: `${statusColor(u.status)}18`, border: `1px solid ${statusColor(u.status)}44`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
                   }}>{utilityIcon(u.serviceCompany)}</div>

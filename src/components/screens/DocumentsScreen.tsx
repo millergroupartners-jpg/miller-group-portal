@@ -6,7 +6,7 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { MOCK_USER } from '../../data/user';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 export function DocumentsScreen() {
   const { currentUser } = useUser();
@@ -95,8 +95,8 @@ export function DocumentsScreen() {
                 </div>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: 'rgba(201,168,76,0.12)',
-                  border: '1px solid rgba(201,168,76,0.2)',
+                  background: 'var(--gold-dim)',
+                  border: '1px solid var(--gold-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round">
@@ -117,15 +117,15 @@ export function DocumentsScreen() {
                 {investorFolders.length > 0 && (
                   <>
                     <SectionHeading label="נכסי משקיעים" count={investorFolders.length} color={GOLD} />
-                    <div className="gold-card" style={{ overflow: 'hidden', marginBottom: 14 }}>
+                    <div className="gold-card stagger" style={{ overflow: 'hidden', marginBottom: 14 }}>
                       {investorFolders.map((p, i) => renderRow(p, i === investorFolders.length - 1))}
                     </div>
                   </>
                 )}
                 {mgFolders.length > 0 && (
                   <>
-                    <SectionHeading label="Miller Group" count={mgFolders.length} color="#64B5F6" />
-                    <div className="gold-card" style={{ overflow: 'hidden' }}>
+                    <SectionHeading label="Miller Group" count={mgFolders.length} color="var(--info)" />
+                    <div className="gold-card stagger" style={{ overflow: 'hidden' }}>
                       {mgFolders.map((p, i) => renderRow(p, i === mgFolders.length - 1))}
                     </div>
                   </>
@@ -140,7 +140,7 @@ export function DocumentsScreen() {
           }
           // Investor: flat list
           return (
-            <div className="gold-card" style={{ overflow: 'hidden' }}>
+            <div className="gold-card stagger" style={{ overflow: 'hidden' }}>
               {mondayFolders.length === 0 && (
                 <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
                   אין מסמכים זמינים
@@ -153,7 +153,7 @@ export function DocumentsScreen() {
 
         {/* Static / demo mode */}
         {!isMondayMode && (
-          <div className="gold-card" style={{ overflow: 'hidden' }}>
+          <div className="gold-card stagger" style={{ overflow: 'hidden' }}>
             {staticFolders.map((f, i) => (
               <div
                 key={f.id}
@@ -169,8 +169,8 @@ export function DocumentsScreen() {
                 </div>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: 'rgba(201,168,76,0.12)',
-                  border: '1px solid rgba(201,168,76,0.2)',
+                  background: 'var(--gold-dim)',
+                  border: '1px solid var(--gold-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round">

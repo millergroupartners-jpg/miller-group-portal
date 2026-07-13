@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { listLoans, getLoanForProperty, type LoanRecord } from '../../../services/loansApi';
 import { LoanSummary, LoanCategoryBreakdown } from '../../common/LoanDetailCard';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 interface Props {
   propertyId: string;
@@ -44,7 +44,7 @@ export function LoanTab({ propertyId, propertyAddress, role = 'investor' }: Prop
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען הלוואת שיפוץ…</div>;
   }
   if (error) {
-    return <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>;
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>;
   }
   if (!loan) {
     return (
@@ -56,7 +56,7 @@ export function LoanTab({ propertyId, propertyAddress, role = 'investor' }: Prop
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <LoanSummary loan={loan} />
       <div className="gold-card" style={{ padding: 14 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 10, textAlign: 'right' }}>
@@ -66,7 +66,7 @@ export function LoanTab({ propertyId, propertyAddress, role = 'investor' }: Prop
       </div>
       {isAdmin && (
         <a href={loan.mondayUrl} target="_blank" rel="noopener noreferrer" style={{
-          display: 'block', padding: '8px 12px', borderRadius: 8, background: `${GOLD}14`,
+          display: 'block', padding: '8px 12px', borderRadius: 8, background: 'var(--gold-dim)',
           color: GOLD, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center',
         }}>
           פתח הלוואה ב-Monday ↗

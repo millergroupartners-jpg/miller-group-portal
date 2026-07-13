@@ -13,14 +13,14 @@ import {
   type Inquiry,
 } from '../../services/inquiriesApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 type StatusColor = { bg: string; border: string; text: string; label: string };
 function statusStyle(status: string): StatusColor {
   switch (status) {
-    case 'New':         return { bg: 'rgba(100,181,246,0.12)', border: 'rgba(100,181,246,0.35)', text: '#64B5F6', label: 'חדש' };
+    case 'New':         return { bg: 'var(--info-dim)',        border: 'var(--info-border)',     text: 'var(--info)', label: 'חדש' };
     case 'In Progress': return { bg: 'rgba(255,152,0,0.12)',   border: 'rgba(255,152,0,0.35)',   text: '#ff9800', label: 'בטיפול' };
-    case 'Resolved':    return { bg: 'rgba(76,175,80,0.12)',   border: 'rgba(76,175,80,0.35)',   text: '#4CAF50', label: 'טופל' };
+    case 'Resolved':    return { bg: 'var(--success-dim)',     border: 'var(--success-border)',  text: 'var(--success)', label: 'טופל' };
     default:            return { bg: 'var(--bg-chip)',         border: 'var(--border)',          text: 'var(--text-secondary)', label: status };
   }
 }
@@ -142,12 +142,12 @@ export function InquiriesScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>פניות</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* New inquiry button */}
         <button
           onClick={() => setComposeOpen(true)}
           style={{
-            background: GOLD, color: '#000', border: 'none',
+            background: 'var(--gold-grad)', color: '#1A1508', border: 'none',
             padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700,
             cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -160,13 +160,15 @@ export function InquiriesScreen() {
         </button>
 
         {error && (
-          <div style={{ background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#ff6b6b' }}>
+          <div style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', fontSize: 12, color: 'var(--danger)' }}>
             ⚠️ {error}
           </div>
         )}
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '24px', color: GOLD, fontSize: 13 }}>⏳ טוען פניות...</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px', color: GOLD, fontSize: 13 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען פניות...
+          </div>
         )}
 
         {!loading && inquiries.length === 0 && (
@@ -211,7 +213,7 @@ export function InquiriesScreen() {
                 <div style={{ borderTop: '1px solid var(--divider)', padding: '14px 16px', background: 'var(--bg-base)' }}>
                   {/* Attached files section */}
                   {inq.files && inq.files.length > 0 && (
-                    <div style={{ marginBottom: 14, padding: '10px 12px', background: `${GOLD}08`, border: `1px solid ${GOLD}22`, borderRadius: 10 }}>
+                    <div style={{ marginBottom: 14, padding: '10px 12px', background: 'var(--gold-dim)', border: '1px solid var(--gold-border)', borderRadius: 'var(--radius-sm)' }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, marginBottom: 8, textAlign: 'right' }}>
                         📎 קבצים מצורפים ({inq.files.length})
                       </div>
@@ -252,11 +254,11 @@ export function InquiriesScreen() {
                         <div key={r.id} style={{
                           alignSelf: isMine ? 'flex-end' : 'flex-start',
                           maxWidth: '85%',
-                          background: isMine ? `${GOLD}15` : 'var(--bg-surface)',
-                          border: `1px solid ${isMine ? `${GOLD}33` : 'var(--border)'}`,
-                          padding: '10px 12px', borderRadius: 12,
+                          background: isMine ? 'var(--bg-surface-2)' : 'var(--gold-dim)',
+                          border: `1px solid ${isMine ? 'var(--border)' : 'var(--gold-border)'}`,
+                          padding: '10px 12px', borderRadius: 'var(--radius-md)',
                         }}>
-                          <div style={{ fontSize: 11, color: isMine ? GOLD : 'var(--text-secondary)', marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
+                          <div style={{ fontSize: 11, color: isMine ? 'var(--text-secondary)' : GOLD, marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
                             {authorName} · {fmtDate(r.createdAt)}
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--text-primary)', textAlign: 'right', lineHeight: 1.6 }}
@@ -282,7 +284,7 @@ export function InquiriesScreen() {
                           onClick={() => handleReply(inq)}
                           disabled={replying || (!replyText.trim() && replyFiles.length === 0)}
                           style={{
-                            background: GOLD, color: '#000', border: 'none',
+                            background: 'var(--gold-grad)', color: '#1A1508', border: 'none',
                             padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
                             cursor: 'pointer',
                             opacity: (replyText.trim() || replyFiles.length > 0) ? 1 : 0.5,
@@ -310,11 +312,11 @@ export function InquiriesScreen() {
                           />
                         </label>
                         {replyFiles.map((f, i) => (
-                          <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                          <span key={i} style={{ fontSize: 11, color: GOLD, background: 'var(--gold-dim)', padding: '4px 10px', borderRadius: 100 }}>
                             📎 {f.name}
                             <span
                               onClick={() => setReplyFiles(replyFiles.filter((_, j) => j !== i))}
-                              style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                              style={{ marginRight: 8, cursor: 'pointer', color: 'var(--danger)' }}
                             >×</span>
                           </span>
                         ))}
@@ -322,7 +324,7 @@ export function InquiriesScreen() {
                     </div>
                   )}
                   {inq.status === 'Resolved' && (
-                    <div style={{ marginTop: 14, fontSize: 12, color: '#4CAF50', textAlign: 'center', padding: 10, background: 'rgba(76,175,80,0.08)', borderRadius: 8 }}>
+                    <div style={{ marginTop: 14, fontSize: 12, color: 'var(--success)', textAlign: 'center', padding: 10, background: 'var(--success-dim)', borderRadius: 'var(--radius-xs)' }}>
                       ✓ הפנייה סומנה כטופלה
                     </div>
                   )}
@@ -336,12 +338,11 @@ export function InquiriesScreen() {
       {/* Compose modal */}
       {composeOpen && (
         <>
-          <div onClick={() => !sending && setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
-          <div style={{
+          <div onClick={() => !sending && setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 400 }} />
+          <div className="glass-panel" style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             width: 'min(480px, calc(100vw - 32px))',
-            background: 'var(--bg-surface)', borderRadius: 16,
-            border: '1px solid var(--border)', zIndex: 401,
+            borderRadius: 'var(--radius-card)', zIndex: 401,
             maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -399,24 +400,24 @@ export function InquiriesScreen() {
                   />
                 </label>
                 {newFiles.map((f, i) => (
-                  <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                  <span key={i} style={{ fontSize: 11, color: GOLD, background: 'var(--gold-dim)', padding: '4px 10px', borderRadius: 100 }}>
                     📎 {f.name}
                     <span
                       onClick={() => setNewFiles(newFiles.filter((_, j) => j !== i))}
-                      style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                      style={{ marginRight: 8, cursor: 'pointer', color: 'var(--danger)' }}
                     >×</span>
                   </span>
                 ))}
               </div>
 
-              {error && <div style={{ fontSize: 12, color: '#ff6b6b' }}>{error}</div>}
+              {error && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
             </div>
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexDirection: 'row-reverse' }}>
               <button
                 onClick={handleSubmitNew}
                 disabled={sending || !newSubject.trim() || !newMessage.trim()}
                 style={{
-                  background: GOLD, color: '#000', border: 'none',
+                  background: 'var(--gold-grad)', color: '#1A1508', border: 'none',
                   padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
                   cursor: sending ? 'wait' : 'pointer',
                   opacity: (sending || !newSubject.trim() || !newMessage.trim()) ? 0.6 : 1,

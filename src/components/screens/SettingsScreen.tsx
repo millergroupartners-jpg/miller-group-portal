@@ -7,7 +7,7 @@ import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
 import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut, getDealEmailOptOut, setDealEmailOptOut } from '../../services/notificationPrefs';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function SettingRow({ icon, label, value, onPress, danger }: {
   icon: React.ReactNode;
@@ -30,15 +30,15 @@ function SettingRow({ icon, label, value, onPress, danger }: {
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
     >
       <div style={{
-        width: 38, height: 38, borderRadius: 10,
-        background: danger ? 'rgba(255,59,48,0.12)' : 'var(--bg-chip)',
+        width: 38, height: 38, borderRadius: 'var(--radius-sm)',
+        background: danger ? 'var(--danger-dim)' : 'var(--bg-chip)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
         {icon}
       </div>
       <div style={{ flex: 1, textAlign: 'right' }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: danger ? '#ff3b30' : 'var(--text-primary)' }}>{label}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: danger ? 'var(--danger)' : 'var(--text-primary)' }}>{label}</div>
         {value && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{value}</div>}
       </div>
       {onPress && !danger && (
@@ -156,13 +156,13 @@ export function SettingsScreen() {
       </div>
       <GoldDivider />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
 
         {/* Profile card */}
         <div className="gold-card" style={{ padding: '16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
           <div style={{
             width: 52, height: 52, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #C9A84C, #8a6a28)',
+            background: 'var(--gold-grad)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <span style={{ fontSize: 20, fontWeight: 700, color: '#000' }}>{user.initials}</span>
@@ -170,8 +170,8 @@ export function SettingsScreen() {
           <div style={{ flex: 1, textAlign: 'right' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{user.fullNameHe}</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, direction: 'ltr', textAlign: 'right' }}>{user.email}</div>
-            <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, background: user.isAdmin ? 'rgba(10,132,255,0.12)' : 'var(--gold-dim)', borderRadius: 100, padding: '2px 10px' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: user.isAdmin ? '#0a84ff' : GOLD }}>
+            <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, background: user.isAdmin ? 'var(--info-dim)' : 'var(--gold-dim)', borderRadius: 100, padding: '2px 10px' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: user.isAdmin ? 'var(--info)' : GOLD }}>
                 {user.isAdmin ? '🔑 אדמין' : '👤 משקיע'}
               </span>
             </div>
@@ -229,7 +229,7 @@ export function SettingsScreen() {
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -245,15 +245,15 @@ export function SettingsScreen() {
                 {/* Toggle */}
                 <div style={{
                   width: 44, height: 26, borderRadius: 13,
-                  background: emailsEnabled ? GOLD : '#ddd',
-                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  background: emailsEnabled ? 'var(--gold-grad)' : 'var(--progress-track)',
+                  position: 'relative', transition: 'background var(--dur-fast) var(--ease-out)', flexShrink: 0,
                 }}>
                   <div style={{
                     width: 20, height: 20, borderRadius: '50%', background: '#fff',
                     position: 'absolute', top: 3,
                     right: emailsEnabled ? 3 : undefined,
                     left: emailsEnabled ? undefined : 3,
-                    transition: 'left 0.2s, right 0.2s',
+                    transition: 'left var(--dur-fast) var(--ease-out), right var(--dur-fast) var(--ease-out)',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                   }} />
                 </div>
@@ -275,7 +275,7 @@ export function SettingsScreen() {
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
                     🔌
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -287,15 +287,15 @@ export function SettingsScreen() {
                 </div>
                 <div style={{
                   width: 44, height: 26, borderRadius: 13,
-                  background: utilRemEnabled ? GOLD : '#ddd',
-                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  background: utilRemEnabled ? 'var(--gold-grad)' : 'var(--progress-track)',
+                  position: 'relative', transition: 'background var(--dur-fast) var(--ease-out)', flexShrink: 0,
                 }}>
                   <div style={{
                     width: 20, height: 20, borderRadius: '50%', background: '#fff',
                     position: 'absolute', top: 3,
                     right: utilRemEnabled ? 3 : undefined,
                     left: utilRemEnabled ? undefined : 3,
-                    transition: 'left 0.2s, right 0.2s',
+                    transition: 'left var(--dur-fast) var(--ease-out), right var(--dur-fast) var(--ease-out)',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                   }} />
                 </div>
@@ -317,7 +317,7 @@ export function SettingsScreen() {
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
                     💼
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -329,15 +329,15 @@ export function SettingsScreen() {
                 </div>
                 <div style={{
                   width: 44, height: 26, borderRadius: 13,
-                  background: dealEmailsEnabled ? GOLD : '#ddd',
-                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  background: dealEmailsEnabled ? 'var(--gold-grad)' : 'var(--progress-track)',
+                  position: 'relative', transition: 'background var(--dur-fast) var(--ease-out)', flexShrink: 0,
                 }}>
                   <div style={{
                     width: 20, height: 20, borderRadius: '50%', background: '#fff',
                     position: 'absolute', top: 3,
                     right: dealEmailsEnabled ? 3 : undefined,
                     left: dealEmailsEnabled ? undefined : 3,
-                    transition: 'left 0.2s, right 0.2s',
+                    transition: 'left var(--dur-fast) var(--ease-out), right var(--dur-fast) var(--ease-out)',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                   }} />
                 </div>
@@ -358,7 +358,7 @@ export function SettingsScreen() {
             onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row-reverse' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: 18 }}>{theme === 'dark' ? '🌙' : '☀️'}</span>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -369,15 +369,15 @@ export function SettingsScreen() {
             {/* Toggle switch */}
             <div style={{
               width: 44, height: 26, borderRadius: 13,
-              background: theme === 'dark' ? GOLD : '#ddd',
-              position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              background: theme === 'dark' ? 'var(--gold-grad)' : 'var(--progress-track)',
+              position: 'relative', transition: 'background var(--dur-fast) var(--ease-out)', flexShrink: 0,
             }}>
               <div style={{
                 width: 20, height: 20, borderRadius: '50%', background: '#fff',
                 position: 'absolute', top: 3,
                 right: theme === 'dark' ? 3 : undefined,
                 left: theme === 'dark' ? undefined : 3,
-                transition: 'left 0.2s, right 0.2s',
+                transition: 'left var(--dur-fast) var(--ease-out), right var(--dur-fast) var(--ease-out)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
               }} />
             </div>
@@ -392,7 +392,7 @@ export function SettingsScreen() {
             </div>
             <SectionCard>
               <SettingRow
-                icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>}
+                icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>}
                 label="פאנל אדמין"
                 value="ניהול משקיעים ונכסים"
                 onPress={() => navigate('admin-dashboard')}
@@ -422,7 +422,7 @@ export function SettingsScreen() {
         {/* Sign out */}
         <SectionCard>
           <SettingRow
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="1.8" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>}
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="1.8" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>}
             label="התנתקות"
             onPress={handleLogout}
             danger

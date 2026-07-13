@@ -7,7 +7,7 @@
 import { ProgressBar } from './ProgressBar';
 import { loanStatusColor, type LoanRecord } from '../../services/loansApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 export function fmtMoney(n: number): string {
   return '$' + (n || 0).toLocaleString('en-US');
@@ -17,17 +17,17 @@ export function fmtMoney(n: number): string {
 export function LoanSummary({ loan }: { loan: LoanRecord }) {
   const kpis = [
     { label: 'סה״כ הלוואה',  value: fmtMoney(loan.total),       c: 'var(--text-primary)' },
-    { label: 'כבר נמשך',     value: fmtMoney(loan.drawn),       c: '#4CAF50' },
+    { label: 'כבר נמשך',     value: fmtMoney(loan.drawn),       c: 'var(--success)' },
     { label: 'נשאר בהלוואה', value: fmtMoney(loan.remaining),   c: GOLD },
-    { label: 'מוכן למשיכה',  value: fmtMoney(loan.readyToDraw), c: '#579bfc' },
+    { label: 'מוכן למשיכה',  value: fmtMoney(loan.readyToDraw), c: 'var(--info)' },
   ];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
         {kpis.map(k => (
-          <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.3 }}>{k.label}</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+          <div key={k.label} className="stat-chip" style={{ textAlign: 'center', padding: '12px 14px' }}>
+            <div className="stat-label">{k.label}</div>
+            <div className="stat-value num" style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -71,7 +71,7 @@ export function LoanCategoryBreakdown({ loan }: { loan: LoanRecord }) {
         }}>
           <div style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{c.label}</div>
           <StatusChip status={c.status} />
-          <div style={{ fontSize: 14, fontWeight: 800, color: c.amount > 0 ? '#4CAF50' : 'var(--text-muted)', minWidth: 64, textAlign: 'left' }}>
+          <div className="num" style={{ fontSize: 14, fontWeight: 800, color: c.amount > 0 ? 'var(--success)' : 'var(--text-muted)', minWidth: 64, textAlign: 'left' }}>
             {c.amount > 0 ? fmtMoney(c.amount) : '—'}
           </div>
         </div>

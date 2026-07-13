@@ -102,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       if (direction === 'investor-to-admin') {
         await sendMail({
+          log: { category: 'פניות' },
           to: getAdminRecipients(),
           subject: `פנייה חדשה מאת ${investorName} — ${inquiryNumber}`,
           html: wrapEmail({
@@ -123,6 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       } else {
         await sendMail({
+          log: { category: 'פניות' },
           to: investorEmail,
           subject: `פנייה חדשה מהנהלת Miller Group — ${esc(subject)}`,
           html: wrapEmail({

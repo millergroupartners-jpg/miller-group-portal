@@ -95,8 +95,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (linkedPropertyIds.length > 0) {
       try {
         const ids = linkedPropertyIds.join(',');
+        // items(ids:) silently caps at 25 results unless `limit` is passed.
         const groupQ = `query {
-          items(ids: [${ids}]) { id group { id } }
+          items(ids: [${ids}], limit: ${linkedPropertyIds.length}) { id group { id } }
         }`;
         type Row = { id: string; group: { id: string } };
         const gd = await mondayQuery<{ items: Row[] }>(groupQ);

@@ -266,6 +266,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     await sendMail({
+      log: { category: 'סיכום יומי' },
       to: getAdminRecipients(),
       subject: `סיכום יומי — ${totalAlerts} התראות | Miller Group`,
       html: wrapEmail({

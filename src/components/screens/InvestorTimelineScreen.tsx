@@ -13,7 +13,7 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../services/timelineApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 type FilterKey = 'all' | 'status' | 'inquiry' | 'utility';
 
@@ -90,13 +90,8 @@ export function InvestorTimelineScreen() {
             <button
               key={c.key}
               onClick={() => setFilter(c.key)}
-              style={{
-                padding: '6px 14px', borderRadius: 100,
-                background: filter === c.key ? GOLD : 'var(--bg-chip)',
-                color: filter === c.key ? '#000' : 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
+              className={'chip-filter' + (filter === c.key ? ' active' : '')}
+              style={{ flexShrink: 0 }}
             >
               {c.label}
             </button>
@@ -104,7 +99,7 @@ export function InvestorTimelineScreen() {
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>}
         {!loading && filtered.length === 0 && !error && (
           <div style={{ padding: '24px 14px', textAlign: 'center', color: 'var(--text-secondary)' }}>
             <div style={{ fontSize: 36, marginBottom: 10 }}>📭</div>
@@ -112,7 +107,7 @@ export function InvestorTimelineScreen() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(ev => {
             const clickable = Boolean(ev.propertyId || ev.inquiryId);
             const onClick = () => {
@@ -125,13 +120,13 @@ export function InvestorTimelineScreen() {
                 onClick={clickable ? onClick : undefined}
                 style={{
                   display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
-                  gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg-surface)',
+                  gap: 10, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
                   border: '1px solid var(--border)',
                   cursor: clickable ? 'pointer' : 'default',
                 }}
               >
                 <div style={{
-                  width: 38, height: 38, borderRadius: 10,
+                  width: 38, height: 38, borderRadius: 'var(--radius-sm)',
                   background: `${ev.color}18`, border: `1px solid ${ev.color}44`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, flexShrink: 0,

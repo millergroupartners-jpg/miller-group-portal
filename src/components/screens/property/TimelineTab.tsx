@@ -68,7 +68,7 @@ export function TimelineTab({ propertyId, role, onNavigateInquiry }: Props) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען ציר זמן…</div>;
   }
   if (error) {
-    return <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>;
+    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>;
   }
 
   return (
@@ -82,13 +82,8 @@ export function TimelineTab({ propertyId, role, onNavigateInquiry }: Props) {
           <button
             key={c.key}
             onClick={() => setFilter(c.key)}
-            style={{
-              padding: '6px 14px', borderRadius: 100,
-              background: filter === c.key ? 'var(--gold, #C9A84C)' : 'var(--bg-chip)',
-              color: filter === c.key ? '#000' : 'var(--text-secondary)',
-              border: '1px solid var(--border)',
-              fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
+            className={'chip-filter' + (filter === c.key ? ' active' : '')}
+            style={{ flexShrink: 0 }}
           >
             {c.label}
           </button>
@@ -101,7 +96,7 @@ export function TimelineTab({ propertyId, role, onNavigateInquiry }: Props) {
           <div style={{ fontSize: 13 }}>אין אירועים להצגה</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(ev => {
             const isClickable = ev.href?.startsWith('#inquiry-') && onNavigateInquiry;
             const handleClick = () => {
@@ -115,7 +110,7 @@ export function TimelineTab({ propertyId, role, onNavigateInquiry }: Props) {
                 onClick={isClickable ? handleClick : undefined}
                 style={{
                   display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
-                  gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg-surface)',
+                  gap: 10, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
                   border: '1px solid var(--border)',
                   cursor: isClickable ? 'pointer' : 'default',
                 }}

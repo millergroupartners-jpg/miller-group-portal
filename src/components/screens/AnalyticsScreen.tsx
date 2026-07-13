@@ -7,7 +7,7 @@ import { HBarChart } from '../charts/HBarChart';
 import { listLoans, getLoanForProperty, loanStatusColor, type LoanRecord } from '../../services/loansApi';
 import { MOCK_USER } from '../../data/user';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 /** Distinct, theme-agnostic series palette (gold first — brand accent). */
 const PALETTE = ['#C9A84C', '#579bfc', '#4CAF50', '#a25ddc', '#ff8a65', '#00c4cc', '#e2445c', '#9aa0a6'];
@@ -65,9 +65,9 @@ export function AnalyticsScreen() {
     .map(p => ({
       label: `${p.address}${p.arvRaw > p.allIn ? ` · Equity $${(p.arvRaw - p.allIn).toLocaleString('en-US')}` : ''}`,
       value: p.arvRaw,
-      color: GOLD,
+      color: 'var(--gold)',
       valueLabel: `ARV ${fmtUSD(p.arvRaw)}`,
-      secondary: { value: p.allIn, color: '#579bfc', valueLabel: fmtUSD(p.allIn) },
+      secondary: { value: p.allIn, color: 'var(--info)', valueLabel: fmtUSD(p.allIn) },
     }));
 
   const yieldBars = props
@@ -76,7 +76,7 @@ export function AnalyticsScreen() {
     .map(p => ({
       label: p.address,
       value: parseFloat(p.rentYield),
-      color: '#4CAF50',
+      color: 'var(--success)',
       valueLabel: p.rentYield,
     }));
 
@@ -98,9 +98,11 @@ export function AnalyticsScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>אנליטיקות</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading && props.length === 0 && !isEmpty && (
-          <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0' }}>⏳ טוען נתונים...</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: GOLD, fontSize: 13, padding: '40px 0' }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען נתונים...
+          </div>
         )}
 
         {isEmpty && (
@@ -130,7 +132,7 @@ export function AnalyticsScreen() {
                     <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: 'row-reverse' }}>
                       <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{s.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', direction: 'ltr' }}>
+                      <span className="num" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>
                         {totalAllIn > 0 ? Math.round((s.value / totalAllIn) * 100) + '%' : ''}
                       </span>
                     </div>
@@ -161,7 +163,7 @@ export function AnalyticsScreen() {
                     <div key={loan.id} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row-reverse' }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>📍 {p.address}</span>
-                        <span style={{ fontSize: 11, color: GOLD, fontWeight: 600, direction: 'ltr' }}>
+                        <span className="num" style={{ fontSize: 11, color: GOLD, fontWeight: 600 }}>
                           {fmtUSD(loan.drawn)} / {fmtUSD(loan.total)} · {loan.progressPct}%
                         </span>
                       </div>

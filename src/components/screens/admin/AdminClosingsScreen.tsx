@@ -5,7 +5,7 @@ import { MGLogo } from '../../common/MGLogo';
 import { StatusBadge } from '../../common/StatusBadge';
 import { fetchMillerGroupProperties, fetchPropertyProfits, type MondayProperty, type PropertyProfit } from '../../../services/mondayApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function parseDate(iso: string): Date | null {
   if (!iso) return null;
@@ -130,9 +130,11 @@ export function AdminClosingsScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>יומן סגירות</span>
       </div>
 
-      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div ref={scrollContainerRef} className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {loadingMg && (
-          <div style={{ textAlign: 'center', color: GOLD, fontSize: 12 }}>⏳ טוען עסקאות Miller Group...</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: GOLD, fontSize: 12 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען עסקאות Miller Group...
+          </div>
         )}
 
         {/* Admin-only upcoming-closings profit summary. Sums purchase profit for
@@ -150,7 +152,7 @@ export function AdminClosingsScreen() {
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: 0.5, marginBottom: 2 }}>
                   💰 רווח רכישה צפוי · 30 ימים הקרובים
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#4CAF50' }}>
+                <div className="num" style={{ fontSize: 20, fontWeight: 800, color: 'var(--success)' }}>
                   ${totalUpcomingProfit.toLocaleString('en-US')}
                 </div>
               </div>
@@ -178,16 +180,24 @@ export function AdminClosingsScreen() {
               }}>
                 <span style={{
                   fontSize: 13, fontWeight: 700,
-                  color: urgent ? '#ff6b6b' : GOLD,
+                  color: urgent ? 'var(--danger)' : GOLD,
                   whiteSpace: 'nowrap',
                 }}>{section.label}</span>
-                <div style={{ flex: 1, height: 1, background: `${urgent ? '#ff6b6b' : GOLD}33` }} />
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{items.length}</span>
+                <div style={{ flex: 1, height: 1, background: urgent ? 'var(--danger-border)' : 'var(--gold-border)' }} />
+                <span className="num" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{items.length}</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map(({ p, days }: any) => {
-                  const color = days === null ? 'var(--text-secondary)' : days === 0 ? '#ff6b6b' : days < 0 ? 'var(--text-muted)' : days <= 7 ? '#ff9800' : GOLD;
+                  const tone = days === null
+                    ? { color: 'var(--text-secondary)', bg: 'var(--bg-surface-2)', border: 'var(--border)' }
+                    : days === 0
+                    ? { color: 'var(--danger)', bg: 'var(--danger-dim)', border: 'var(--danger-border)' }
+                    : days < 0
+                    ? { color: 'var(--text-muted)', bg: 'var(--bg-surface-2)', border: 'var(--border)' }
+                    : days <= 7
+                    ? { color: '#ff9800', bg: 'rgba(255,152,0,0.12)', border: 'rgba(255,152,0,0.35)' }
+                    : { color: GOLD, bg: 'var(--gold-dim)', border: 'var(--gold-border)' };
                   const flash = isFlashTarget(days, p.status, p.mondayId);
                   return (
                     <div
@@ -203,10 +213,10 @@ export function AdminClosingsScreen() {
                       <div style={{
                         minWidth: 76, textAlign: 'center',
                         padding: '8px 6px', borderRadius: 8,
-                        background: `${color === GOLD ? GOLD : color}15`,
-                        border: `1px solid ${color}44`,
+                        background: tone.bg,
+                        border: `1px solid ${tone.border}`,
                       }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color, lineHeight: 1.3, textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: tone.color, lineHeight: 1.3, textAlign: 'center' }}>
                           {days === null
                             ? '—'
                             : days === 0
@@ -234,8 +244,8 @@ export function AdminClosingsScreen() {
                           {!p._isMg && profits[p.mondayId] && profits[p.mondayId].purchaseProfit > 0 && (
                             <span style={{
                               fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 100,
-                              background: 'rgba(76,175,80,0.14)', color: '#4CAF50',
-                              border: '1px solid rgba(76,175,80,0.35)',
+                              background: 'var(--success-dim)', color: 'var(--success)',
+                              border: '1px solid var(--success-border)',
                               whiteSpace: 'nowrap',
                             }} title="רווח רכישה — ADMIN ONLY">
                               💰 רווח רכישה: ${profits[p.mondayId].purchaseProfit.toLocaleString('en-US')}

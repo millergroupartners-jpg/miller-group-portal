@@ -19,6 +19,7 @@ export type Screen =
   | 'admin-loans'
   | 'admin-utilities'
   | 'admin-timeline'
+  | 'admin-emails'
   | 'renovations'
   | 'utilities'
   | 'timeline'

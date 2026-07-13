@@ -73,7 +73,7 @@ function UpdatesSection({ itemId }: { itemId: string }) {
 
   return (
     <div style={{
-      marginTop: 10, padding: 10, borderRadius: 10,
+      marginTop: 10, padding: 10, borderRadius: 'var(--radius-sm)',
       background: 'var(--bg-chip)', border: '1px solid var(--border)',
     }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textAlign: 'right' }}>
@@ -81,7 +81,7 @@ function UpdatesSection({ itemId }: { itemId: string }) {
       </div>
 
       {loading && <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: 6, textAlign: 'center' }}>טוען…</div>}
-      {error && <div style={{ fontSize: 11, color: '#ff4d4d', padding: 6, textAlign: 'center' }}>{error}</div>}
+      {error && <div style={{ fontSize: 11, color: 'var(--danger)', padding: 6, textAlign: 'center' }}>{error}</div>}
 
       {!loading && updates.length === 0 && !error && (
         <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: 6, textAlign: 'center' }}>
@@ -131,7 +131,7 @@ function UpdatesSection({ itemId }: { itemId: string }) {
           disabled={!draft.trim() || posting}
           style={{
             padding: '8px 10px', borderRadius: 8, border: 'none',
-            background: draft.trim() ? '#C9A84C' : 'var(--bg-chip)',
+            background: draft.trim() ? 'var(--gold)' : 'var(--bg-chip)',
             color: draft.trim() ? '#000' : 'var(--text-muted)',
             fontSize: 12, fontWeight: 700,
             cursor: draft.trim() && !posting ? 'pointer' : 'not-allowed',
@@ -144,7 +144,7 @@ function UpdatesSection({ itemId }: { itemId: string }) {
   );
 }
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
 
 function fmtMoney(n: number): string {
@@ -262,28 +262,28 @@ export function AdminRenovationsScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>שיפוצים</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* KPI summary — adapts to MG mode (no investor / no profit). */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 10 }}>
             {(isMgMode
               ? [
-                  { label: 'סה״כ שולם',  value: fmtMoney(totals.paid),                       c: '#4CAF50', extra: '' },
-                  { label: 'תקציב שיפוץ', value: fmtMoney(totals.our || totals.client),       c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+                  { label: 'סה״כ שולם',  value: fmtMoney(totals.paid),                       c: 'var(--success)', extra: '' },
+                  { label: 'תקציב שיפוץ', value: fmtMoney(totals.our || totals.client),       c: 'var(--info)', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
                 ]
               : [
-                  { label: 'סה״כ שולם',    value: fmtMoney(totals.paid),   c: '#4CAF50', extra: '' },
+                  { label: 'סה״כ שולם',    value: fmtMoney(totals.paid),   c: 'var(--success)', extra: '' },
                   { label: 'רווח משיפוצים', value: fmtMoney(totals.profit), c: GOLD,      extra: '' },
-                  { label: 'שיפוץ שלנו',   value: fmtMoney(totals.our),    c: '#64B5F6', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
+                  { label: 'שיפוץ שלנו',   value: fmtMoney(totals.our),    c: 'var(--info)', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
                   { label: 'שיפוץ ללקוח',  value: fmtMoney(totals.client), c: '#ff9800', extra: totals.addons > 0 ? `+${fmtMoney(totals.addons)}` : '' },
                 ]
             ).map(k => (
-              <div key={k.label} style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 4, letterSpacing: 0.5 }}>{k.label}</div>
+              <div key={k.label} className="stat-chip">
+                <div className="stat-label" style={{ letterSpacing: 0.5 }}>{k.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexDirection: 'row-reverse' }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
+                  <div className="stat-value num" style={{ fontSize: 16, fontWeight: 800, color: k.c }}>{k.value}</div>
                   {k.extra && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>{k.extra}</span>
+                    <span className="num" style={{ fontSize: 10, fontWeight: 700, color: GOLD }}>{k.extra}</span>
                   )}
                 </div>
               </div>
@@ -294,7 +294,7 @@ export function AdminRenovationsScreen() {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
             gap: 8,
-            background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 10, padding: 10,
+            background: 'rgba(255,153,0,0.06)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: 'var(--radius-sm)', padding: 10,
           }}>
             {(isMgMode
               ? [
@@ -309,7 +309,7 @@ export function AdminRenovationsScreen() {
             ).map(k => (
               <div key={k.l} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, letterSpacing: 0.5 }}>{k.l}</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
+                <div className="num" style={{ fontSize: 14, fontWeight: 800, color: k.c }}>{k.v}</div>
               </div>
             ))}
           </div>
@@ -331,13 +331,7 @@ export function AdminRenovationsScreen() {
             <button
               key={opt.key}
               onClick={() => setSource(opt.key)}
-              style={{
-                padding: '6px 14px', borderRadius: 100, border: 'none',
-                background: source === opt.key ? GOLD : 'transparent',
-                color: source === opt.key ? '#000' : 'var(--text-secondary)',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
+              className={'chip-filter' + (source === opt.key ? ' active' : '')}
             >
               {opt.label}
             </button>
@@ -369,20 +363,14 @@ export function AdminRenovationsScreen() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                style={{
-                  padding: '6px 12px', borderRadius: 100,
-                  background: statusFilter === s ? GOLD : 'var(--bg-chip)',
-                  color: statusFilter === s ? '#000' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}
+                className={'chip-filter' + (statusFilter === s ? ' active' : '')}
+                style={{ flexShrink: 0 }}
               >
                 {s === 'all' ? 'הכל' : s}
-                <span style={{
+                <span className="num" style={{
                   fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
-                  background: statusFilter === s ? 'rgba(0,0,0,0.15)' : 'var(--border)',
-                  color: statusFilter === s ? '#000' : 'var(--text-muted)',
+                  background: statusFilter === s ? 'var(--gold-border)' : 'var(--border)',
+                  color: statusFilter === s ? 'var(--gold-text)' : 'var(--text-muted)',
                 }}>{count}</span>
               </button>
             );
@@ -390,7 +378,7 @@ export function AdminRenovationsScreen() {
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d' }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)' }}>שגיאה: {error}</div>}
 
         {!loading && filtered.length === 0 && !error && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -424,7 +412,7 @@ export function AdminRenovationsScreen() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', marginBottom: 4 }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{r.propertyName || r.name}</span>
                     {r.status && (
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: `${GOLD}22`, color: GOLD }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'var(--gold-dim)', color: GOLD }}>
                         {r.status}
                       </span>
                     )}
@@ -434,8 +422,8 @@ export function AdminRenovationsScreen() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', minWidth: 140 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b style={{ color: '#4CAF50' }}>{fmtMoney(rowPaid)}</b></div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>נותר · <b style={{ color: '#ff9800' }}>{fmtMoney(bal.remainingTotal)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>שולם · <b className="num" style={{ color: 'var(--success)' }}>{fmtMoney(rowPaid)}</b></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>נותר · <b className="num" style={{ color: '#ff9800' }}>{fmtMoney(bal.remainingTotal)}</b></div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"
                      style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
@@ -470,7 +458,7 @@ export function AdminRenovationsScreen() {
                     ).map(k => (
                       <div key={k.l} style={{ textAlign: 'center', minWidth: 0 }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
+                        <div className="num" style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                       </div>
                     ))}
                   </div>
@@ -488,11 +476,11 @@ export function AdminRenovationsScreen() {
                       ...(!rowIsMg ? [{ l: 'שולם לנו', v: fmtMoney(bal.clientPaidToUs), c: GOLD }] : []),
                       { l: 'שולם לקבלן',      v: fmtMoney(paidToContractor),    c: '#225091' },
                       { l: 'שולם לקבלן משנה', v: fmtMoney(paidToSubContractor), c: '#5e8ad6' },
-                      { l: 'סה״כ שולם',       v: fmtMoney(rowIsMg ? paidTotalAll : bal.clientPaidTotal), c: '#4CAF50' },
+                      { l: 'סה״כ שולם',       v: fmtMoney(rowIsMg ? paidTotalAll : bal.clientPaidTotal), c: 'var(--success)' },
                     ].map(k => (
                       <div key={k.l} style={{ textAlign: 'center', minWidth: 0 }}>
                         <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
+                        <div className="num" style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                       </div>
                     ))}
                   </div>
@@ -507,21 +495,21 @@ export function AdminRenovationsScreen() {
                   }}>
                     {(rowIsMg
                       ? [
-                          { l: 'תקציב שיפוץ', v: fmtMoney(r.ourCost || r.clientCost), c: '#64B5F6', addon: r.approvedAddons > 0 },
+                          { l: 'תקציב שיפוץ', v: fmtMoney(r.ourCost || r.clientCost), c: 'var(--info)', addon: r.approvedAddons > 0 },
                           { l: 'Addons',      v: fmtMoney(r.approvedAddons),          c: GOLD,      addon: false },
                         ]
                       : [
-                          { l: 'שיפוץ שלנו',  v: fmtMoney(r.ourCost),    c: '#64B5F6', addon: r.approvedAddons > 0 },
+                          { l: 'שיפוץ שלנו',  v: fmtMoney(r.ourCost),    c: 'var(--info)', addon: r.approvedAddons > 0 },
                           { l: 'שיפוץ ללקוח', v: fmtMoney(r.clientCost), c: '#ff9800', addon: r.approvedAddons > 0 },
-                          { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : '#ff4d4d', addon: false },
+                          { l: 'רווח',        v: fmtMoney(profit),       c: profit >= 0 ? GOLD : 'var(--danger)', addon: false },
                         ]
                     ).map(k => (
-                      <div key={k.l} style={{ background: 'var(--bg-chip)', borderRadius: 8, padding: '7px 10px', textAlign: 'center', minWidth: 0 }}>
-                        <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap' }}>{k.l}</div>
+                      <div key={k.l} className="stat-chip" style={{ textAlign: 'center', minWidth: 0 }}>
+                        <div className="stat-label" style={{ whiteSpace: 'nowrap' }}>{k.l}</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexDirection: 'row-reverse', flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
+                          <div className="num" style={{ fontSize: 13, fontWeight: 800, color: k.c, whiteSpace: 'nowrap' }}>{k.v}</div>
                           {k.addon && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: GOLD, whiteSpace: 'nowrap' }}>
+                            <span className="num" style={{ fontSize: 9, fontWeight: 700, color: GOLD, whiteSpace: 'nowrap' }}>
                               +{fmtMoney(r.approvedAddons)}
                             </span>
                           )}
@@ -550,7 +538,7 @@ export function AdminRenovationsScreen() {
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: '#4CAF50' }}>{fmtMoney(sub.amount)}</div>
+                            <div className="num" style={{ fontSize: 13, fontWeight: 800, color: 'var(--success)' }}>{fmtMoney(sub.amount)}</div>
                             <div style={{ display: 'flex', gap: 3 }}>
                               {sub.paidTo && (
                                 <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 100,
@@ -568,7 +556,7 @@ export function AdminRenovationsScreen() {
                           </div>
                           {sub.receiptUrl && (
                             <a href={sub.receiptUrl} target="_blank" rel="noopener noreferrer" style={{
-                              width: 30, height: 30, borderRadius: 8, background: `${GOLD}18`, border: `1px solid ${GOLD}55`,
+                              width: 30, height: 30, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, textDecoration: 'none',
                             }}>
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2">
@@ -602,7 +590,7 @@ export function AdminRenovationsScreen() {
                       href={`${MONDAY_BOARD_URL}/pulses/${r.id}`}
                       target="_blank" rel="noopener noreferrer"
                       style={{
-                        flex: 1, padding: '8px 10px', borderRadius: 8, background: `${GOLD}14`,
+                        flex: 1, padding: '8px 10px', borderRadius: 8, background: 'var(--gold-dim)',
                         color: GOLD, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center',
                       }}
                     >

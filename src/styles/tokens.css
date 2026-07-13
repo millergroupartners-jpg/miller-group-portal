@@ -1,0 +1,128 @@
+/* ══════════════════════════════════════════════════════════════
+   Design Tokens — modern-luxury system
+   Existing variable NAMES are load-bearing (referenced inline in
+   ~30 component files) — never rename, only retune values.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Gold — champagne ramp. #C9A84C is the brand anchor. ── */
+  --gold:           #C9A84C;
+  --gold-bright:    #E8CD7F;
+  --gold-deep:      #8F7231;
+  --gold-text:      #D9BC6B;
+  --gold-grad:      linear-gradient(135deg, #E8CD7F 0%, #C9A84C 45%, #A9873A 100%);
+  --gold-dim:       rgba(201, 168, 76, 0.12);
+  --gold-border:    rgba(201, 168, 76, 0.28);
+  --gold-glow:      0 0 20px rgba(201, 168, 76, 0.15);
+
+  /* ── Dark theme (default) — layered warm blacks ── */
+  --bg-base:        #0B0B0D;
+  --bg-surface:     #141417;
+  --bg-surface-2:   #1B1B1F;
+  --bg-surface-3:   #232329;
+  --bg-surface-hover: #1E1E23;
+  --bg-chip:        #1B1B1F;
+  --bg-input:       #17171A;
+  --bg-tab:         #141417;
+
+  /* Warm-white text ramp */
+  --text-primary:   #F5F2EA;
+  --text-secondary: #9C968A;
+  --text-muted:     #5F5B52;
+  --tab-icon:       #6A655B;
+  --search-icon:    #6A655B;
+
+  /* Hairlines instead of solid grays */
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-strong:  rgba(255, 255, 255, 0.14);
+  --divider:        rgba(255, 255, 255, 0.06);
+  --progress-track: rgba(255, 255, 255, 0.10);
+
+  /* Semantic colors */
+  --success:        #4ADE80;
+  --success-dim:    rgba(74, 222, 128, 0.10);
+  --success-border: rgba(74, 222, 128, 0.25);
+  --danger:         #FF6B6B;
+  --danger-dim:     rgba(255, 107, 107, 0.10);
+  --danger-border:  rgba(255, 107, 107, 0.30);
+  --info:           #6CB2FF;
+  --info-dim:       rgba(108, 178, 255, 0.10);
+  --info-border:    rgba(108, 178, 255, 0.25);
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-3: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-4: 0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  /* Typography — Cormorant covers Latin/numerals, Frank Ruhl Libre
+     covers Hebrew glyphs (Cormorant has none), so one display stack
+     serves both scripts. */
+  --font-ui:        'Heebo', sans-serif;
+  --font-display:   'Cormorant Garamond', 'Frank Ruhl Libre', serif;
+
+  /* Radius scale */
+  --radius-xs:      8px;
+  --radius-sm:      10px;
+  --radius-md:      14px;
+  --radius-card:    18px;
+  --radius-lg:      22px;
+  --radius-badge:   100px;
+
+  /* Motion */
+  --ease-out:       cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:    cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:       140ms;
+  --dur-med:        260ms;
+  --dur-slow:       480ms;
+  --anim-screen:    380ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Focus */
+  --focus-ring:     0 0 0 3px rgba(201, 168, 76, 0.35);
+}
+
+[data-theme="light"] {
+  /* Refined warm ivory */
+  --bg-base:        #F4EFE6;
+  --bg-surface:     #FFFFFF;
+  --bg-surface-2:   #F7F3EA;
+  --bg-surface-3:   #EFE9DD;
+  --bg-surface-hover: #FAF6EE;
+  --bg-chip:        #F3EDE1;
+  --bg-input:       #FBF8F2;
+  --bg-tab:         #FFFFFF;
+
+  --text-primary:   #191510;
+  --text-secondary: #6E675A;
+  --text-muted:     #A8A090;
+  --tab-icon:       #A8A090;
+  --search-icon:    #A8A090;
+
+  --border:         rgba(80, 64, 32, 0.12);
+  --border-strong:  rgba(80, 64, 32, 0.20);
+  --divider:        rgba(80, 64, 32, 0.08);
+  --progress-track: rgba(80, 64, 32, 0.10);
+
+  /* Gold text must deepen for contrast on white */
+  --gold-text:      #96762B;
+  --gold-dim:       rgba(160, 124, 42, 0.10);
+  --gold-border:    rgba(160, 124, 42, 0.30);
+  --gold-glow:      0 0 20px rgba(160, 124, 42, 0.12);
+
+  --success:        #1E9E5A;
+  --success-dim:    rgba(30, 158, 90, 0.10);
+  --success-border: rgba(30, 158, 90, 0.28);
+  --danger:         #D24545;
+  --danger-dim:     rgba(210, 69, 69, 0.08);
+  --danger-border:  rgba(210, 69, 69, 0.28);
+  --info:           #2673C8;
+  --info-dim:       rgba(38, 115, 200, 0.08);
+  --info-border:    rgba(38, 115, 200, 0.25);
+
+  /* Warm-tinted shadows */
+  --shadow-1: 0 1px 2px rgba(93, 74, 38, 0.06);
+  --shadow-2: 0 2px 8px rgba(93, 74, 38, 0.08), 0 1px 2px rgba(93, 74, 38, 0.06);
+  --shadow-3: 0 8px 24px rgba(93, 74, 38, 0.12), 0 2px 6px rgba(93, 74, 38, 0.06);
+  --shadow-4: 0 16px 48px rgba(93, 74, 38, 0.16), 0 4px 12px rgba(93, 74, 38, 0.08);
+}

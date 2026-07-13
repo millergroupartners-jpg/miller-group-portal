@@ -9,7 +9,7 @@ import { GoldDivider } from '../common/GoldDivider';
 import { ALL_USERS } from '../../data/user';
 import type { User } from '../../data/user';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 type ForgotState = 'idle' | 'sending' | 'done' | 'notfound';
 
@@ -108,40 +108,46 @@ export function LoginScreen() {
   };
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column',
-      background: 'var(--bg-base)', padding: '0 28px', overflowY: 'auto',
-    }}>
-      {/* Theme toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: 16 }}>
-        <button onClick={toggleTheme} style={{
-          background: 'transparent', border: '1px solid var(--border)',
-          borderRadius: 100, padding: '5px 14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)',
+    <div className="login-screen">
+      {/* Theme toggle — floats above the card */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: 16, alignSelf: 'stretch', position: 'absolute', top: 0, right: 28, left: 28 }}>
+        <button className="mg-btn-ghost" onClick={toggleTheme} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', fontSize: 12,
         }}>
-          <span style={{ fontSize: 14 }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {theme === 'dark' ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
           <span>{theme === 'dark' ? 'מצב בהיר' : 'מצב כהה'}</span>
         </button>
       </div>
 
-      {/* Logo */}
-      <div style={{ paddingTop: 24, paddingBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-        <MGLogo size={90} />
-        <GoldDivider />
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-ui)', fontSize: 30, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 8 }}>
-            ברוכים הבאים
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            פורטל המשקיעים של MillerGroup
-          </p>
+      <div className="login-card">
+        {/* Logo */}
+        <div className="stagger" style={{ paddingTop: 24, paddingBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <MGLogo size={90} />
+          <GoldDivider />
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontFamily: 'var(--font-ui)', fontSize: 34, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 8 }}>
+              ברוכים הבאים
+            </h1>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              פורטל המשקיעים של MillerGroup
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* ── Login form ── */}
       {!forgotMode && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>דואר אלקטרוני</label>
             <input
@@ -160,7 +166,7 @@ export function LoginScreen() {
           </div>
 
           {error && (
-            <div style={{ fontSize: 12, color: '#ff4d4d', textAlign: 'center', marginTop: -4 }}>
+            <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', marginTop: -4 }}>
               {error}
             </div>
           )}
@@ -175,13 +181,18 @@ export function LoginScreen() {
           </div>
 
           <div style={{ marginTop: 4 }}>
-            <button className="mg-btn" onClick={handleLogin} disabled={loading || !email}>
-              {loading ? '...' : 'כניסה למערכת'}
+            <button className="mg-btn" onClick={handleLogin} disabled={loading || !email}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {loading && <span className="mg-spinner" style={{ borderTopColor: '#1A1508', borderColor: 'rgba(26,21,8,0.25)', borderTopWidth: 2 }} />}
+              <span>{loading ? 'מתחבר...' : 'כניסה למערכת'}</span>
             </button>
           </div>
 
           {mondayLoading && (
-            <div style={{ fontSize: 12, color: GOLD, textAlign: 'center' }}>⏳ טוען נתוני משקיעים...</div>
+            <div style={{ fontSize: 12, color: GOLD, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span className="mg-spinner" style={{ width: 12, height: 12 }} />
+              <span>טוען נתוני משקיעים...</span>
+            </div>
           )}
         </div>
       )}
@@ -192,8 +203,19 @@ export function LoginScreen() {
 
           {forgotState === 'done' ? (
             /* Success state */
-            <div style={{ textAlign: 'center', paddingTop: 16 }}>
-              <div style={{ fontSize: 52, marginBottom: 20 }}>✅</div>
+            <div className="fade-up" style={{ textAlign: 'center', paddingTop: 16 }}>
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%',
+                  background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--gold)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
                 הסיסמה אופסה בהצלחה
               </div>
@@ -247,7 +269,7 @@ export function LoginScreen() {
               </div>
 
               {forgotState === 'notfound' && (
-                <div style={{ fontSize: 12, color: '#ff4d4d', textAlign: 'center' }}>
+                <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center' }}>
                   האימייל לא נמצא במערכת
                 </div>
               )}
@@ -257,20 +279,21 @@ export function LoginScreen() {
                 onClick={handleForgot}
                 disabled={forgotState === 'sending' || !forgotEmail.trim()}
               >
-                {forgotState === 'sending' ? '⏳ מאפס...' : 'אפס סיסמה'}
+                {forgotState === 'sending' ? 'מאפס...' : 'אפס סיסמה'}
               </button>
             </>
           )}
         </div>
       )}
 
-      {/* Footer */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 40, marginTop: 32 }}>
-        <GoldDivider />
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 16, lineHeight: 1.8 }}>
-          Miller Group Partners LLC<br />
-          <span style={{ fontSize: 10 }}>© 2026 · כל הזכויות שמורות</span>
-        </p>
+        {/* Footer */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 40, marginTop: 32 }}>
+          <GoldDivider />
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 16, lineHeight: 1.8 }}>
+            Miller Group Partners LLC<br />
+            <span style={{ fontSize: 10 }}>© 2026 · כל הזכויות שמורות</span>
+          </p>
+        </div>
       </div>
     </div>
   );

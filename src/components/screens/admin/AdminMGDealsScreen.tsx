@@ -7,7 +7,7 @@ import { PropPhoto } from '../../common/PropPhoto';
 import { useCCThumbnail } from '../../../hooks/useCCThumbnail';
 import { fetchMillerGroupProperties, type MondayProperty } from '../../../services/mondayApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function fmtUSD(n: number): string {
   if (!n) return '$0';
@@ -39,17 +39,17 @@ function Card({ p, i }: { p: MondayProperty; i: number }) {
       </div>
       <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
+          <div className="stat-chip">
+            <div className="stat-label">מחיר קנייה</div>
+            <div className="stat-value num">{p.purchasePrice}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>ARV</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.arv}</div>
+          <div className="stat-chip">
+            <div className="stat-label">ARV</div>
+            <div className="stat-value num" style={{ color: GOLD }}>{p.arv}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>Equity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>
+          <div className="stat-chip">
+            <div className="stat-label">Equity</div>
+            <div className="stat-value num" style={{ color: 'var(--success)' }}>
               {p.arvRaw > 0 && p.allIn > 0 ? '$' + (p.arvRaw - p.allIn).toLocaleString('en-US') : '—'}
             </div>
           </div>
@@ -57,7 +57,7 @@ function Card({ p, i }: { p: MondayProperty; i: number }) {
         {p.statusType !== 'blue' && (
           <div style={{ marginTop: 2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
+              <span className="num" style={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>{p.progress}%</span>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>התקדמות</span>
             </div>
             <ProgressBar target={p.progress} height={8} />
@@ -103,8 +103,12 @@ export function AdminMGDealsScreen() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {loading && <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0' }}>⏳ טוען עסקאות Miller Group...</div>}
-        {error && <div style={{ color: '#ff6b6b', fontSize: 12, textAlign: 'center' }}>{error}</div>}
+        {loading && (
+          <div style={{ textAlign: 'center', color: GOLD, fontSize: 13, padding: '40px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען עסקאות Miller Group...
+          </div>
+        )}
+        {error && <div style={{ color: 'var(--danger)', fontSize: 12, textAlign: 'center' }}>{error}</div>}
 
         {!loading && (
           <>
@@ -112,12 +116,12 @@ export function AdminMGDealsScreen() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
               {[
                 { label: 'AUM',           value: fmtUSD(totalArv),     color: GOLD },
-                { label: 'Equity',        value: fmtUSD(totalEquity),  color: '#4CAF50' },
-                { label: 'ROI',           value: roi,                  color: '#4CAF50' },
+                { label: 'Equity',        value: fmtUSD(totalEquity),  color: 'var(--success)' },
+                { label: 'ROI',           value: roi,                  color: 'var(--success)' },
                 { label: 'נכסים',         value: String(props.length), color: 'var(--text-primary)' },
               ].map(s => (
                 <div key={s.label} className="gold-card" style={{ padding: '14px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
+                  <div className="num" style={{ fontSize: 20, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{s.label}</div>
                 </div>
               ))}
@@ -129,15 +133,8 @@ export function AdminMGDealsScreen() {
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  style={{
-                    flexShrink: 0,
-                    padding: '6px 12px', borderRadius: 100,
-                    border: statusFilter === status ? 'none' : '1px solid var(--border)',
-                    background: statusFilter === status ? GOLD : 'var(--bg-chip)',
-                    color: statusFilter === status ? '#000' : 'var(--text-secondary)',
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-ui)',
-                  }}
+                  className={'chip-filter' + (statusFilter === status ? ' active' : '')}
+                  style={{ flexShrink: 0 }}
                 >{status}</button>
               ))}
             </div>
@@ -147,7 +144,7 @@ export function AdminMGDealsScreen() {
                 אין עסקאות בסינון זה
               </div>
             ) : (
-              <div className="property-grid" style={{ padding: 0 }}>
+              <div className="property-grid stagger" style={{ padding: 0 }}>
                 {filtered.map((p, i) => <Card key={p.mondayId} p={p} i={i} />)}
               </div>
             )}

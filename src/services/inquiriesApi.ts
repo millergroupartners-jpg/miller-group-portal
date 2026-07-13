@@ -128,8 +128,10 @@ export async function uploadFilesToInquiry(inquiryId: string, files: File[]): Pr
 }
 
 export async function resolveInquiry(inquiryId: string): Promise<{ ok: true }> {
-  return fetchJson('/api/inquiries/resolve', {
+  // Folded into the reply endpoint (action: 'resolve') to stay under the
+  // Vercel 12-function cap — freed the slot for /api/admin/send-email.
+  return fetchJson('/api/inquiries/reply', {
     method: 'POST',
-    body: JSON.stringify({ inquiryId }),
+    body: JSON.stringify({ action: 'resolve', inquiryId }),
   });
 }

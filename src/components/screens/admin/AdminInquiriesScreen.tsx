@@ -13,14 +13,14 @@ import {
   type Inquiry,
 } from '../../../services/inquiriesApi';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 function statusStyle(status: string) {
   switch (status) {
-    case 'New':         return { bg: 'rgba(100,181,246,0.12)', border: 'rgba(100,181,246,0.35)', text: '#64B5F6', label: 'חדש' };
-    case 'In Progress': return { bg: 'rgba(255,152,0,0.12)',   border: 'rgba(255,152,0,0.35)',   text: '#ff9800', label: 'בטיפול' };
-    case 'Resolved':    return { bg: 'rgba(76,175,80,0.12)',   border: 'rgba(76,175,80,0.35)',   text: '#4CAF50', label: 'טופל' };
-    default:            return { bg: 'var(--bg-chip)',         border: 'var(--border)',          text: 'var(--text-secondary)', label: status };
+    case 'New':         return { bg: 'var(--info-dim)',      border: 'var(--info-border)',    text: 'var(--info)',    label: 'חדש' };
+    case 'In Progress': return { bg: 'rgba(255,152,0,0.12)', border: 'rgba(255,152,0,0.35)',  text: '#ff9800',        label: 'בטיפול' };
+    case 'Resolved':    return { bg: 'var(--success-dim)',   border: 'var(--success-border)', text: 'var(--success)', label: 'טופל' };
+    default:            return { bg: 'var(--bg-chip)',       border: 'var(--border)',         text: 'var(--text-secondary)', label: status };
   }
 }
 
@@ -164,7 +164,7 @@ export function AdminInquiriesScreen() {
           onClick={() => setComposeOpen(true)}
           style={{
             background: GOLD, color: '#000', border: 'none',
-            padding: '9px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700,
+            padding: '9px 16px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', whiteSpace: 'nowrap',
           }}
         >+ פנייה למשקיע</button>
@@ -178,26 +178,24 @@ export function AdminInquiriesScreen() {
             <button
               key={f.k}
               onClick={() => setFilter(f.k)}
-              style={{
-                background: filter === f.k ? `${GOLD}22` : 'var(--bg-chip)',
-                border: `1px solid ${filter === f.k ? `${GOLD}66` : 'var(--border)'}`,
-                color: filter === f.k ? GOLD : 'var(--text-secondary)',
-                padding: '7px 12px', borderRadius: 100, fontSize: 12,
-                fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-              }}
+              className={'chip-filter' + (filter === f.k ? ' active' : '')}
             >{f.l} ({f.c})</button>
           ))}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {error && (
-          <div style={{ background: 'rgba(255,77,77,0.1)', border: '1px solid rgba(255,77,77,0.3)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#ff6b6b' }}>
+          <div style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', fontSize: 12, color: 'var(--danger)' }}>
             ⚠️ {error}
           </div>
         )}
 
-        {loading && <div style={{ textAlign: 'center', padding: 24, color: GOLD, fontSize: 13 }}>⏳ טוען פניות...</div>}
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 24, color: GOLD, fontSize: 13 }}>
+            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען פניות...
+          </div>
+        )}
 
         {!loading && filtered.length === 0 && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -243,7 +241,7 @@ export function AdminInquiriesScreen() {
                 <div style={{ borderTop: '1px solid var(--divider)', padding: '14px 16px', background: 'var(--bg-base)' }}>
                   {/* Attached files */}
                   {inq.files && inq.files.length > 0 && (
-                    <div style={{ marginBottom: 14, padding: '10px 12px', background: `${GOLD}08`, border: `1px solid ${GOLD}22`, borderRadius: 10 }}>
+                    <div style={{ marginBottom: 14, padding: '10px 12px', background: 'var(--gold-dim)', border: '1px solid var(--gold-border)', borderRadius: 'var(--radius-sm)' }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, marginBottom: 8, textAlign: 'right' }}>
                         📎 קבצים מצורפים ({inq.files.length})
                       </div>
@@ -284,9 +282,9 @@ export function AdminInquiriesScreen() {
                         <div key={r.id} style={{
                           alignSelf: isAdminReply ? 'flex-end' : 'flex-start',
                           maxWidth: '85%',
-                          background: isAdminReply ? `${GOLD}15` : 'var(--bg-surface)',
-                          border: `1px solid ${isAdminReply ? `${GOLD}33` : 'var(--border)'}`,
-                          padding: '10px 12px', borderRadius: 12,
+                          background: isAdminReply ? 'var(--gold-dim)' : 'var(--bg-surface-2)',
+                          border: `1px solid ${isAdminReply ? 'var(--gold-border)' : 'var(--border)'}`,
+                          padding: '10px 12px', borderRadius: 'var(--radius-md)',
                         }}>
                           <div style={{ fontSize: 11, color: isAdminReply ? GOLD : 'var(--text-secondary)', marginBottom: 4, fontWeight: 600, textAlign: 'right' }}>
                             {authorName} · {fmtDate(r.createdAt)}
@@ -314,7 +312,7 @@ export function AdminInquiriesScreen() {
                           disabled={replying || (!replyText.trim() && replyFiles.length === 0)}
                           style={{
                             background: GOLD, color: '#000', border: 'none',
-                            padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                            padding: '10px 18px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 700,
                             cursor: 'pointer',
                             opacity: (replyText.trim() || replyFiles.length > 0) ? 1 : 0.5,
                             whiteSpace: 'nowrap', alignSelf: 'flex-end',
@@ -341,11 +339,11 @@ export function AdminInquiriesScreen() {
                           />
                         </label>
                         {replyFiles.map((f, i) => (
-                          <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                          <span key={i} style={{ fontSize: 11, color: GOLD, background: 'var(--gold-dim)', padding: '4px 10px', borderRadius: 100 }}>
                             📎 {f.name}
                             <span
                               onClick={() => setReplyFiles(replyFiles.filter((_, j) => j !== i))}
-                              style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                              style={{ marginRight: 8, cursor: 'pointer', color: 'var(--danger)' }}
                             >×</span>
                           </span>
                         ))}
@@ -355,8 +353,8 @@ export function AdminInquiriesScreen() {
                         disabled={resolving}
                         style={{
                           marginTop: 10, width: '100%',
-                          background: 'rgba(76,175,80,0.12)', color: '#4CAF50',
-                          border: '1px solid rgba(76,175,80,0.4)',
+                          background: 'var(--success-dim)', color: 'var(--success)',
+                          border: '1px solid var(--success-border)',
                           padding: '9px', borderRadius: 8, fontSize: 12, fontWeight: 700,
                           cursor: 'pointer',
                         }}
@@ -364,7 +362,7 @@ export function AdminInquiriesScreen() {
                     </>
                   )}
                   {inq.status === 'Resolved' && (
-                    <div style={{ marginTop: 14, fontSize: 12, color: '#4CAF50', textAlign: 'center', padding: 10, background: 'rgba(76,175,80,0.08)', borderRadius: 8 }}>
+                    <div style={{ marginTop: 14, fontSize: 12, color: 'var(--success)', textAlign: 'center', padding: 10, background: 'var(--success-dim)', borderRadius: 8 }}>
                       ✓ הפנייה טופלה
                     </div>
                   )}
@@ -378,12 +376,11 @@ export function AdminInquiriesScreen() {
       {/* Compose-to-investor modal */}
       {composeOpen && (
         <>
-          <div onClick={() => !sending && setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
-          <div style={{
+          <div onClick={() => !sending && setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 400 }} />
+          <div className="glass-panel" style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             width: 'min(480px, calc(100vw - 32px))',
-            background: 'var(--bg-surface)', borderRadius: 16,
-            border: '1px solid var(--border)', zIndex: 401,
+            borderRadius: 'var(--radius-card)', zIndex: 401,
             maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -438,16 +435,16 @@ export function AdminInquiriesScreen() {
                   />
                 </label>
                 {newFiles.map((f, i) => (
-                  <span key={i} style={{ fontSize: 11, color: GOLD, background: `${GOLD}12`, padding: '4px 10px', borderRadius: 100 }}>
+                  <span key={i} style={{ fontSize: 11, color: GOLD, background: 'var(--gold-dim)', padding: '4px 10px', borderRadius: 100 }}>
                     📎 {f.name}
                     <span
                       onClick={() => setNewFiles(newFiles.filter((_, j) => j !== i))}
-                      style={{ marginRight: 8, cursor: 'pointer', color: '#ff6b6b' }}
+                      style={{ marginRight: 8, cursor: 'pointer', color: 'var(--danger)' }}
                     >×</span>
                   </span>
                 ))}
               </div>
-              {error && <div style={{ fontSize: 12, color: '#ff6b6b' }}>{error}</div>}
+              {error && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
             </div>
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexDirection: 'row-reverse' }}>
               <button
@@ -455,7 +452,7 @@ export function AdminInquiriesScreen() {
                 disabled={sending || !targetInvestorId || !newSubject.trim() || !newMessage.trim()}
                 style={{
                   background: GOLD, color: '#000', border: 'none',
-                  padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                  padding: '10px 22px', borderRadius: 'var(--radius-sm)', fontSize: 14, fontWeight: 700,
                   cursor: sending ? 'wait' : 'pointer',
                   opacity: (sending || !targetInvestorId || !newSubject.trim() || !newMessage.trim()) ? 0.6 : 1,
                 }}
@@ -465,7 +462,7 @@ export function AdminInquiriesScreen() {
                 style={{
                   background: 'transparent', color: 'var(--text-secondary)',
                   border: '1px solid var(--border)',
-                  padding: '10px 22px', borderRadius: 10, fontSize: 14, cursor: 'pointer',
+                  padding: '10px 22px', borderRadius: 'var(--radius-sm)', fontSize: 14, cursor: 'pointer',
                 }}
               >ביטול</button>
             </div>

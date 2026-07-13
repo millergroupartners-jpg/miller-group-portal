@@ -13,7 +13,7 @@ import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../se
 import type { MondayProperty } from '../../services/mondayApi';
 import type { Property } from '../../types';
 
-const GOLD = '#C9A84C';
+const GOLD = 'var(--gold-text)';
 
 // ── Inner card component so useCCThumbnail can be called per-property ──
 function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; onPress: () => void }) {
@@ -24,7 +24,7 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
         <PropPhoto index={i} heightRatio={48} photoUrl={thumb} />
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+          background: 'linear-gradient(transparent 25%, rgba(8,8,10,0.82))',
           padding: '18px 12px 10px',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -38,17 +38,17 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
       </div>
       <div style={{ padding: '10px 14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>מחיר קנייה</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.purchasePrice}</div>
+          <div className="stat-chip">
+            <div className="stat-label">מחיר קנייה</div>
+            <div className="stat-value num" style={{ fontSize: 13 }}>{p.purchasePrice}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>ARV</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{p.arv}</div>
+          <div className="stat-chip">
+            <div className="stat-label">ARV</div>
+            <div className="stat-value num" style={{ fontSize: 13, color: GOLD }}>{p.arv}</div>
           </div>
-          <div style={{ background: 'var(--bg-chip)', borderRadius: 10, padding: '8px 12px', flex: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>Equity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#4CAF50' }}>
+          <div className="stat-chip">
+            <div className="stat-label">Equity</div>
+            <div className="stat-value num" style={{ fontSize: 13, color: 'var(--success)' }}>
               {p.arvRaw > 0 && p.allIn > 0 ? '$' + (p.arvRaw - p.allIn).toLocaleString('en-US') : '—'}
             </div>
           </div>
@@ -70,20 +70,28 @@ function MondayPropertyCard({ p, i, onPress }: { p: MondayProperty; i: number; o
 export function DashboardScreen() {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
-  const { investors: mondayInvestors } = useMondayData();
+  const { investors: mondayInvestors, loading: mondayLoading } = useMondayData();
   const user = currentUser ?? MOCK_USER;
 
-  // If logged in as a Monday investor, show their live properties
-  const mondayInvestor = user.mondayInvestorId
+  // A real investor logs in via Monday and carries a mondayInvestorId. The demo
+  // account (MOCK_USER) has none — it's the only user that should ever see the
+  // sample properties. A real investor always sees their own portfolio, or a
+  // clean empty state when they don't own anything yet — never the demo data.
+  const isMondayMode = Boolean(user.mondayInvestorId);
+  const mondayInvestor = isMondayMode
     ? mondayInvestors.find(inv => inv.mondayId === user.mondayInvestorId)
     : null;
 
-  const isMondayMode = Boolean(mondayInvestor);
   const mondayProps: MondayProperty[] = mondayInvestor?.properties ?? [];
   const staticProps: Property[] = isMondayMode ? [] : PROPERTIES;
 
+  // Before the Monday data has loaded we haven't matched the investor yet, so
+  // hold off on the empty state (and on any numbers) rather than flash "no
+  // properties" at someone whose portfolio is still on its way.
+  const investorPending = isMondayMode && !mondayInvestor && mondayLoading;
+
   const propCount   = isMondayMode ? mondayProps.length : staticProps.length;
-  const portfolio   = mondayInvestor?.portfolioValue ?? '$575K';
+  const portfolio   = isMondayMode ? (mondayInvestor?.portfolioValue ?? '—') : '$575K';
   const avgYield    = mondayInvestor?.avgYield       ?? '10.5%';
 
   // Monday-mode extras
@@ -133,10 +141,11 @@ export function DashboardScreen() {
           </div>
           <div style={{
             width: 36, height: 36, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #C9A84C, #8a6a28)',
+            background: 'var(--gold-grad)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            boxShadow: 'var(--gold-glow)',
           }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#000' }}>{user.initials}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1508' }}>{user.initials}</span>
           </div>
         </div>
       </div>
@@ -147,32 +156,30 @@ export function DashboardScreen() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'סה"כ נכסים', value: String(propCount), color: GOLD },
-            { label: 'Equity',      value: equity,            color: '#4CAF50' },
+            { label: 'Equity',      value: equity,            color: 'var(--success)' },
             { label: 'שווי תיק',    value: portfolio,          color: GOLD },
-            { label: 'ROI',         value: roi,                color: '#4CAF50' },
+            { label: 'ROI',         value: roi,                color: 'var(--success)' },
           ].map(s => (
             <div key={s.label} style={{
-              background: (s.label === 'ROI' || s.label === 'Equity') ? 'rgba(76,175,80,0.08)' : 'var(--bg-chip)',
-              borderRadius: 10,
+              background: (s.label === 'ROI' || s.label === 'Equity') ? 'var(--success-dim)' : 'var(--bg-surface-2)',
+              borderRadius: 'var(--radius-sm)',
               padding: '10px 6px', textAlign: 'center',
-              border: (s.label === 'ROI' || s.label === 'Equity') ? '1px solid rgba(76,175,80,0.25)' : 'none',
+              border: (s.label === 'ROI' || s.label === 'Equity') ? '1px solid var(--success-border)' : '1px solid var(--border)',
             }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, marginBottom: 2 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 15, fontWeight: 700, color: s.color, marginBottom: 2 }}>{s.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
         </div>
         <button
+          className="mg-btn-secondary"
           onClick={() => navigate('analytics')}
           style={{
-            width: '100%', marginTop: 8, padding: '8px 12px', borderRadius: 10,
-            border: '1px solid var(--border)', background: 'var(--bg-chip)',
-            color: GOLD, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'var(--font-ui)',
+            marginTop: 8, padding: '9px 12px', fontSize: 12, borderRadius: 'var(--radius-sm)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
@@ -189,10 +196,11 @@ export function DashboardScreen() {
             { label: 'תשואה ממוצעת', value: avgYield },
           ].map(s => (
             <div key={s.label} style={{
-              background: 'var(--bg-chip)', borderRadius: 10,
+              background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
               padding: '10px 6px', flex: 1, textAlign: 'center',
             }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: GOLD, marginBottom: 2 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 16, fontWeight: 700, color: GOLD, marginBottom: 2 }}>{s.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
@@ -212,7 +220,7 @@ export function DashboardScreen() {
 
       {/* Property cards + optional activity feed below */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
-      <div className="property-grid" style={{ padding: 0 }}>
+      <div className="property-grid stagger" style={{ padding: 0 }}>
 
         {/* ── Monday investor properties ── */}
         {isMondayMode && mondayProps.map((p, i) => (
@@ -223,6 +231,36 @@ export function DashboardScreen() {
             onPress={() => navigate('property-detail', { propertyId: p.mondayId })}
           />
         ))}
+
+        {/* ── Empty state: real investor with no properties yet ── */}
+        {isMondayMode && mondayProps.length === 0 && (
+          investorPending ? (
+            <div className="gold-card" style={{ gridColumn: '1 / -1', padding: 32, textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span className="mg-spinner" style={{ width: 14, height: 14 }} />
+                <span>טוען את הנכסים שלך...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="gold-card" style={{ gridColumn: '1 / -1', padding: '36px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 42, marginBottom: 14 }}>🏠</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+                אין לך נכסים עדיין
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 20 }}>
+                הנכסים שלך יופיעו כאן ברגע שיצטרפו לתיק ההשקעות שלך.
+                <br />בינתיים, אפשר לעיין בעסקאות הזמינות להשקעה.
+              </div>
+              <button
+                className="mg-btn-secondary mg-btn-sm"
+                onClick={() => navigate('deal-room')}
+                style={{ width: 'auto', margin: '0 auto' }}
+              >
+                לצפייה בעסקאות זמינות ←
+              </button>
+            </div>
+          )
+        )}
 
         {/* ── Static / demo properties ── */}
         {!isMondayMode && staticProps.map((p, i) => (
@@ -236,7 +274,7 @@ export function DashboardScreen() {
               <PropPhoto index={i} heightRatio={48} />
               <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                background: 'linear-gradient(transparent 25%, rgba(8,8,10,0.82))',
                 padding: '18px 12px 10px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -288,7 +326,7 @@ export function DashboardScreen() {
               ציר זמן · עדכונים אחרונים
             </span>
             {feedLoading
-              ? <span style={{ fontSize: 10, color: GOLD }}>⏳</span>
+              ? <span className="mg-spinner" style={{ width: 12, height: 12 }} />
               : feed.length > 0 && (
                   <button
                     onClick={() => navigate('timeline')}

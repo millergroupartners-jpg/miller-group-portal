@@ -8,8 +8,66 @@
  */
 
 import nodemailer from 'nodemailer';
+import { mondayQuery } from './monday.js';
 
 let _transporter: nodemailer.Transporter | null = null;
+
+// ─── Email log (Monday board "יומן מיילים") ────────────────────────────────
+// Every sendMail() call is recorded here so the admin can audit what went out,
+// when, and to whom. Logging must never break the actual send.
+
+const EMAIL_LOG_BOARD_ID = 5100220059;
+const LOG_COL = {
+  recipients: 'long_text_mm57hqg0', // נמענים
+  kind:       'color_mm57f0rb',     // סוג: אוטומטי / ידני
+  category:   'text_mm57fqqp',      // קטגוריה (פניות / עסקאות / תזכורות / ...)
+  body:       'long_text_mm57nrqb', // תוכן (טקסט נקי, קטוע)
+  sendStatus: 'color_mm576egg',     // סטטוס שליחה: נשלח / נכשל
+  count:      'numeric_mm57e4gd',   // מספר נמענים
+} as const;
+
+export interface EmailLogMeta {
+  /** 'אוטומטי' (default) for cron/system emails, 'ידני' for admin-composed. */
+  kind?: 'אוטומטי' | 'ידני';
+  /** Free-text bucket shown in the admin log, e.g. 'פניות', 'חדר עסקאות'. */
+  category?: string;
+}
+
+function htmlToPreview(html: string, max = 600): string {
+  const text = html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
+async function logEmail(
+  opts: { to: string | string[]; subject: string; html: string },
+  meta: EmailLogMeta,
+  ok: boolean,
+): Promise<void> {
+  try {
+    const recipients = Array.isArray(opts.to) ? opts.to : [opts.to];
+    const columnValues = {
+      [LOG_COL.recipients]: { text: recipients.join(', ') },
+      [LOG_COL.kind]:       { label: meta.kind ?? 'אוטומטי' },
+      [LOG_COL.category]:   meta.category ?? 'כללי',
+      [LOG_COL.body]:       { text: htmlToPreview(opts.html) },
+      [LOG_COL.sendStatus]: { label: ok ? 'נשלח' : 'נכשל' },
+      [LOG_COL.count]:      String(recipients.length),
+    };
+    await mondayQuery(
+      `mutation ($board: ID!, $name: String!, $cols: JSON!) {
+        create_item(board_id: $board, item_name: $name, column_values: $cols) { id }
+      }`,
+      { board: String(EMAIL_LOG_BOARD_ID), name: opts.subject.slice(0, 255), cols: JSON.stringify(columnValues) },
+    );
+  } catch (err) {
+    console.error('email log write failed (send unaffected):', err);
+  }
+}
 
 function getTransporter() {
   if (_transporter) return _transporter;
@@ -30,27 +88,52 @@ export async function sendMail(opts: {
   subject: string;
   html: string;
   replyTo?: string;
+  /** Audit-log metadata. Pass `false` to skip logging (e.g. inside a batch
+   *  that logs once for all recipients). Defaults to an 'אוטומטי' log entry. */
+  log?: EmailLogMeta | false;
 }) {
   const user = (process.env.GMAIL_USER || '').trim();
   const to = Array.isArray(opts.to) ? opts.to.join(', ') : opts.to;
-  return getTransporter().sendMail({
-    from: `"Miller Group" <${user}>`,
-    to,
-    subject: opts.subject,
-    html: opts.html,
-    replyTo: opts.replyTo,
-  });
+  try {
+    const result = await getTransporter().sendMail({
+      from: `"Miller Group" <${user}>`,
+      to,
+      subject: opts.subject,
+      html: opts.html,
+      replyTo: opts.replyTo,
+    });
+    if (opts.log !== false) await logEmail(opts, opts.log ?? {}, true);
+    return result;
+  } catch (err) {
+    if (opts.log !== false) await logEmail(opts, opts.log ?? {}, false);
+    throw err;
+  }
+}
+
+/** Log a batch send as ONE entry (callers that loop sendMail({log:false})). */
+export async function logEmailBatch(opts: {
+  recipients: string[];
+  subject: string;
+  html: string;
+  meta: EmailLogMeta;
+  ok: boolean;
+}): Promise<void> {
+  await logEmail({ to: opts.recipients, subject: opts.subject, html: opts.html }, opts.meta, opts.ok);
 }
 
 /**
  * Returns the list of recipient emails for any "goes to management" notification
  * (daily summary, new inquiries, media alerts). Always includes GMAIL_USER, plus
- * anyone listed in the comma-separated ADMIN_EMAILS env var (e.g. backoffice).
+ * anyone listed in the comma-separated ADMIN_EMAILS env var (e.g. backoffice),
+ * plus anyone in ADMIN_EMAILS_EXTRA — a second, separately-managed list so new
+ * recipients can be added without touching the existing ADMIN_EMAILS value.
  */
 export function getAdminRecipients(): string[] {
   const primary = (process.env.GMAIL_USER || '').trim();
-  const extras = (process.env.ADMIN_EMAILS || '')
-    .split(',')
+  const extras = [
+    ...(process.env.ADMIN_EMAILS || '').split(','),
+    ...(process.env.ADMIN_EMAILS_EXTRA || '').split(','),
+  ]
     .map(s => s.trim())
     .filter(s => s && s !== primary);
   const all = [primary, ...extras].filter(Boolean);

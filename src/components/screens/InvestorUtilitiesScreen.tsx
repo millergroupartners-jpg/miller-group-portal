@@ -14,8 +14,6 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { listUtilities, utilityIcon, statusColor, type Utility, type UtilityStatus } from '../../services/utilitiesApi';
 
-const GOLD = '#C9A84C';
-
 type StatusFilterKey = UtilityStatus | 'all';
 
 const STATUS_CHIPS: { key: StatusFilterKey; label: string }[] = [
@@ -88,7 +86,7 @@ export function InvestorUtilitiesScreen() {
         <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>Utilities</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Filter chips */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: 'row-reverse', justifyContent: 'flex-start' }}>
           {STATUS_CHIPS.map(c => {
@@ -98,20 +96,14 @@ export function InvestorUtilitiesScreen() {
               <button
                 key={c.key}
                 onClick={() => setStatusFilter(c.key)}
-                style={{
-                  padding: '6px 12px', borderRadius: 100,
-                  background: active ? GOLD : 'var(--bg-chip)',
-                  color: active ? '#000' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}
+                className={'chip-filter' + (active ? ' active' : '')}
+                style={{ flexShrink: 0 }}
               >
                 {c.label}
-                <span style={{
+                <span className="num" style={{
                   fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100,
-                  background: active ? 'rgba(0,0,0,0.15)' : 'var(--border)',
-                  color: active ? '#000' : 'var(--text-muted)',
+                  background: active ? 'var(--gold-border)' : 'var(--border)',
+                  color: active ? 'var(--gold-text)' : 'var(--text-muted)',
                 }}>{count}</span>
               </button>
             );
@@ -119,7 +111,7 @@ export function InvestorUtilitiesScreen() {
         </div>
 
         {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען…</div>}
-        {error && <div style={{ padding: 24, textAlign: 'center', color: '#ff4d4d', fontSize: 13 }}>שגיאה: {error}</div>}
+        {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>שגיאה: {error}</div>}
         {!loading && grouped.length === 0 && !error && (
           <div className="gold-card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
             אין חשבונות זמינים
@@ -152,7 +144,7 @@ export function InvestorUtilitiesScreen() {
                 }}
               >
                 <div style={{
-                  width: 36, height: 36, borderRadius: 10,
+                  width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                   background: `${statusColor(u.status)}18`, border: `1px solid ${statusColor(u.status)}44`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
                 }}>{utilityIcon(u.serviceCompany)}</div>

@@ -394,9 +394,10 @@ interface ContactInfo {
 async function fetchContactsByIds(ids: string[]): Promise<Record<string, ContactInfo>> {
   if (ids.length === 0) return {};
   const uniqueIds = Array.from(new Set(ids));
+  // items(ids:) silently caps at 25 results unless `limit` is passed.
   const query: string = `
     query {
-      items(ids: [${uniqueIds.join(',')}]) {
+      items(ids: [${uniqueIds.join(',')}], limit: ${uniqueIds.length}) {
         id
         name
         column_values(ids: ["${CONTACT_COL.phone}", "${CONTACT_COL.email}", "${CONTACT_COL.company}", "${CONTACT_COL.role}"]) {
@@ -664,7 +665,7 @@ export async function fetchPropertyProfits(propertyIds: string[]): Promise<Recor
   for (const chunk of chunks) {
     const idList = chunk.join(',');
     const query = `query {
-      items(ids: [${idList}]) {
+      items(ids: [${idList}], limit: ${chunk.length}) {
         id
         column_values(ids: [${colIds}]) { id text value }
       }
