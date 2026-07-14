@@ -1,0 +1,343 @@
+/* ══════════════════════════════════════════════════════════════
+   Investor onboarding — first-login guided tour
+   Two surfaces: full-screen intro/outro overlays, and a spotlight
+   layer that highlights real dashboard elements with a floating
+   explainer card. Rare/first-time surface — allowed more motion
+   delight than everyday UI.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Full-screen overlay (intro / outro) ─────────────────────── */
+.ob-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg-base) 90%, transparent);
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  animation: obFadeIn 420ms var(--ease-out) both;
+}
+.ob-closing {
+  animation: obFadeOut 280ms var(--ease-out) forwards !important;
+  pointer-events: none;
+}
+@keyframes obFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes obFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* ── Ambient gold orbs ───────────────────────────────────────── */
+.ob-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(70px);
+}
+.ob-orb-1 {
+  width: 520px; height: 520px;
+  top: -180px; inset-inline-start: -140px;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.16), transparent 65%);
+  animation: obDrift1 16s ease-in-out infinite alternate;
+}
+.ob-orb-2 {
+  width: 420px; height: 420px;
+  bottom: -160px; inset-inline-end: -120px;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.10), transparent 65%);
+  animation: obDrift2 20s ease-in-out infinite alternate;
+}
+@keyframes obDrift1 { from { transform: translate(0, 0); } to { transform: translate(40px, 30px); } }
+@keyframes obDrift2 { from { transform: translate(0, 0); } to { transform: translate(-36px, -24px); } }
+
+/* ── Floating gold particles ─────────────────────────────────── */
+.ob-particle {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px 1px rgba(201, 168, 76, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: obRise linear infinite both;
+}
+@keyframes obRise {
+  0%   { transform: translateY(0) translateX(0);       opacity: 0; }
+  8%   { opacity: 0.75; }
+  55%  { opacity: 0.3; transform: translateY(-55vh) translateX(14px); }
+  100% { transform: translateY(-108vh) translateX(-10px); opacity: 0; }
+}
+
+/* ── Intro / outro content ───────────────────────────────────── */
+.ob-hero {
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.ob-hero > * { animation: fadeUp 460ms var(--ease-out) both; }
+.ob-hero > *:nth-child(1) { animation-delay: 60ms; }
+.ob-hero > *:nth-child(2) { animation-delay: 140ms; }
+.ob-hero > *:nth-child(3) { animation-delay: 220ms; }
+.ob-hero > *:nth-child(4) { animation-delay: 300ms; }
+.ob-hero > *:nth-child(5) { animation-delay: 380ms; }
+.ob-hero > *:nth-child(6) { animation-delay: 460ms; }
+
+.ob-logo {
+  margin-bottom: 14px;
+  animation: obLogoIn 700ms var(--ease-out) both;
+  filter: drop-shadow(0 0 24px rgba(201, 168, 76, 0.35));
+}
+@keyframes obLogoIn {
+  from { opacity: 0; transform: scale(0.94); filter: blur(6px); }
+  to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+}
+
+.ob-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--gold-text);
+  margin-bottom: 14px;
+}
+.ob-title {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: clamp(26px, 4.6vw, 38px);
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.ob-title-accent {
+  display: block;
+  background: linear-gradient(90deg,
+    var(--gold-deep) 0%, var(--gold) 30%, #F4E3AC 50%, var(--gold) 70%, var(--gold-deep) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: obShimmer 3.4s linear infinite;
+}
+@keyframes obShimmer {
+  from { background-position: 220% 0; }
+  to   { background-position: -220% 0; }
+}
+.ob-desc {
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  max-width: 440px;
+  margin: 18px auto 30px;
+}
+.ob-cta-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.ob-cta {
+  width: auto;
+  min-width: 230px;
+  padding: 15px 42px;
+}
+.ob-later {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: var(--radius-badge);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .ob-later:hover { color: var(--text-primary); }
+}
+
+/* ── Outro check draw ────────────────────────────────────────── */
+.ob-check { margin-bottom: 18px; }
+.ob-check-circle {
+  stroke-dasharray: 152;
+  stroke-dashoffset: 152;
+  animation: obDraw 700ms var(--ease-out) 150ms forwards;
+}
+.ob-check-mark {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: obDraw 420ms var(--ease-out) 750ms forwards;
+}
+@keyframes obDraw { to { stroke-dashoffset: 0; } }
+
+/* ══════════════════════════════════════════════════════════════
+   Spotlight tour layer
+   ══════════════════════════════════════════════════════════════ */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  animation: obFadeIn 360ms var(--ease-out) both;
+}
+
+/* The "hole": a rounded rect whose giant shadow dims everything else.
+   Geometry transitions with a spring so it glides between targets. */
+.tour-hole {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 16px;
+  box-shadow: 0 0 0 200vmax rgba(8, 8, 11, 0.72);
+  border: 1.5px solid var(--gold);
+  transition:
+    top    520ms var(--ease-spring),
+    left   520ms var(--ease-spring),
+    width  520ms var(--ease-spring),
+    height 520ms var(--ease-spring);
+}
+/* Pulsing halo ring that rides on the same geometry */
+.tour-halo {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 16px;
+  animation: tourPulse 2.2s var(--ease-out) infinite;
+  transition:
+    top    520ms var(--ease-spring),
+    left   520ms var(--ease-spring),
+    width  520ms var(--ease-spring),
+    height 520ms var(--ease-spring);
+}
+@keyframes tourPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.45), 0 0 24px rgba(201, 168, 76, 0.25); }
+  70%  { box-shadow: 0 0 0 14px rgba(201, 168, 76, 0), 0 0 24px rgba(201, 168, 76, 0.12); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0),    0 0 24px rgba(201, 168, 76, 0.25); }
+}
+
+/* ── Floating explainer card ─────────────────────────────────── */
+.tour-card {
+  position: fixed;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-4), var(--gold-glow);
+  padding: 18px 20px 16px;
+  overflow: hidden;
+  animation: tourCardIn 340ms var(--ease-out) both;
+}
+@keyframes tourCardIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+/* gold hairline on top, like .gold-card */
+.tour-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent);
+}
+/* diamond arrow pointing at the target */
+.tour-arrow {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  transform: rotate(45deg);
+}
+.tour-arrow.up    { top: -7px;    border-bottom: none; border-right: none; }
+.tour-arrow.down  { bottom: -7px; border-top: none;    border-left: none; }
+
+.tour-progress-track {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--progress-track);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.tour-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gold-grad);
+  transition: width 420ms var(--ease-out);
+}
+.tour-step-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-text);
+  margin-bottom: 6px;
+}
+.tour-title {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+.tour-desc {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tour-next {
+  width: auto;
+  flex: 1;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+.tour-back {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tour-back:hover { background: var(--bg-surface-hover); color: var(--text-primary); }
+}
+.tour-back:active { transform: scale(0.94); }
+.tour-skip {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 6px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tour-skip:hover { color: var(--text-primary); }
+}
+
+/* ── Reduced motion — keep fades, kill movement ──────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ob-orb, .ob-particle { animation: none; }
+  .ob-overlay, .ob-hero > *, .ob-logo, .tour-layer, .tour-card {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .ob-title-accent { animation: none; background-position: 50% 0; }
+  .tour-hole, .tour-halo { transition-duration: 1ms; }
+  .tour-halo { animation: none; }
+}

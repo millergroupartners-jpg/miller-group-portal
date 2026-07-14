@@ -21,9 +21,11 @@ export function MobileTopActions({ active }: { active: Screen }) {
 
   return (
     <div className="mobile-top-actions">
-      <NotificationsPanel />
+      <div data-tour="bell" style={{ display: 'flex' }}>
+        <NotificationsPanel />
+      </div>
 
-      <button className="icon-btn glass-panel" onClick={() => navigate('settings')} title="הגדרות">
+      <button data-tour="nav-settings" className="icon-btn glass-panel" onClick={() => navigate('settings')} title="הגדרות">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
           stroke={active === 'settings' ? GOLD : 'var(--tab-icon)'}
           strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

@@ -244,6 +244,7 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
         return (
           <div
             key={tab.id}
+            data-tour={`nav-${tab.id}`}
             className={`tab-item${isActive ? ' active' : ''}`}
             onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
             style={{ position: 'relative' }}

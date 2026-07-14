@@ -256,7 +256,9 @@ export function DesktopSidebar({ active }: { active: Screen }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <MGLogo size={40} />
-        <NotificationsPanel />
+        <div data-tour="bell" style={{ display: 'flex' }}>
+          <NotificationsPanel />
+        </div>
       </div>
 
       {/* "Back to admin menu" button — only when admin is in investor-style view */}
@@ -282,6 +284,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           return (
             <button
               key={tab.id}
+              data-tour={`nav-${tab.id}`}
               className={`side-nav-item${isActive ? ' active' : ''}`}
               onClick={() => navigate(isAdmin && tab.id === 'dashboard' ? 'admin-properties' : tab.id)}
             >

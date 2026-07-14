@@ -152,7 +152,7 @@ export function DashboardScreen() {
 
       {/* Summary strip */}
       {isMondayMode ? (
-        <div style={{ padding: '6px 20px 10px', flexShrink: 0 }}>
+        <div data-tour="stats" style={{ padding: '6px 20px 10px', flexShrink: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'סה"כ נכסים', value: String(propCount), color: GOLD },
@@ -189,7 +189,7 @@ export function DashboardScreen() {
         </button>
         </div>
       ) : (
-        <div style={{ padding: '6px 20px 10px', display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div data-tour="stats" style={{ padding: '6px 20px 10px', display: 'flex', gap: 10, flexShrink: 0 }}>
           {[
             { label: 'סה"כ נכסים',  value: String(propCount) },
             { label: 'שווי תיק',    value: portfolio },
@@ -220,7 +220,7 @@ export function DashboardScreen() {
 
       {/* Property cards + optional activity feed below */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
-      <div className="property-grid stagger" style={{ padding: 0 }}>
+      <div data-tour="properties" className="property-grid stagger" style={{ padding: 0 }}>
 
         {/* ── Monday investor properties ── */}
         {isMondayMode && mondayProps.map((p, i) => (
@@ -317,7 +317,7 @@ export function DashboardScreen() {
 
       {/* ── Activity feed (investor mode only) ── */}
       {isMondayMode && (
-        <div style={{ marginTop: 20 }}>
+        <div data-tour="feed" style={{ marginTop: 20 }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             flexDirection: 'row-reverse', marginBottom: 10,

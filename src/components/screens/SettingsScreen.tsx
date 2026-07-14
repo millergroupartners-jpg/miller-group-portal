@@ -5,6 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
+import { replayOnboarding } from '../onboarding/InvestorOnboarding';
 import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut, getDealEmailOptOut, setDealEmailOptOut } from '../../services/notificationPrefs';
 
 const GOLD = 'var(--gold-text)';
@@ -143,6 +144,13 @@ export function SettingsScreen() {
   const handleLogout = () => {
     setCurrentUser(null);
     resetTo('login');
+  };
+
+  // The tour lives on the dashboard and decides whether to play when it mounts,
+  // so clearing the flag and landing there is all it takes to replay it.
+  const handleReplayTour = () => {
+    replayOnboarding(user);
+    resetTo('dashboard');
   };
 
   return (
@@ -396,6 +404,23 @@ export function SettingsScreen() {
                 label="פאנל אדמין"
                 value="ניהול משקיעים ונכסים"
                 onPress={() => navigate('admin-dashboard')}
+              />
+            </SectionCard>
+          </>
+        )}
+
+        {/* Help — the guided tour is investor-only, so admins don't get the row */}
+        {!user.isAdmin && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right', marginBottom: 8, paddingRight: 4 }}>
+              עזרה
+            </div>
+            <SectionCard>
+              <SettingRow
+                icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                label="סיור מודרך בפורטל"
+                value="הפעלה מחדש של סיור ההיכרות"
+                onPress={handleReplayTour}
               />
             </SectionCard>
           </>

@@ -27,6 +27,7 @@ import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
 import { MobileTopActions } from './components/common/MobileTopActions';
+import { InvestorOnboarding } from './components/onboarding/InvestorOnboarding';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
@@ -95,6 +96,8 @@ export default function App() {
         </div>
         {/* Mobile-only floating action cluster: bell, settings, back-to-admin */}
         <MobileTopActions active={screen} />
+        {/* First-login tour — renders only for investors who haven't seen it */}
+        {screen === 'dashboard' && <InvestorOnboarding />}
       </div>
     );
   }
