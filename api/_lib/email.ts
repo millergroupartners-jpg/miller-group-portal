@@ -34,12 +34,24 @@ export interface EmailLogMeta {
   category?: string;
 }
 
-function htmlToPreview(html: string, max = 600): string {
+/**
+ * Full text of the email with line structure preserved, so the portal's log
+ * can show the whole message (not a 600-char single-line preview). Capped well
+ * under Monday's long-text column limit (~65k).
+ */
+function htmlToPreview(html: string, max = 40000): string {
   const text = html
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<head[\s\S]*?<\/head>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<\/(p|div|h[1-6]|li|tr|ul|ol|table)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .split('\n').map(line => line.replace(/[ \t]+/g, ' ').trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
   return text.length > max ? text.slice(0, max) + '…' : text;
 }

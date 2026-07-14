@@ -65,9 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }`;
     form.append('query', query);
-    // Node 18+ has global File/Blob. Wrap the Buffer in a Uint8Array view so
-    // TS 5.9 accepts it as a BlobPart (Buffer<ArrayBufferLike> isn't directly).
-    const blob = new Blob([new Uint8Array(body.buffer, body.byteOffset, body.byteLength)], { type: contentType });
+    // Node 18+ has global File/Blob. Copy the Buffer into a fresh Uint8Array:
+    // a view over body.buffer is typed Uint8Array<ArrayBufferLike> (could be a
+    // SharedArrayBuffer), which TS 5.9 rejects as a BlobPart.
+    const blob = new Blob([new Uint8Array(body)], { type: contentType });
     form.append('variables[file]', blob, filename);
 
     const mondayRes = await fetch('https://api.monday.com/v2/file', {

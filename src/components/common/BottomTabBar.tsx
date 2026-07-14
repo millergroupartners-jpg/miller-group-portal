@@ -199,16 +199,18 @@ const ADMIN_TABS: Tab[] = [
     ),
   },
   {
-    id: 'admin-loans',
-    label: 'הלוואות',
+    // Renovation loans moved into the שיפוצים screen (admin-renovations) as a
+    // toggle — this slot now surfaces the email center, which previously had no
+    // mobile entry point.
+    id: 'admin-emails',
+    label: 'מיילים',
     icon: active => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
         stroke={active ? GOLD : 'var(--tab-icon)'}
         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
         style={{ transition: 'stroke 0.15s' }}>
-        <rect x="2" y="6" width="20" height="12" rx="2" />
-        <circle cx="12" cy="12" r="2.5" />
-        <path d="M6 12h.01M18 12h.01" />
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
       </svg>
     ),
   },

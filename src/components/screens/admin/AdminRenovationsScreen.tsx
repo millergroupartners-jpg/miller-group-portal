@@ -19,8 +19,13 @@ import {
   type Renovation, type RenovationUpdate,
 } from '../../../services/renovationsApi';
 import { MGLogo } from '../../common/MGLogo';
+import { AdminLoansScreen } from './AdminLoansScreen';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
+
+/** Top-level view — the renovation-loans board is now a sub-view here rather
+ *  than a standalone nav entry. */
+type View = 'renovations' | 'loans';
 
 /** Source toggle — which set of properties the admin wants to see renovations for. */
 type SourceKey = 'investors' | 'mg';
@@ -176,6 +181,7 @@ export function AdminRenovationsScreen() {
   const [source, setSource] = useState<SourceKey>('investors');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [view, setView] = useState<View>('renovations');
 
   useEffect(() => {
     let cancelled = false;
@@ -253,16 +259,80 @@ export function AdminRenovationsScreen() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
       <div className="desktop-page-title">
-        <div className="subtitle">{items.length} פרויקטים · ADMIN VIEW · נתונים פנימיים</div>
-        <h1>שיפוצים</h1>
+        <div className="subtitle">
+          {view === 'loans'
+            ? 'הלוואות שיפוץ · ADMIN VIEW'
+            : `${items.length} פרויקטים · ADMIN VIEW · נתונים פנימיים`}
+        </div>
+        <h1>{view === 'loans' ? 'הלוואות שיפוץ' : 'שיפוצים'}</h1>
       </div>
 
       <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <MGLogo size={36} showWordmark={false} />
-        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>שיפוצים</span>
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+          {view === 'loans' ? 'הלוואות שיפוץ' : 'שיפוצים'}
+        </span>
       </div>
 
       <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Primary view switcher — שיפוצים vs the renovation-loans board (merged
+            in here so mobile can free its bottom-bar slot for מיילים). Styled as
+            a bold full-width segmented control — deliberately distinct from the
+            small filter chips below so it doesn't read as "just another filter". */}
+        <div style={{
+          display: 'flex', flexDirection: 'row-reverse', gap: 5, padding: 5,
+          borderRadius: 16, background: 'var(--bg-surface-2)',
+          border: '1px solid var(--border)',
+        }}>
+          {([
+            {
+              key: 'renovations' as View,
+              label: 'שיפוצים',
+              icon: (
+                <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+              ),
+            },
+            {
+              key: 'loans' as View,
+              label: 'הלוואות שיפוץ',
+              icon: (
+                <>
+                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="2.5" />
+                  <path d="M6 12h.01M18 12h.01" />
+                </>
+              ),
+            },
+          ]).map(opt => {
+            const isOn = view === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setView(opt.key)}
+                style={{
+                  flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 8, padding: '11px 10px', borderRadius: 11, border: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                  background: isOn ? 'var(--gold-grad)' : 'transparent',
+                  color: isOn ? '#1a1400' : 'var(--text-secondary)',
+                  boxShadow: isOn ? '0 3px 12px rgba(201,168,76,0.35)' : 'none',
+                  transition: 'background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  {opt.icon}
+                </svg>
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {view === 'loans' && <AdminLoansScreen embedded />}
+
+        {view === 'renovations' && <>
         {/* KPI summary — adapts to MG mode (no investor / no profit). */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 10 }}>
@@ -602,6 +672,7 @@ export function AdminRenovationsScreen() {
             </div>
           );
         })}
+        </>}
       </div>
     </div>
   );

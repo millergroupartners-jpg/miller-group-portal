@@ -38,11 +38,79 @@ function Chip({ text, color }: { text: string; color: string }) {
 
 // ─── Tab: יומן ───────────────────────────────────────────────────────────────
 
+/**
+ * The logged text is extracted from the full branded email, so it starts with
+ * the template header ("MILLER GROUP" + title) and ends with the footer line.
+ * Strip that boilerplate so the modal (which re-draws the branded frame) shows
+ * only the actual message body. Best-effort — old truncated entries pass through.
+ */
+function emailBodyText(e: EmailLogEntry): string {
+  let t = (e.bodyPreview || '').trim();
+  t = t.replace(/^MILLER GROUP\s*/, '');
+  if (e.subject && t.startsWith(e.subject)) t = t.slice(e.subject.length).trim();
+  t = t.replace(/Miller Group · מערכת ניהול המשקיעים(?: · פורטל המשקיעים)?\s*$/, '');
+  return t.trim();
+}
+
+/** Modal that re-renders a logged email inside the branded template frame,
+ *  so it looks like the email the recipient saw. Colors intentionally mirror
+ *  the fixed light-mode palette of the server-side wrapEmail() template. */
+function EmailViewModal({ entry, onClose }: { entry: EmailLogEntry; onClose: () => void }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={ev => ev.stopPropagation()} style={{
+        width: 'min(620px, calc(100vw - 32px))', maxHeight: '88vh',
+        display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden',
+        background: 'var(--bg-elevated, var(--bg-base))', border: '1px solid var(--border)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+      }}>
+        {/* chrome header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row-reverse', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--divider)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexDirection: 'row-reverse', minWidth: 0 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              {fmtDateTime(entry.sentAt)} · {entry.recipientCount} נמענים
+            </span>
+            {!entry.ok && <Chip text="נכשל" color="#e2445c" />}
+            {entry.category && <Chip text={entry.category} color="var(--info, #579bfc)" />}
+            <Chip text={entry.kind || 'אוטומטי'} color={entry.kind === 'ידני' ? '#a25ddc' : '#4CAF50'} />
+          </div>
+          <button onClick={onClose} style={{
+            border: 'none', background: 'var(--bg-chip)', color: 'var(--text-secondary)',
+            width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 13, flexShrink: 0,
+          }}>✕</button>
+        </div>
+
+        {/* email paper — mirrors wrapEmail() */}
+        <div style={{ overflowY: 'auto', padding: 16, background: '#f5f0e8' }}>
+          <div style={{ maxWidth: 560, margin: '0 auto', background: '#ffffff', borderRadius: 16, overflow: 'hidden', border: '1px solid #e5dfd4', direction: 'rtl' }}>
+            <div style={{ background: 'linear-gradient(90deg,#C9A84C,#f0d080,#C9A84C)', height: 4 }} />
+            <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #e5dfd4', textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: '#888', letterSpacing: 1 }}>MILLER GROUP</div>
+              <div style={{ marginTop: 6, fontSize: 18, color: '#111', fontWeight: 700 }}>{entry.subject}</div>
+            </div>
+            <div style={{ padding: '20px 24px', color: '#333', fontSize: 13.5, lineHeight: 1.7, whiteSpace: 'pre-wrap', textAlign: 'right', wordBreak: 'break-word' }}>
+              {emailBodyText(entry) || '— אין תוכן שמור למייל זה —'}
+            </div>
+            <div style={{ padding: '12px 24px', background: '#faf7f2', color: '#999', fontSize: 11, textAlign: 'center', borderTop: '1px solid #e5dfd4' }}>
+              Miller Group · מערכת ניהול המשקיעים
+            </div>
+          </div>
+          {entry.recipients && (
+            <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-secondary)', direction: 'ltr', textAlign: 'left', wordBreak: 'break-all' }}>
+              {entry.recipients}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LogTab() {
   const [log, setLog] = useState<EmailLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [kindFilter, setKindFilter] = useState('הכל');
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<EmailLogEntry | null>(null);
 
   useEffect(() => {
     fetchEmailLog().then(setLog).catch(console.error).finally(() => setLoading(false));
@@ -73,13 +141,19 @@ function LogTab() {
 
       {filtered.map(e => (
         <div key={e.id} className="gold-card" style={{ padding: 14, cursor: 'pointer' }}
-          onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
+          onClick={() => setViewing(e)}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexDirection: 'row-reverse', gap: 10 }}>
             <div style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{e.subject}</div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
                 {fmtDateTime(e.sentAt)} · {e.recipientCount} נמענים
               </div>
+              {e.bodyPreview && (
+                <div style={{
+                  fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.5,
+                  overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                }}>{emailBodyText(e)}</div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               {!e.ok && <Chip text="נכשל" color="#e2445c" />}
@@ -87,16 +161,10 @@ function LogTab() {
               <Chip text={e.kind || 'אוטומטי'} color={e.kind === 'ידני' ? '#a25ddc' : '#4CAF50'} />
             </div>
           </div>
-          {expanded === e.id && (
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--divider)', textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, wordBreak: 'break-all', direction: 'ltr', textAlign: 'left' }}>
-                {e.recipients}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.6 }}>{e.bodyPreview}</div>
-            </div>
-          )}
         </div>
       ))}
+
+      {viewing && <EmailViewModal entry={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }

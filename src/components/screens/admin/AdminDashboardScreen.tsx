@@ -149,7 +149,7 @@ export function AdminDashboardScreen() {
         {/* Health alerts */}
         {(investorsWithoutPassword.length > 0 || closingsThisWeek > 0 || overdueProperties.length > 0 || propertiesMissingManager.length > 0) && (
           <div className="gold-card" style={{ padding: '14px 18px', borderRight: '3px solid #ff9800' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexDirection: 'row-reverse' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" strokeWidth="2" strokeLinecap="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
@@ -163,7 +163,7 @@ export function AdminDashboardScreen() {
                   className="interactive"
                   onClick={() => navigate('admin-closings', { highlightClosingMode: 'week' })}
                   style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row-reverse',
                     padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
@@ -177,7 +177,7 @@ export function AdminDashboardScreen() {
                   className="interactive"
                   onClick={() => navigate('admin-investors', { highlightInvestorMode: 'no-password' })}
                   style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row-reverse',
                     padding: '8px 12px', background: 'rgba(255,152,0,0.08)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
@@ -191,7 +191,7 @@ export function AdminDashboardScreen() {
                   className="interactive"
                   onClick={() => navigate('admin-closings', { highlightClosingMode: 'overdue' })}
                   style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row-reverse',
                     padding: '8px 12px', background: 'var(--danger-dim)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
@@ -205,7 +205,7 @@ export function AdminDashboardScreen() {
                   className="interactive"
                   onClick={() => navigate('admin-properties', { highlightPropertyMode: 'no-manager' })}
                   style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row-reverse',
                     padding: '8px 12px', background: 'var(--danger-dim)', borderRadius: 8,
                     cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                   }}
@@ -228,7 +228,7 @@ export function AdminDashboardScreen() {
               background: 'linear-gradient(90deg, var(--gold-dim), transparent)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexDirection: 'row-reverse' }}>
               <button
                 onClick={e => { e.stopPropagation(); navigate('admin-closings'); }}
                 style={{ background: 'none', border: 'none', color: GOLD, fontSize: 12, cursor: 'pointer' }}
@@ -263,7 +263,7 @@ export function AdminDashboardScreen() {
 
         {/* Pipeline breakdown */}
         <div className="gold-card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexDirection: 'row-reverse' }}>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{properties.length} נכסים</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>פייפליין</span>
           </div>
@@ -272,7 +272,7 @@ export function AdminDashboardScreen() {
               const pct = properties.length > 0 ? (s.count / properties.length) * 100 : 0;
               return (
                 <div key={s.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, flexDirection: 'row-reverse' }}>
                     <span className="num" style={{ color: s.color, fontWeight: 700 }}>{s.count}</span>
                     <span style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
                   </div>
@@ -287,7 +287,7 @@ export function AdminDashboardScreen() {
 
         {/* Top investors */}
         <div className="gold-card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexDirection: 'row-reverse' }}>
             <button
               onClick={() => navigate('admin-investors')}
               style={{ background: 'none', border: 'none', color: GOLD, fontSize: 12, cursor: 'pointer' }}

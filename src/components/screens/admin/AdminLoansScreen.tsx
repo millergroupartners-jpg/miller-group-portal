@@ -21,7 +21,12 @@ interface LoanRow extends LoanRecord {
   city: string;
 }
 
-export function AdminLoansScreen() {
+/**
+ * @param embedded  When true, render only the inner content (KPIs, search,
+ *   rows) with no outer flex/scroll container or page headers — used when this
+ *   screen is hosted inside AdminRenovationsScreen's "הלוואות שיפוץ" toggle.
+ */
+export function AdminLoansScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const { properties, mgProperties } = useMondayData();
   const [items, setItems] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,20 +70,9 @@ export function AdminLoansScreen() {
     { total: 0, drawn: 0, remaining: 0, ready: 0 }
   ), [filtered]);
 
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
-      <div className="desktop-page-title">
-        <div className="subtitle">{items.length} הלוואות · ADMIN VIEW</div>
-        <h1>הלוואות שיפוץ</h1>
-      </div>
-
-      <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <MGLogo size={36} showWordmark={false} />
-        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>הלוואות שיפוץ</span>
-      </div>
-
-      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* KPI totals */}
+  const body = (
+    <>
+      {/* KPI totals */}
         <div className="gold-card" style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
             {[
@@ -159,6 +153,27 @@ export function AdminLoansScreen() {
             </div>
           );
         })}
+    </>
+  );
+
+  // Embedded inside AdminRenovationsScreen's toggle — flow within the host's
+  // scroll body, no extra headers or scroll container.
+  if (embedded) return body;
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
+      <div className="desktop-page-title">
+        <div className="subtitle">{items.length} הלוואות · ADMIN VIEW</div>
+        <h1>הלוואות שיפוץ</h1>
+      </div>
+
+      <div className="screen-header" style={{ padding: '16px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <MGLogo size={36} showWordmark={false} />
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>הלוואות שיפוץ</span>
+      </div>
+
+      <div className="stagger" style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {body}
       </div>
     </div>
   );

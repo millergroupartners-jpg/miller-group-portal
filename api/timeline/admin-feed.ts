@@ -24,6 +24,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   mondayQuery,
+  mondayDateToISO,
   PROPERTIES_BOARD_ID,
   PROP_COL,
   RENOVATIONS_BOARD_ID,
@@ -130,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           events.push({
             id: `status-${log.id}`,
             kind: 'status-change',
-            at: log.created_at,
+            at: mondayDateToISO(log.created_at),
             title: `סטטוס עבר ל-${newLabel}`,
             subtitle: oldLabel ? `מ-${oldLabel}` : undefined,
             icon: '🔄',

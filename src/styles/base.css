@@ -113,7 +113,11 @@ html, body {
 }
 
 @media (max-width: 899px) {
+  /* Every screen renders <MGLogo> then the title; row-reverse moves the title
+     to the RTL start (right) and the small logo to the left. padding-left keeps
+     that left content clear of the floating action cluster (bell/settings). */
   .screen-header {
+    flex-direction: row-reverse !important;
     padding-left: 140px !important;
   }
 }
@@ -134,6 +138,9 @@ html, body {
 @media (min-width: 900px) {
   .desktop-page-title {
     display: flex;
+    /* Every screen renders <subtitle> then <h1>; row-reverse puts the H1
+       title at the RTL start (right) and the subtitle at the end (left). */
+    flex-direction: row-reverse;
     align-items: center;
     justify-content: space-between;
     padding: 26px 32px 18px;
@@ -141,6 +148,8 @@ html, body {
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
+  .desktop-page-title h1 { text-align: right; }
+  .desktop-page-title .subtitle { text-align: left; }
   .desktop-page-title h1 {
     font-family: var(--font-ui);
     font-size: 26px;

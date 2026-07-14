@@ -163,6 +163,25 @@ export function jsonEsc(s: string): string {
 }
 
 /**
+ * Normalize a Monday `created_at` to an ISO string.
+ * Board items/updates return ISO 8601 already, but `activity_logs.created_at`
+ * is a 17-digit high-precision integer (units of 100ns / 10^-7 s). Feeding that
+ * raw into `new Date()` yields Invalid Date, which blanks the timeline's relative
+ * time labels and breaks chronological sorting. Returns '' for unparseable input.
+ */
+export function mondayDateToISO(raw: string | number | null | undefined): string {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  // Pure long digit string → activity-log high-precision int (100ns units → ms).
+  if (/^\d{14,}$/.test(s)) {
+    const d = new Date(Math.floor(Number(s) / 10000));
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
+
+/**
  * Append a new message entry to the inquiry's "Message" text column.
  * Fetches current value, concatenates with a formatted separator, writes back.
  * Truncates oldest entries if total length exceeds ~1900 chars (Monday text column limit).
