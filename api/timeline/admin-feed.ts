@@ -8,12 +8,15 @@
  *   1. Status changes on property items (Properties board activity_logs)
  *   2. New inquiries created
  *   3. Replies posted on inquiries
- *   4. Renovation payments (subitems) — ADMIN MODE ONLY
+ *   4. Renovation payments (subitems) — investors get a neutral "העברה לשיפוץ"
+ *      presentation (no recipient), admin sees the full transfer detail
+ *   5. Utility milestones
+ *   6. Renovation-loan updates (loans board activity_logs)
  *
  * Query params:
  *   limit      (optional, default 30) — max events to return
- *   role       (optional, 'admin' | 'investor') — default 'admin'. When
- *              'investor', renovation-payment events are stripped.
+ *   role       (optional, 'admin' | 'investor') — default 'admin'. Controls the
+ *              renovation-payment presentation (see above).
  *   investorId (optional) — when provided, only events related to the given
  *              investor's properties are returned (status changes on their
  *              properties + their inquiries). Required with role='investor'.
@@ -25,10 +28,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   mondayQuery,
   mondayDateToISO,
+  addressLooseMatch,
   PROPERTIES_BOARD_ID,
   PROP_COL,
   RENOVATIONS_BOARD_ID,
+  RENOV_COL,
   RENOV_SUB_COL,
+  LOANS_BOARD_ID,
+  LOAN_COL,
+  LOAN_STATUS_LABELS,
   INQUIRIES_BOARD_ID,
   INQ_COL,
   UTILITIES_BOARD_ID,
@@ -42,6 +50,7 @@ interface AdminFeedEvent {
     | 'inquiry-new'
     | 'inquiry-reply'
     | 'renovation-payment'
+    | 'loan-update'
     | 'utility-activated'
     | 'utility-scheduled';
   at: string;
@@ -64,6 +73,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const investorId = ((req.query.investorId as string) || '').trim();
     const isAdmin = role === 'admin';
     const events: AdminFeedEvent[] = [];
+
+    // Property id → name, filled by section 1. Also serves the loans section's
+    // address-fallback matching for loan items not yet linked on Monday.
+    const propertyNameById = new Map<string, string>();
 
     // When filtering by investor, first resolve the set of property ids that
     // belong to them. Items on the Properties board have a "משקיע" board-relation.
@@ -116,6 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const logs = d.boards?.[0]?.activity_logs ?? [];
       const items = d.boards?.[0]?.items_page?.items ?? [];
       const itemMap = new Map(items.map(i => [i.id, i.name]));
+      for (const [id, name] of itemMap) propertyNameById.set(id, name);
 
       for (const log of logs) {
         try {
@@ -197,13 +211,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('admin-feed inquiries failed:', e);
     }
 
-    // 4. Renovation payments — ADMIN ONLY (investors must never see these transfers).
-    if (isAdmin) try {
+    // 4. Renovation payments (transfers). Both roles see them, scoped to the
+    //    investor's properties when filtering. Investors get a neutral
+    //    "העברה לשיפוץ" without the recipient — למי שולם is internal detail
+    //    (contractor/commission split) that stays admin-only.
+    try {
       const renovQuery = `query {
         boards(ids: [${RENOVATIONS_BOARD_ID}]) {
           items_page(limit: 80) {
             items {
               id name
+              column_values(ids: ["${RENOV_COL.property}"]) {
+                id
+                ... on BoardRelationValue { linked_items { id name } }
+              }
               subitems {
                 id name created_at
                 column_values(ids: ["${RENOV_SUB_COL.amount}", "${RENOV_SUB_COL.date}", "${RENOV_SUB_COL.paidTo}", "${RENOV_SUB_COL.category}"]) { id text }
@@ -215,6 +236,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const d = await mondayQuery<{ boards: { items_page: { items: any[] } }[] }>(renovQuery);
       const items = d.boards?.[0]?.items_page?.items ?? [];
       for (const r of items) {
+        const linkedProp = r.column_values?.[0]?.linked_items?.[0];
+        const propId = linkedProp?.id || '';
+        // Per-investor filter — unlinked renovation projects stay admin-only
+        // because we can't prove they belong to this investor.
+        if (investorPropertyIds && (!propId || !investorPropertyIds.has(propId))) continue;
         for (const sub of r.subitems || []) {
           const sc = Object.fromEntries(sub.column_values.map((c: any) => [c.id, c]));
           const amount = sc[RENOV_SUB_COL.amount]?.text || '0';
@@ -225,11 +251,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             id: `reno-${sub.id}`,
             kind: 'renovation-payment',
             at: date,
-            title: `תשלום ${paidTo ? `ל${paidTo}` : ''} — $${amount}`,
+            // paidTo labels already start with ל ("לנו"/"לקבלן") except "קבלן משנה"
+            title: isAdmin
+              ? `תשלום ${paidTo ? (paidTo.startsWith('ל') ? paidTo : `ל${paidTo}`) : ''} — $${amount}`
+              : `העברה לשיפוץ — $${amount}`,
             subtitle: category,
             icon: '🔨',
             color: '#8d6e63',
-            propertyName: r.name,
+            propertyId: propId || undefined,
+            propertyName: linkedProp?.name || r.name,
           });
         }
       }
@@ -297,6 +327,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } catch (e) {
       console.error('admin-feed utilities failed:', e);
+    }
+
+    // 6. Renovation-loan updates — loan opened, per-category draw-status
+    //    changes, and total-amount updates, all from the loans board
+    //    activity_logs. A loan attaches to a property via its board relation,
+    //    falling back to address matching for items not linked yet.
+    try {
+      const loansQuery = `query {
+        boards(ids: [${LOANS_BOARD_ID}]) {
+          activity_logs(limit: 200) { id event data created_at }
+          items_page(limit: 200) {
+            items {
+              id name
+              column_values(ids: ["${LOAN_COL.property}"]) {
+                id
+                ... on BoardRelationValue { linked_items { id name } }
+              }
+            }
+          }
+        }
+      }`;
+      type LoanLog = { id: string; event: string; data: string; created_at: string };
+      const d = await mondayQuery<{ boards: { activity_logs: LoanLog[]; items_page: { items: any[] } }[] }>(loansQuery);
+      const loanItems = d.boards?.[0]?.items_page?.items ?? [];
+
+      // Loan item id → its property (relation first, address fallback).
+      const loanById = new Map<string, { name: string; propId: string }>();
+      for (const li of loanItems) {
+        let propId = li.column_values?.[0]?.linked_items?.[0]?.id || '';
+        if (!propId) {
+          for (const [pid, pname] of propertyNameById) {
+            if (addressLooseMatch(li.name, pname)) { propId = pid; break; }
+          }
+        }
+        if (investorPropertyIds && (!propId || !investorPropertyIds.has(propId))) continue;
+        loanById.set(String(li.id), { name: li.name, propId });
+      }
+
+      for (const log of d.boards?.[0]?.activity_logs ?? []) {
+        try {
+          const payload = JSON.parse(log.data || '{}');
+          const loan = loanById.get(String(payload.pulse_id || payload.entity_id || ''));
+          if (!loan) continue;
+          const base = {
+            kind: 'loan-update' as const,
+            at: mondayDateToISO(log.created_at),
+            icon: '🏦',
+            color: '#B085F5',
+            propertyId: loan.propId || undefined,
+            propertyName: loan.name,
+          };
+          if (log.event === 'create_pulse') {
+            events.push({ ...base, id: `loan-new-${log.id}`, title: 'נפתחה הלוואת שיפוץ' });
+            continue;
+          }
+          if (payload.column_id === LOAN_COL.total) {
+            const raw = payload.value?.value ?? payload.textual_value ?? '';
+            const n = Number(String(raw).replace(/[^0-9.\-]/g, ''));
+            events.push({
+              ...base,
+              id: `loan-total-${log.id}`,
+              title: 'עודכן סכום הלוואת השיפוץ',
+              subtitle: Number.isFinite(n) && n > 0 ? `$${n.toLocaleString('en-US')}` : undefined,
+            });
+            continue;
+          }
+          const category = LOAN_STATUS_LABELS[payload.column_id];
+          if (category) {
+            const newLabel = payload.value?.label?.text || payload.value?.post_value?.label?.text || '';
+            const oldLabel = payload.previous_value?.label?.text || payload.previous_value?.post_value?.label?.text || '';
+            if (!newLabel || newLabel === oldLabel) continue;
+            // Board-setup noise: marking a category as not-applicable isn't news
+            if (newLabel === 'לא רלוונטי') continue;
+            events.push({
+              ...base,
+              id: `loan-status-${log.id}`,
+              title: `הלוואת שיפוץ: ${category} — ${newLabel}`,
+              subtitle: oldLabel ? `מ-${oldLabel}` : undefined,
+            });
+          }
+        } catch { /* skip malformed */ }
+      }
+    } catch (e) {
+      console.error('admin-feed loans failed:', e);
     }
 
     // Sort desc + cap

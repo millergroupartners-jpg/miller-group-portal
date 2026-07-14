@@ -59,6 +59,45 @@ export const RENOV_SUB_COL = {
   receipt:   'file_mm1p18rb',     // אסמכתא
 } as const;
 
+/** Renovation-loans board — one item per property's renovation loan.
+    Column ids mirror src/services/loansApi.ts (the client-side loader). */
+export const LOANS_BOARD_ID = 5096995862;
+export const LOAN_COL = {
+  property: 'board_relation_mm3knvhm', // → properties board
+  total:    'numeric_mm3k38zr',        // סה״כ הלוואת שיפוץ
+} as const;
+
+/** Draw-status columns on the loans board → Hebrew category label.
+    Used to turn activity-log column changes into readable timeline events. */
+export const LOAN_STATUS_LABELS: Record<string, string> = {
+  color_mm504ksj: 'משיכת כספים', // "Draw — Status" — the draw-request lifecycle
+  color_mm3k94zb: 'הריסה',
+  color_mm3kz0m8: 'גבס',
+  color_mm3k1dqb: 'ריצוף',
+  color_mm3krks0: 'צביעה',
+  color_mm3k4v5d: 'חשמל',
+  color_mm3kyyrv: 'תאורה',
+  color_mm3khw5r: 'עבודות חוץ',
+  color_mm3kw19d: 'אמבטיה',
+  color_mm3khm3c: 'מטבח',
+  color_mm43pa4w: 'החלפת חלונות',
+  color_mm44a9nk: 'דלתות ומסגרות',
+  color_mm43jkym: 'אינסטלציה',
+  color_mm44m6t1: 'חיפוי חיצוני',
+  color_mm445bfb: 'נגרות/ארונות',
+  color_mm4466a6: 'דיקט',
+  color_mm4373c1: 'קבלת שמאות',
+};
+
+/** Loose address equality — lowercased, punctuation stripped, substring match.
+    Used to attach unlinked loan items (name = property address) to a property. */
+export function addressLooseMatch(a: string, b: string): boolean {
+  const norm = (s: string) => (s || '').toLowerCase().replace(/[.,#]/g, ' ').replace(/\s+/g, ' ').trim();
+  const na = norm(a);
+  const nb = norm(b);
+  return nb.length >= 5 && na.length >= 5 && (na.includes(nb) || nb.includes(na));
+}
+
 /** Utilities board — one item per utility ACCOUNT per property (water / power / gas / sewer) */
 export const UTILITIES_BOARD_ID = 5087052578;
 

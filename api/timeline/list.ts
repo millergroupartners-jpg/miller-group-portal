@@ -1,19 +1,20 @@
 /**
  * GET /api/timeline/list
  *
- * Aggregates a unified chronological timeline for one property from 5 sources:
+ * Aggregates a unified chronological timeline for one property from 6 sources:
  *   1. CompanyCam photos captured for the matching project
- *   2. Renovation subitems (payments) — ADMIN VIEW ONLY
+ *   2. Renovation subitems (payments) — investors get a neutral "העברה לשיפוץ"
+ *      (no recipient); admin sees the full transfer detail
  *   3. Status changes on the property (from Monday activity_logs)
  *   4. Inquiries linked to the property (+ each inquiry update)
  *   5. Utility milestones (scheduled-in dates + activations)
+ *   6. Renovation-loan updates (loans board activity_logs)
  *
  * Query params:
  *   propertyId (required)   — Monday item id of the property
  *   role       (optional)   — 'admin' | 'investor' (default: investor).
- *                             For non-admin, renovation-payment events are omitted
- *                             because they contain internal contractor/commission
- *                             transfers that investors should not see.
+ *                             Controls the renovation-payment presentation: the
+ *                             recipient (למי שולם) is internal and admin-only.
  *
  * Response:
  *   { ok: true, events: TimelineEvent[] }    (desc by `at`, max 150)
@@ -23,11 +24,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   mondayQuery,
   mondayDateToISO,
+  addressLooseMatch,
   PROPERTIES_BOARD_ID,
   PROP_COL,
   RENOVATIONS_BOARD_ID,
   RENOV_COL,
   RENOV_SUB_COL,
+  LOANS_BOARD_ID,
+  LOAN_COL,
+  LOAN_STATUS_LABELS,
   INQUIRIES_BOARD_ID,
   INQ_COL,
   UTILITIES_BOARD_ID,
@@ -39,6 +44,7 @@ const CC_API = 'https://api.companycam.com/v2';
 type EventKind =
   | 'photo'
   | 'renovation-payment'
+  | 'loan-update'
   | 'status-change'
   | 'inquiry-new'
   | 'inquiry-reply'
@@ -213,8 +219,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 4. Renovation subitems (ADMIN ONLY)
-    if (isAdmin) {
+    // 4. Renovation subitems (payments). Investors see a neutral "העברה
+    //    לשיפוץ" — the recipient (למי שולם) is internal and admin-only.
+    {
       const renovQuery = `query {
         boards(ids: [${RENOVATIONS_BOARD_ID}]) {
           items_page(limit: 200) {
@@ -250,8 +257,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             id: `reno-${sub.id}`,
             kind: 'renovation-payment',
             at: date,
-            title: `תשלום ${paidTo ? `ל${paidTo}` : ''} — $${amountText}`,
-            subtitle: [r.name, category].filter(Boolean).join(' · '),
+            // paidTo labels already start with ל ("לנו"/"לקבלן") except "קבלן משנה"
+            title: isAdmin
+              ? `תשלום ${paidTo ? (paidTo.startsWith('ל') ? paidTo : `ל${paidTo}`) : ''} — $${amountText}`
+              : `העברה לשיפוץ — $${amountText}`,
+            subtitle: isAdmin ? [r.name, category].filter(Boolean).join(' · ') : category,
             icon: '🔨',
             color: '#8d6e63',
           });
@@ -307,7 +317,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 6. CompanyCam photos (for matching project). Failure is non-fatal.
+    // 6. Renovation-loan updates for this property — loan opened, category
+    //    draw-status changes, total-amount updates. Loan → property via board
+    //    relation, address fallback for items not linked yet.
+    try {
+      const loansQuery = `query {
+        boards(ids: [${LOANS_BOARD_ID}]) {
+          activity_logs(limit: 200) { id event data created_at }
+          items_page(limit: 200) {
+            items {
+              id name
+              column_values(ids: ["${LOAN_COL.property}"]) {
+                id
+                ... on BoardRelationValue { linked_items { id } }
+              }
+            }
+          }
+        }
+      }`;
+      type LoanLog = { id: string; event: string; data: string; created_at: string };
+      const d = await mondayQuery<{ boards: { activity_logs: LoanLog[]; items_page: { items: any[] } }[] }>(loansQuery);
+      const loanItems = d.boards?.[0]?.items_page?.items ?? [];
+      const matchingLoanIds = new Set(
+        loanItems
+          .filter((li: any) =>
+            (li.column_values?.[0]?.linked_items ?? []).some((l: any) => String(l.id) === propertyId)
+            || addressLooseMatch(li.name, propertyAddress),
+          )
+          .map((li: any) => String(li.id)),
+      );
+
+      for (const log of d.boards?.[0]?.activity_logs ?? []) {
+        try {
+          const payload = JSON.parse(log.data || '{}');
+          if (!matchingLoanIds.has(String(payload.pulse_id || payload.entity_id || ''))) continue;
+          const base = {
+            kind: 'loan-update' as const,
+            at: mondayDateToISO(log.created_at),
+            icon: '🏦',
+            color: '#B085F5',
+          };
+          if (log.event === 'create_pulse') {
+            events.push({ ...base, id: `loan-new-${log.id}`, title: 'נפתחה הלוואת שיפוץ' });
+            continue;
+          }
+          if (payload.column_id === LOAN_COL.total) {
+            const raw = payload.value?.value ?? payload.textual_value ?? '';
+            const n = Number(String(raw).replace(/[^0-9.\-]/g, ''));
+            events.push({
+              ...base,
+              id: `loan-total-${log.id}`,
+              title: 'עודכן סכום הלוואת השיפוץ',
+              subtitle: Number.isFinite(n) && n > 0 ? `$${n.toLocaleString('en-US')}` : undefined,
+            });
+            continue;
+          }
+          const category = LOAN_STATUS_LABELS[payload.column_id];
+          if (category) {
+            const newLabel = payload.value?.label?.text || payload.value?.post_value?.label?.text || '';
+            const oldLabel = payload.previous_value?.label?.text || payload.previous_value?.post_value?.label?.text || '';
+            if (!newLabel || newLabel === oldLabel) continue;
+            // Board-setup noise: marking a category as not-applicable isn't news
+            if (newLabel === 'לא רלוונטי') continue;
+            events.push({
+              ...base,
+              id: `loan-status-${log.id}`,
+              title: `הלוואת שיפוץ: ${category} — ${newLabel}`,
+              subtitle: oldLabel ? `מ-${oldLabel}` : undefined,
+            });
+          }
+        } catch { /* skip malformed log */ }
+      }
+    } catch (loanErr) {
+      console.error('timeline loans fetch failed:', loanErr);
+    }
+
+    // 7. CompanyCam photos (for matching project). Failure is non-fatal.
     try {
       const projects = await ccFetch<CCProject[]>('/projects?per_page=200');
       const match = projects.find(p => addressMatches(propertyAddress, p));

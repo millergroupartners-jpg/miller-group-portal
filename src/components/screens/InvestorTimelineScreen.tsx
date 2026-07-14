@@ -3,8 +3,9 @@
  * investor's properties. Navigated to from the "ציר זמן מלא" link on the
  * dashboard. Includes a back button that works on both mobile and desktop.
  *
- * The feed is scoped server-side to this investor's properties and sanitized
- * (no renovation payments) — see fetchInvestorFeed + api/timeline/admin-feed.
+ * The feed is scoped server-side to this investor's properties. Renovation
+ * transfers and loan updates are included in an investor-safe presentation —
+ * see fetchInvestorFeed + api/timeline/admin-feed.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -15,7 +16,7 @@ import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../se
 
 const GOLD = 'var(--gold-text)';
 
-type FilterKey = 'all' | 'status' | 'inquiry' | 'utility';
+type FilterKey = 'all' | 'status' | 'renovation' | 'inquiry' | 'utility';
 
 export function InvestorTimelineScreen() {
   const { navigate, goBack } = useNavigation();
@@ -41,6 +42,7 @@ export function InvestorTimelineScreen() {
   const filtered = useMemo(() => {
     if (filter === 'all') return events;
     if (filter === 'status')  return events.filter(e => e.kind === 'status-change');
+    if (filter === 'renovation') return events.filter(e => e.kind === 'renovation-payment' || e.kind === 'loan-update');
     if (filter === 'inquiry') return events.filter(e => e.kind === 'inquiry-new' || e.kind === 'inquiry-reply');
     if (filter === 'utility') return events.filter(e => e.kind === 'utility-scheduled' || e.kind === 'utility-activated');
     return events;
@@ -82,10 +84,11 @@ export function InvestorTimelineScreen() {
           flexDirection: 'row-reverse', scrollbarWidth: 'none',
         }}>
           {([
-            { key: 'all' as FilterKey,     label: 'הכל' },
-            { key: 'status' as FilterKey,  label: '🔄 סטטוס' },
-            { key: 'utility' as FilterKey, label: '⚡ Utilities' },
-            { key: 'inquiry' as FilterKey, label: '💬 פניות' },
+            { key: 'all' as FilterKey,        label: 'הכל' },
+            { key: 'status' as FilterKey,     label: '🔄 סטטוס' },
+            { key: 'renovation' as FilterKey, label: '🔨 שיפוצים' },
+            { key: 'utility' as FilterKey,    label: '⚡ Utilities' },
+            { key: 'inquiry' as FilterKey,    label: '💬 פניות' },
           ]).map(c => (
             <button
               key={c.key}

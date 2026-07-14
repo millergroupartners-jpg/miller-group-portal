@@ -1,11 +1,12 @@
 /**
  * Timeline tab on PropertyDetailScreen.
- * Aggregates events from 5 sources into a unified chronological feed:
- *   photos, renovation payments (admin only), status changes, inquiries, utility milestones.
+ * Aggregates events from 6 sources into a unified chronological feed:
+ *   photos, renovation transfers, loan updates, status changes, inquiries,
+ *   utility milestones.
  *
- * The `role` prop controls visibility: pass 'admin' only when the viewer is an
- * administrator. The server filters out renovation-payment events for non-admin
- * requests so that internal contractor/commission transfers never reach investors.
+ * The `role` prop controls presentation: pass 'admin' only when the viewer is
+ * an administrator. Investors see renovation transfers without the recipient
+ * (למי שולם) — that internal detail is included server-side only for admin.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -17,6 +18,7 @@ function eventFilter(ev: TimelineEvent): FilterKey {
   switch (ev.kind) {
     case 'photo':               return 'photo';
     case 'renovation-payment':  return 'renovation';
+    case 'loan-update':         return 'renovation';
     case 'inquiry-new':
     case 'inquiry-reply':       return 'inquiry';
     case 'status-change':       return 'status';
@@ -57,12 +59,10 @@ export function TimelineTab({ propertyId, role, onNavigateInquiry }: Props) {
     { key: 'all',        label: 'הכל' },
     { key: 'photo',      label: '📸 תמונות' },
     { key: 'status',     label: '🔄 סטטוס' },
+    { key: 'renovation', label: role === 'admin' ? '🔨 תשלומים' : '🔨 שיפוצים' },
     { key: 'inquiry',    label: '💬 פניות' },
     { key: 'utility',    label: '⚡ Utilities' },
   ];
-  if (role === 'admin') {
-    chips.splice(4, 0, { key: 'renovation', label: '🔨 תשלומים' });
-  }
 
   if (loading) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען ציר זמן…</div>;

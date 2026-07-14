@@ -104,8 +104,8 @@ export function DashboardScreen() {
     ? '$' + (totalArv - totalAllIn).toLocaleString('en-US')
     : '—';
 
-  // Investor activity feed — scoped to this investor's properties, renovation
-  // payments filtered out server-side so internal transfers never reach them.
+  // Investor activity feed — scoped to this investor's properties. Renovation
+  // transfers and loan updates included in an investor-safe presentation.
   const [feed, setFeed] = useState<AdminFeedEvent[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   useEffect(() => {

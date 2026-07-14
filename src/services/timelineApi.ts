@@ -2,14 +2,15 @@
  * Client-side wrapper for /api/timeline/list.
  * Returns a unified chronological timeline for one property.
  *
- * IMPORTANT: Pass role='admin' ONLY for admin users. The server filters out
- * renovation-payment events for non-admin calls so investors never see internal
- * contractor/commission transfers.
+ * IMPORTANT: Pass role='admin' ONLY for admin users. Investors see renovation
+ * transfers as a neutral "העברה לשיפוץ" — the recipient (למי שולם, the internal
+ * contractor/commission split) is included server-side only for admin calls.
  */
 
 export type TimelineEventKind =
   | 'photo'
   | 'renovation-payment'
+  | 'loan-update'
   | 'status-change'
   | 'inquiry-new'
   | 'inquiry-reply'
@@ -55,6 +56,7 @@ export interface AdminFeedEvent {
     | 'inquiry-new'
     | 'inquiry-reply'
     | 'renovation-payment'
+    | 'loan-update'
     | 'utility-scheduled'
     | 'utility-activated';
   at: string;
@@ -74,8 +76,9 @@ export async function fetchAdminFeed(limit: number = 30): Promise<AdminFeedEvent
 
 /**
  * Investor-facing activity feed scoped to a single investor's properties.
- * Renovation-payment events are stripped server-side so internal transfers
- * never leak to the investor.
+ * Renovation transfers arrive in a neutral presentation (amount + category,
+ * no recipient) and loan updates are included; the internal transfer detail
+ * (למי שולם) stays admin-only server-side.
  */
 export async function fetchInvestorFeed(investorId: string, limit: number = 25): Promise<AdminFeedEvent[]> {
   const qs = new URLSearchParams({ investorId, limit: String(limit), role: 'investor' });
