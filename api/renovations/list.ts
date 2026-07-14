@@ -31,6 +31,10 @@
  *     }]
  *   }
  *
+ * receiptUrl/receiptThumb are returned EMPTY by the list — signed asset URLs
+ * are the slowest part of the Monday query. The client hydrates them lazily
+ * per renovation via GET ?action=assets&itemId=<id>[&role=investor].
+ *
  * NOTE: Subitem data (individual payments) should NEVER be surfaced to investor
  * users — it contains internal commission/contractor transfers. The portal UI
  * hides the "שיפוצים" tab for non-admin users; this endpoint is not meant to be
@@ -42,6 +46,7 @@ import {
   mondayQuery,
   esc,
   RENOVATIONS_BOARD_ID,
+  PROPERTIES_BOARD_ID,
   RENOV_COL,
   RENOV_SUB_COL,
 } from '../_lib/monday.js';
@@ -56,14 +61,12 @@ interface RawColumnValue {
   /** Returned for MirrorValue columns (lookup_*). The mirrored cell's text. */
   display_value?: string | null;
 }
-interface RawAsset { id: string; name: string; public_url: string; url_thumbnail?: string | null }
 interface RawSubitem {
   id: string;
   name: string;
   created_at: string;
   updated_at: string;
   column_values: RawColumnValue[];
-  assets?: RawAsset[];
 }
 interface RawItem {
   id: string;
@@ -128,6 +131,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Sub-endpoint: receipt file URLs for one renovation's subitems, loaded
+  // lazily when a card is expanded. Asset `public_url` signing is the single
+  // slowest part of the Monday query (~4s for the whole board), so the main
+  // list intentionally skips assets and the client calls this on demand.
+  if (action === 'assets') {
+    try {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      const itemId = ((req.query.itemId as string) || '').trim();
+      const role   = ((req.query.role as string) || 'admin').trim();
+      if (!/^\d+$/.test(itemId)) return res.status(400).json({ error: 'Missing itemId' });
+      const q = `query {
+        items(ids: [${itemId}], limit: 1) {
+          subitems {
+            id
+            column_values(ids: ["${RENOV_SUB_COL.paidBy}"]) { id text }
+            assets { id public_url url_thumbnail }
+          }
+        }
+      }`;
+      type Sub = {
+        id: string;
+        column_values: { id: string; text: string | null }[];
+        assets?: { public_url: string; url_thumbnail?: string | null }[];
+      };
+      const data = await mondayQuery<{ items: { subitems: Sub[] | null }[] }>(q);
+      const subs = data?.items?.[0]?.subitems ?? [];
+      const receipts: Record<string, { url: string; thumb: string }> = {};
+      for (const sub of subs) {
+        // Investor must never see receipts of payments we made internally.
+        const paidBy = sub.column_values?.[0]?.text || '';
+        if (role === 'investor' && paidBy !== 'הלקוח') continue;
+        const file = sub.assets?.[0];
+        if (file?.public_url) {
+          receipts[sub.id] = { url: file.public_url, thumb: file.url_thumbnail || '' };
+        }
+      }
+      return res.status(200).json({ ok: true, receipts });
+    } catch (err: any) {
+      console.error('renovations assets error:', err);
+      return res.status(500).json({ error: err?.message || 'Server error' });
+    }
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -138,21 +184,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const role       = ((req.query.role as string) || 'admin').trim();
     const isInvestor = role === 'investor';
 
-    // Mirror columns ("משקיע" / "קבלן" / "סטטוס" / "שיפוץ ללקוח") — pull alongside
-    // the linked property + addons. Mirror values come back via .text for display.
-    const mirrorIds = [
-      'lookup_mkyydj2e', // מנהל פרויקט
-      'lookup_mm01qppw', // סטטוס
-      'lookup_mkt3ey7s', // משקיע
-      'lookup_mkt3hy1k', // קבלן
-      'lookup_mkvjwr8v', // שיפוץ שלנו
-      'lookup_mkvjdzs',  // שיפוץ ללקוח
-    ];
+    // The only mirror column still read is "קבלן" — everything else that used
+    // to be mirrored (סטטוס / משקיע / costs) comes from the Properties board
+    // fetch below, which is authoritative. Each extra mirror column costs
+    // Monday a cross-board resolve (~2s total for the old set of six).
+    const CONTRACTOR_MIRROR = 'lookup_mkt3hy1k';
 
-    const itemColumnIds = [RENOV_COL.property, RENOV_COL.addons, ...mirrorIds]
+    const itemColumnIds = [RENOV_COL.property, RENOV_COL.addons, CONTRACTOR_MIRROR]
       .map(id => `"${id}"`)
       .join(',');
+    // Receipt files come from `assets` (fetched lazily via ?action=assets),
+    // not from the file column's text — no point paying for it here.
     const subColumnIds = Object.values(RENOV_SUB_COL)
+      .filter(id => id !== RENOV_SUB_COL.receipt)
       .map(id => `"${id}"`)
       .join(',');
 
@@ -182,12 +226,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   text
                   value
                 }
-                assets {
-                  id
-                  name
-                  public_url
-                  url_thumbnail
-                }
               }
             }
           }
@@ -195,56 +233,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     `;
 
-    const data = await mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(query);
-    const items = data?.boards?.[0]?.items_page?.items ?? [];
-
-    // Mirror columns (lookup_*) unreliably return null text via Monday's GraphQL.
-    // Fetch the authoritative values for שיפוץ ללקוח / שיפוץ שלנו straight from
-    // the Properties board for all linked property ids in a single batch query.
-    const linkedPropertyIds = Array.from(new Set(
-      items
-        .map(it => it.column_values.find(cv => cv.id === RENOV_COL.property)?.linked_items?.[0]?.id)
-        .filter((x): x is string => Boolean(x))
-    ));
-    const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string; groupId: string }>();
-    if (linkedPropertyIds.length > 0) {
-      try {
-        // items(ids:) silently caps at 25 results unless `limit` is passed, and
-        // accepts at most 100 ids per call — chunk to stay under both.
-        const CHUNK = 100;
-        for (let i = 0; i < linkedPropertyIds.length; i += CHUNK) {
-          const chunk = linkedPropertyIds.slice(i, i + CHUNK);
-          const costsQuery = `query {
-            items(ids: [${chunk.join(',')}], limit: ${chunk.length}) {
-              id
-              group { id title }
-              column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
-                id text
-                ... on BoardRelationValue { linked_items { id name } }
-              }
+    // Authoritative values for שיפוץ ללקוח / שיפוץ שלנו / סטטוס / משקיע live on
+    // the Properties board. Fetching the whole board (one page, well under the
+    // 500-item cap) lets this run IN PARALLEL with the renovations query —
+    // previously it ran serialized on the linked ids and added ~2s.
+    const propsQuery = `query {
+      boards(ids: [${PROPERTIES_BOARD_ID}]) {
+        items_page(limit: 500) {
+          items {
+            id
+            group { id }
+            column_values(ids: ["numeric_mkrzk78b", "numeric_mkvjrbnp", "color_mm1fv8p0", "board_relation_mkrzrtny"]) {
+              id text
+              ... on BoardRelationValue { linked_items { id name } }
             }
-          }`;
-          type Row = {
-            id: string;
-            group: { id: string; title: string };
-            column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[];
-          };
-          const cd = await mondayQuery<{ items: Row[] }>(costsQuery);
-          for (const it of cd.items ?? []) {
-            const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
-            propertyCosts.set(it.id, {
-              clientCost:   parseNumber(map['numeric_mkrzk78b']?.text),
-              ourCost:      parseNumber(map['numeric_mkvjrbnp']?.text),
-              status:       map['color_mm1fv8p0']?.text || '',
-              investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
-              investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
-              groupId:      it.group?.id || '',
-            });
           }
         }
-      } catch (e) {
-        console.error('renovations-list property cost fetch failed:', e);
       }
+    }`;
+    type PropRow = {
+      id: string;
+      group: { id: string };
+      column_values: { id: string; text: string | null; linked_items?: { id: string; name: string }[] }[];
+    };
+
+    const [data, propsData] = await Promise.all([
+      mondayQuery<{ boards: { items_page: { items: RawItem[] } }[] }>(query),
+      mondayQuery<{ boards: { items_page: { items: PropRow[] } }[] }>(propsQuery)
+        .catch(e => { console.error('renovations-list property cost fetch failed:', e); return null; }),
+    ]);
+    const items = data?.boards?.[0]?.items_page?.items ?? [];
+
+    const propertyCosts = new Map<string, { clientCost: number; ourCost: number; status: string; investorName: string; investorId: string; groupId: string }>();
+    for (const it of propsData?.boards?.[0]?.items_page?.items ?? []) {
+      const map = Object.fromEntries(it.column_values.map(cv => [cv.id, cv]));
+      propertyCosts.set(it.id, {
+        clientCost:   parseNumber(map['numeric_mkrzk78b']?.text),
+        ourCost:      parseNumber(map['numeric_mkvjrbnp']?.text),
+        status:       map['color_mm1fv8p0']?.text || '',
+        investorName: map['board_relation_mkrzrtny']?.linked_items?.[0]?.name || '',
+        investorId:   map['board_relation_mkrzrtny']?.linked_items?.[0]?.id || '',
+        groupId:      it.group?.id || '',
+      });
     }
 
     const renovations = items.map(item => {
@@ -253,7 +283,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const subitems = (item.subitems ?? []).map(sub => {
         const sc = Object.fromEntries(sub.column_values.map(cv => [cv.id, cv]));
-        const receiptFile = sub.assets?.[0];
         return {
           id:       sub.id,
           name:     sub.name,
@@ -262,8 +291,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paidTo:   sc[RENOV_SUB_COL.paidTo]?.text || '',
           paidBy:   sc[RENOV_SUB_COL.paidBy]?.text || '',
           category: sc[RENOV_SUB_COL.category]?.text || '',
-          receiptUrl: receiptFile?.public_url || '',
-          receiptThumb: receiptFile?.url_thumbnail || '',
+          // Receipt URLs are signed per-request and slow to generate — the
+          // client hydrates them on demand via ?action=assets&itemId=.
+          receiptUrl: '',
+          receiptThumb: '',
           createdAt: sub.created_at,
         };
       });
@@ -278,23 +309,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .reduce((s, x) => s + x.amount, 0);
       const totalPaidAll = subitems.reduce((s, x) => s + x.amount, 0);
 
-      // Combine three sources, in priority order, to be resilient to either
-      // path returning null/empty:
-      //   1. Properties-board direct fetch (authoritative).
-      //   2. Mirror column display_value (the "סטטוס" / "שיפוץ ללקוח" /
-      //      "משקיע" columns on the renovations board are mirrors of the
-      //      property — display_value reliably returns the rendered text).
-      //   3. Mirror column text (legacy, often null).
+      // Status / costs / investor come from the Properties-board fetch — it is
+      // authoritative (the renovations board only mirrors it) and now runs in
+      // parallel with the main query instead of pulling six mirror columns.
       const fromProp = propertyCosts.get(propertyLinked?.id || '') || { clientCost: 0, ourCost: 0, status: '', investorName: '', investorId: '', groupId: '' };
-      const mirrorStatus      = cols['lookup_mm01qppw']?.display_value || cols['lookup_mm01qppw']?.text || '';
-      const mirrorClientCost  = parseNumber(cols['lookup_mkvjdzs']?.display_value  || cols['lookup_mkvjdzs']?.text);
-      const mirrorOurCost     = parseNumber(cols['lookup_mkvjwr8v']?.display_value || cols['lookup_mkvjwr8v']?.text);
-      const mirrorInvestor    = cols['lookup_mkt3ey7s']?.display_value || cols['lookup_mkt3ey7s']?.text || '';
 
-      const clientCost   = fromProp.clientCost   || mirrorClientCost;
-      const ourCost      = fromProp.ourCost      || mirrorOurCost;
-      const status       = fromProp.status       || mirrorStatus;
-      const investorName = fromProp.investorName || mirrorInvestor;
+      const clientCost   = fromProp.clientCost;
+      const ourCost      = fromProp.ourCost;
+      const status       = fromProp.status;
+      const investorName = fromProp.investorName;
 
       return {
         id:              item.id,
@@ -306,7 +329,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         propertyGroupId: fromProp.groupId,   // "group_mkw9are4" = Miller Group, else = investors
         status,
         investorName,
-        contractorName:  cols['lookup_mkt3hy1k']?.text || '',
+        contractorName:  cols[CONTRACTOR_MIRROR]?.display_value || cols[CONTRACTOR_MIRROR]?.text || '',
         ourCost,
         clientCost,
         approvedAddons:  parseNumber(cols[RENOV_COL.addons]?.text),
@@ -354,6 +377,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }))
       : filtered;
 
+    // Let Vercel's CDN serve repeat loads instantly: fresh for 2 minutes,
+    // then served stale (while revalidating in the background) up to 10 more.
+    // Cache key includes the query string, so admin/investor/property variants
+    // are cached separately.
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
     return res.status(200).json({ ok: true, renovations: sanitized });
   } catch (err: any) {
     console.error('renovations-list error:', err);

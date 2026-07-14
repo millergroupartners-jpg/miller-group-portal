@@ -14,10 +14,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  listRenovations, calcBalance, paidToColor, paidByColor,
+  calcBalance, paidToColor, paidByColor,
   listRenovationUpdates, postRenovationUpdate,
-  type Renovation, type RenovationUpdate,
+  type RenovationUpdate,
 } from '../../../services/renovationsApi';
+import { useRenovations } from '../../../hooks/useRenovations';
 import { MGLogo } from '../../common/MGLogo';
 import { AdminLoansScreen } from './AdminLoansScreen';
 import { useNavigation } from '../../../context/NavigationContext';
@@ -172,9 +173,7 @@ export function AdminRenovationsScreen() {
   const { mgProperties } = useMondayData();
   const mgPropertyIds = useMemo(() => new Set(mgProperties.map(p => p.mondayId)), [mgProperties]);
 
-  const [items, setItems] = useState<Renovation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { items, loading, error, loadReceipts } = useRenovations();
   /** Filter by the property's rental status, not by the renovations-board group.
    *  Default = "בשיפוץ" per product request. */
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('בשיפוץ');
@@ -183,15 +182,8 @@ export function AdminRenovationsScreen() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<View>('renovations');
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    listRenovations()
-      .then(list => { if (!cancelled) { setItems(list); setError(null); } })
-      .catch(err => { if (!cancelled) setError(err?.message || 'שגיאה בטעינה'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+  // Receipt URLs are lazy — hydrate them for the expanded card only.
+  useEffect(() => { if (openId) loadReceipts(openId); }, [openId, items, loadReceipts]);
 
   // Per-source counts for the toggle badge
   const sourceCounts = useMemo(() => ({

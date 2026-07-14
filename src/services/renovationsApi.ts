@@ -145,6 +145,22 @@ export async function listRenovations(opts?: {
   return data.renovations;
 }
 
+/**
+ * Receipt file URLs for one renovation's subitems, keyed by subitem id.
+ * The list endpoint returns receiptUrl/receiptThumb EMPTY (signed asset URLs
+ * are the slowest part of the Monday query) — call this when a renovation
+ * card is expanded and merge the result into its subitems.
+ */
+export async function fetchRenovationReceipts(
+  itemId: string,
+  role: 'admin' | 'investor' = 'admin'
+): Promise<Record<string, { url: string; thumb: string }>> {
+  const data = await fetchJson<{ ok: true; receipts: Record<string, { url: string; thumb: string }> }>(
+    `/api/renovations/list?action=assets&itemId=${encodeURIComponent(itemId)}&role=${role}`
+  );
+  return data.receipts;
+}
+
 /** Updates (comments) posted on a renovation Monday item */
 export interface RenovationUpdate {
   id: string;

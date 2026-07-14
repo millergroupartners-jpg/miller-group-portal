@@ -8,11 +8,11 @@
  * own transfers), so no commission / contractor info reaches this screen.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
 import { MGLogo } from '../common/MGLogo';
-import { listRenovations, type Renovation } from '../../services/renovationsApi';
+import { useRenovations } from '../../hooks/useRenovations';
 
 const GOLD = 'var(--gold-text)';
 
@@ -32,21 +32,12 @@ export function InvestorRenovationsScreen() {
   const { currentUser } = useUser();
   const investorId = currentUser?.mondayInvestorId || '';
 
-  const [items, setItems] = useState<Renovation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { items, loading, error } = useRenovations({
+    investorId,
+    role: 'investor',
+    enabled: Boolean(investorId),
+  });
   const [openId, setOpenId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!investorId) { setLoading(false); return; }
-    let cancelled = false;
-    setLoading(true);
-    listRenovations({ investorId, role: 'investor' })
-      .then(list => { if (!cancelled) { setItems(list); setError(null); } })
-      .catch(err => { if (!cancelled) setError(err?.message || 'שגיאה בטעינה'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [investorId]);
 
   const totals = useMemo(() => items.reduce(
     (acc, r) => {

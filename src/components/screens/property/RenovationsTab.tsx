@@ -18,7 +18,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { listRenovations, calcBalance, paidToColor, paidByColor, type Renovation } from '../../../services/renovationsApi';
+import { calcBalance, paidToColor, paidByColor } from '../../../services/renovationsApi';
+import { useRenovations } from '../../../hooks/useRenovations';
 
 const GOLD = 'var(--gold-text)';
 const MONDAY_BOARD_URL = 'https://real-estate-usa-eden.monday.com/boards/2064106439';
@@ -44,20 +45,11 @@ interface Props {
 
 export function RenovationsTab({ propertyId, role = 'admin' }: Props) {
   const isAdmin = role === 'admin';
-  const [items, setItems] = useState<Renovation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { items, loading, error, loadReceipts } = useRenovations({ propertyId, role });
   const [openId, setOpenId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    listRenovations({ propertyId, role })
-      .then(list => { if (!cancelled) { setItems(list); setError(null); } })
-      .catch(err => { if (!cancelled) setError(err?.message || 'שגיאה בטעינה'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [propertyId, role]);
+  // Receipt URLs are lazy — hydrate them for the expanded card only.
+  useEffect(() => { if (openId) loadReceipts(openId); }, [openId, items, loadReceipts]);
 
   if (loading) {
     return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>טוען שיפוצים…</div>;
