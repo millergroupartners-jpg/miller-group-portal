@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { MGLogo } from '../common/MGLogo';
 import { SkeletonPropertyCard, SkeletonFeedRow } from '../common/Skeletons';
@@ -15,6 +15,8 @@ import { timeGreetingHe } from '../../utils/greeting';
 import { StatValue } from '../common/StatValue';
 import { getAndStampLastVisit } from '../../services/lastVisit';
 import { userStorageKey } from '../../services/userStorage';
+import { diffAndSnapshot, type CelebrationEvent } from '../../services/celebrations';
+import { ConfettiBurst } from '../common/ConfettiBurst';
 import type { MondayProperty } from '../../services/mondayApi';
 import type { Property } from '../../types';
 
@@ -139,6 +141,18 @@ export function DashboardScreen() {
       .catch(err => console.error('investor feed failed:', err))
       .finally(() => { if (!cancelled) setFeedLoading(false); });
     return () => { cancelled = true; };
+  }, [mondayInvestor?.mondayId]);
+
+  // Milestone celebration — once per visit, after Monday data resolves.
+  // Only SET on a non-empty result: the snapshot is already updated by the
+  // first StrictMode run, so the second run's [] must not clear the burst.
+  const [celebration, setCelebration] = useState<CelebrationEvent | null>(null);
+  const celebrationChecked = useRef(false);
+  useEffect(() => {
+    if (!mondayInvestor || user.isAdmin || celebrationChecked.current) return;
+    celebrationChecked.current = true;
+    const events = diffAndSnapshot(userStorageKey(user), mondayInvestor.properties);
+    if (events.length > 0) setCelebration(events[0]);
   }, [mondayInvestor?.mondayId]);
 
   return (
@@ -460,6 +474,15 @@ export function DashboardScreen() {
       )}
       </div>
 
+      {/* Milestone confetti */}
+      {celebration && (
+        <ConfettiBurst
+          message={celebration.kind === 'renovation-complete'
+            ? `🎉 השיפוץ ב-${celebration.property.address} הושלם!`
+            : `🎉 הנכס ב-${celebration.property.address} הושכר!`}
+          onDone={() => setCelebration(null)}
+        />
+      )}
     </div>
   );
 }

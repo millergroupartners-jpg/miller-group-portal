@@ -63,6 +63,21 @@
   animation: flashHighlight 0.75s ease 0.3s 3;
 }
 
+/* ── Celebration confetti (gold, one-shot) ───────────────────── */
+.confetti-piece {
+  position: absolute;
+  top: -14px;
+  opacity: 0;
+  box-shadow: 0 0 6px rgba(201, 168, 76, 0.35);
+  animation: confettiFall 2.1s var(--ease-out) both;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 0; }
+  8%   { opacity: 1; }
+  70%  { opacity: 0.9; }
+  100% { transform: translateY(105vh) rotate(540deg) scale(0.85); opacity: 0; }
+}
+
 /* ── Reduced motion — keep fades, kill movement ──────────────── */
 @media (prefers-reduced-motion: reduce) {
   .screen-enter-forward,
@@ -81,5 +96,9 @@
   }
   .skeleton::after {
     animation: none;
+  }
+  .confetti-piece {
+    animation: none;
+    opacity: 0;
   }
 }
