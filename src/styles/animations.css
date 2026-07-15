@@ -94,6 +94,7 @@
   .prop-tab::after {
     transition-duration: 1ms !important;
   }
+  .skeleton,
   .skeleton::after {
     animation: none;
   }

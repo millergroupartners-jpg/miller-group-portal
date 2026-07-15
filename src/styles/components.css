@@ -50,6 +50,136 @@
   }
 }
 
+/* ── House showcase — floating property visual ───────────────── */
+/* Status accent + stage shadow as scoped variables; the accent
+   tokens already carry light-theme overrides, the shadow gets its
+   own (warm-tinted, like --shadow-*). */
+.house-showcase {
+  --hs-accent:        var(--gold-bright);
+  --hs-accent-dim:    var(--gold-dim);
+  --hs-accent-border: var(--gold-border);
+  --hs-shadow:        rgba(0, 0, 0, 0.4);
+}
+.house-showcase[data-status="green"] {
+  --hs-accent:        var(--success);
+  --hs-accent-dim:    var(--success-dim);
+  --hs-accent-border: var(--success-border);
+}
+.house-showcase[data-status="blue"] {
+  --hs-accent:        var(--info);
+  --hs-accent-dim:    var(--info-dim);
+  --hs-accent-border: var(--info-border);
+}
+[data-theme="light"] .house-showcase {
+  --hs-shadow: rgba(93, 74, 38, 0.30);
+}
+
+.hs-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 85% at 50% 108%, var(--hs-accent-dim), transparent 62%),
+    linear-gradient(180deg, var(--bg-surface-2), var(--bg-surface-3));
+}
+.hs-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(58% 48% at 50% 58%, var(--hs-accent-dim), transparent 72%);
+}
+.hs-tilt {
+  position: absolute;
+  inset: 0;
+  transform: perspective(650px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 150ms var(--ease-out);
+  transform-style: preserve-3d;
+}
+.hs-float {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 11%;
+}
+.hs-float > svg {
+  height: 100%;
+  max-width: 84%;
+}
+.hs-cutout {
+  width: 82%;
+  height: 96%;
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.hs-shadow {
+  position: absolute;
+  bottom: 6.5%;
+  left: 50%;
+  width: 52%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--hs-shadow), transparent 70%);
+  filter: blur(3px);
+  transform: translateX(-50%);
+}
+.hs-photo-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, var(--hs-accent-dim));
+  pointer-events: none;
+}
+/* The card-wide slow photo zoom must not scale floating cutouts —
+   it would fight the float/tilt transforms. Real photos keep it. */
+.gold-card .hs-cutout {
+  transition: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gold-card.interactive:hover .hs-cutout,
+  .gold-card[style*="cursor: pointer"]:hover .hs-cutout {
+    transform: none;
+  }
+}
+
+/* Keyboard-focusable property cards (role="link") */
+.gold-card[role="link"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring), var(--shadow-3);
+  border-color: var(--gold-border);
+}
+
+/* Showcase/Classic segmented toggle */
+.hs-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-chip);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-badge);
+  padding: 2px;
+}
+.hs-mode-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: var(--radius-badge);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.hs-mode-toggle button.active {
+  background: var(--gold-dim);
+  color: var(--gold-text);
+  box-shadow: inset 0 0 0 1px var(--gold-border);
+}
+
 /* ── Inputs ──────────────────────────────────────────────────── */
 .mg-input {
   width: 100%;
@@ -552,22 +682,34 @@
 }
 
 /* ── Skeleton loading shimmer ────────────────────────────────── */
+/* Two motions so the loading state clearly reads as "alive": the base
+   breathes between two surface tones, and a wide gold band sweeps across.
+   Sheen/pulse colors are theme-aware tokens (light needs a darker sweep). */
 .skeleton {
   background: var(--bg-surface-2);
   border-radius: var(--radius-sm);
   position: relative;
   overflow: hidden;
+  animation: skeletonPulse 1.8s ease-in-out infinite;
 }
 .skeleton::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  animation: shimmer 1.4s infinite;
+  background: linear-gradient(100deg,
+    transparent 25%,
+    var(--skeleton-sheen) 45%,
+    var(--skeleton-sheen) 55%,
+    transparent 75%);
+  animation: shimmer 1.2s ease-in-out infinite;
 }
 @keyframes shimmer {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(120%); }
+}
+@keyframes skeletonPulse {
+  0%, 100% { background-color: var(--bg-surface-2); }
+  50%      { background-color: var(--skeleton-pulse); }
 }
 
 /* ── Interactive rows / cards (divs with onClick) ────────────── */
