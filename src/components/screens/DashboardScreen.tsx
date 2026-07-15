@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { MGLogo } from '../common/MGLogo';
+import { SkeletonPropertyCard, SkeletonFeedRow } from '../common/Skeletons';
 import { StatusBadge } from '../common/StatusBadge';
 import { ProgressBar } from '../common/ProgressBar';
 import { PropPhoto } from '../common/PropPhoto';
@@ -235,12 +236,11 @@ export function DashboardScreen() {
         {/* ── Empty state: real investor with no properties yet ── */}
         {isMondayMode && mondayProps.length === 0 && (
           investorPending ? (
-            <div className="gold-card" style={{ gridColumn: '1 / -1', padding: 32, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span className="mg-spinner" style={{ width: 14, height: 14 }} />
-                <span>טוען את הנכסים שלך...</span>
-              </div>
-            </div>
+            <>
+              <SkeletonPropertyCard />
+              <SkeletonPropertyCard />
+              <SkeletonPropertyCard />
+            </>
           ) : (
             <div className="gold-card" style={{ gridColumn: '1 / -1', padding: '36px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 42, marginBottom: 14 }}>🏠</div>
@@ -344,6 +344,13 @@ export function DashboardScreen() {
             {!feedLoading && feed.length === 0 && (
               <div style={{ textAlign: 'center', padding: 14, fontSize: 12, color: 'var(--text-secondary)' }}>
                 אין עדכונים אחרונים
+              </div>
+            )}
+            {feedLoading && feed.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <SkeletonFeedRow />
+                <SkeletonFeedRow />
+                <SkeletonFeedRow />
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

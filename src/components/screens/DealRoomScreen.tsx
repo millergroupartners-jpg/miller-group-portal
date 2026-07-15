@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MGLogo } from '../common/MGLogo';
+import { SkeletonPropertyCard } from '../common/Skeletons';
 import { StatusBadge } from '../common/StatusBadge';
 import { PropPhoto } from '../common/PropPhoto';
 import { useCCThumbnail } from '../../hooks/useCCThumbnail';
@@ -137,8 +138,9 @@ export function DealRoomScreen() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading && deals.length === 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: GOLD, fontSize: 13, padding: '40px 0' }}>
-            <span className="mg-spinner" style={{ width: 12, height: 12 }} /> טוען עסקאות...
+          <div className="property-grid stagger" style={{ padding: 0 }}>
+            <SkeletonPropertyCard />
+            <SkeletonPropertyCard />
           </div>
         )}
 
