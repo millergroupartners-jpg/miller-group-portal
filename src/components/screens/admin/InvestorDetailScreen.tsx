@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
+import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { StatusBadge } from '../../common/StatusBadge';
 import { ProgressBar } from '../../common/ProgressBar';
@@ -65,7 +66,8 @@ function PropCard({ p, i, onPress }: { p: MondayProperty; i: number; onPress: ()
 interface Props { investorId: string }
 
 export function InvestorDetailScreen({ investorId }: Props) {
-  const { navigate, goBack } = useNavigation();
+  const { navigate, goBack, resetTo } = useNavigation();
+  const { viewAsInvestor } = useUser();
   const { investors } = useMondayData();
   const [copied, setCopied] = useState(false);
 
@@ -154,6 +156,23 @@ export function InvestorDetailScreen({ investorId }: Props) {
             פעולות
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+            <button
+              onClick={() => { viewAsInvestor(inv); resetTo('dashboard'); }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '11px 14px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
+                color: GOLD, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              צפה כמשקיע
+            </button>
+
             <button
               onClick={() => navigate('set-password', { investorId: inv.mondayId, investorName: inv.fullName })}
               style={{

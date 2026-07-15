@@ -5,7 +5,7 @@ interface NavigationContextValue {
   navState: NavState;
   navigate: (screen: Screen, opts?: { propertyId?: string; investorId?: string; investorName?: string; highlightClosingMode?: 'week' | 'overdue'; highlightInvestorMode?: 'no-password'; highlightPropertyMode?: 'no-manager' }) => void;
   goBack: () => void;
-  resetTo: (screen: Screen) => void;
+  resetTo: (screen: Screen, opts?: { investorId?: string }) => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue>({
@@ -75,8 +75,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setStack(s => (s.length > 1 ? s.slice(0, -1) : s));
   };
 
-  const resetTo = (screen: Screen) => {
-    setStack([{ screen, selectedPropertyId: null, selectedInvestorId: null, direction: 'forward' }]);
+  const resetTo = (screen: Screen, opts?: { investorId?: string }) => {
+    setStack([{ screen, selectedPropertyId: null, selectedInvestorId: opts?.investorId ?? null, direction: 'forward' }]);
   };
 
   return (

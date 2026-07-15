@@ -7,7 +7,7 @@ import { findInvestorByEmailLive, setInvestorPassword } from '../../services/mon
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { ALL_USERS } from '../../data/user';
-import type { User } from '../../data/user';
+import { mondayInvestorToUser } from '../../utils/investorUser';
 
 const GOLD = 'var(--gold-text)';
 
@@ -63,21 +63,7 @@ export function LoginScreen() {
       }
       // Verify password
       if (mondayInv.password === pass) {
-        const nameParts = mondayInv.fullName.trim().split(/\s+/);
-        const mondayUser: User = {
-          id: mondayInv.mondayId,
-          firstNameHe: nameParts[0] ?? mondayInv.fullName,
-          lastNameHe: nameParts.slice(1).join(' '),
-          fullNameHe: mondayInv.fullName,
-          initials: mondayInv.initials,
-          email: mondayInv.email,
-          password: '',
-          phone: mondayInv.phone,
-          investorSince: mondayInv.investorSince,
-          isAdmin: false,
-          mondayInvestorId: mondayInv.mondayId,
-        };
-        setCurrentUser(mondayUser);
+        setCurrentUser(mondayInvestorToUser(mondayInv));
         navigate('dashboard');
         return;
       }

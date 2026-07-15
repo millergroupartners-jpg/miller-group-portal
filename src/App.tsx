@@ -27,7 +27,10 @@ import { SetPasswordScreen } from './components/screens/SetPasswordScreen';
 import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
 import { MobileTopActions } from './components/common/MobileTopActions';
+import { ImpersonationBanner } from './components/common/ImpersonationBanner';
 import { InvestorOnboarding } from './components/onboarding/InvestorOnboarding';
+import { useUser } from './context/UserContext';
+import { useEffect } from 'react';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
@@ -36,8 +39,15 @@ const SIDEBAR_SCREENS = [
 ];
 
 export default function App() {
-  const { navState } = useNavigation();
+  const { navState, resetTo } = useNavigation();
+  const { impersonating } = useUser();
   const { screen, selectedPropertyId, selectedInvestorId, investorName } = navState;
+
+  // Belt-and-suspenders: while impersonating, admin screens are unreachable —
+  // any navigation that lands on one gets bounced to the investor dashboard.
+  useEffect(() => {
+    if (impersonating && screen.startsWith('admin-')) resetTo('dashboard');
+  }, [impersonating, screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showSidebar = SIDEBAR_SCREENS.includes(screen);
 
@@ -88,7 +98,8 @@ export default function App() {
 
   if (showSidebar) {
     return (
-      <div className="app-layout">
+      <div className="app-layout" style={impersonating ? { paddingTop: 34 } : undefined}>
+        <ImpersonationBanner />
         <DesktopSidebar active={screen} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           {content}
