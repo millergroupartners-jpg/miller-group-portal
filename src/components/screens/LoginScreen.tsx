@@ -188,6 +188,29 @@ export function LoginScreen() {
             </button>
           </div>
 
+          {/* First-time hint — email alone routes to the set-password screen */}
+          <div style={{
+            background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
+            borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginTop: 2,
+          }}>
+            <div style={{
+              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
+              textAlign: 'right', display: 'flex', alignItems: 'flex-start', gap: 8,
+              flexDirection: 'row-reverse',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ flexShrink: 0, marginTop: 2 }}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <span>
+                <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>נכנסים בפעם הראשונה?</b>{' '}
+                אין צורך בסיסמה — הזינו את האימייל, לחצו כניסה ותתבקשו לבחור סיסמה אישית.
+              </span>
+            </div>
+          </div>
+
           {mondayLoading && (
             <div style={{ fontSize: 12, color: GOLD, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <span className="mg-spinner" style={{ width: 12, height: 12 }} />
