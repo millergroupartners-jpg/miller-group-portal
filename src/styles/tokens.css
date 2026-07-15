@@ -124,9 +124,10 @@
   --info-dim:       rgba(38, 115, 200, 0.08);
   --info-border:    rgba(38, 115, 200, 0.25);
 
-  /* Skeleton loading — darker gold sweep reads on ivory surfaces */
-  --skeleton-sheen: rgba(160, 124, 42, 0.22);
-  --skeleton-pulse: #E2DAC6;
+  /* Skeleton loading — the sweep must stay darker than the pulse's dark
+     phase or it disappears into it (gold@0.22 blended ≈ the pulse tone). */
+  --skeleton-sheen: rgba(143, 114, 49, 0.38);
+  --skeleton-pulse: #EDE6D6;
 
   /* Warm-tinted shadows */
   --shadow-1: 0 1px 2px rgba(93, 74, 38, 0.06);
