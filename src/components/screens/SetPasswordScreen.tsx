@@ -3,6 +3,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { setInvestorPassword } from '../../services/mondayApi';
+import { replayOnboarding } from '../onboarding/InvestorOnboarding';
 import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import type { User } from '../../data/user';
@@ -54,6 +55,11 @@ export function SetPasswordScreen({ investorMondayId, investorName }: SetPasswor
         isAdmin: false,
         mondayInvestorId: investorMondayId,
       };
+      // No password on Monday = this is the investor's true first entry, even
+      // if this browser already "saw" the tour (e.g. an admin test run before
+      // the password was wiped to reset the account). Clear the seen-flag so
+      // the onboarding plays on this login.
+      replayOnboarding(mondayUser);
       setCurrentUser(mondayUser);
       navigate('dashboard');
     } catch (e) {
