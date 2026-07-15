@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
+import { ConfirmDialog } from '../../common/ConfirmDialog';
 import {
   listInquiries, createInquiry, replyToInquiry, resolveInquiry, uploadFilesToInquiry, parseReplyAuthor,
   type Inquiry,
@@ -46,6 +47,7 @@ export function AdminInquiriesScreen() {
   const [replying, setReplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [confirmingResolve, setConfirmingResolve] = useState<Inquiry | null>(null);
 
   // Compose-to-investor state
   const [composeOpen, setComposeOpen] = useState(false);
@@ -107,7 +109,6 @@ export function AdminInquiriesScreen() {
   };
 
   const handleResolve = async (inq: Inquiry) => {
-    if (!window.confirm('לסמן את הפנייה כטופלה?')) return;
     setResolving(true);
     try {
       await resolveInquiry(inq.id);
@@ -116,6 +117,7 @@ export function AdminInquiriesScreen() {
       setError(e?.message || 'שגיאה');
     } finally {
       setResolving(false);
+      setConfirmingResolve(null);
     }
   };
 
@@ -349,7 +351,7 @@ export function AdminInquiriesScreen() {
                         ))}
                       </div>
                       <button
-                        onClick={() => handleResolve(inq)}
+                        onClick={() => setConfirmingResolve(inq)}
                         disabled={resolving}
                         style={{
                           marginTop: 10, width: '100%',
@@ -372,6 +374,16 @@ export function AdminInquiriesScreen() {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={confirmingResolve !== null}
+        title="לסמן את הפנייה כטופלה?"
+        message={confirmingResolve ? `"${confirmingResolve.subject}" — ${confirmingResolve.investorName}` : undefined}
+        confirmLabel="סמן כטופל"
+        busy={resolving}
+        onConfirm={() => confirmingResolve && handleResolve(confirmingResolve)}
+        onCancel={() => !resolving && setConfirmingResolve(null)}
+      />
 
       {/* Compose-to-investor modal */}
       {composeOpen && (

@@ -7,6 +7,7 @@ import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
 import { replayOnboarding } from '../onboarding/InvestorOnboarding';
 import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut, getDealEmailOptOut, setDealEmailOptOut } from '../../services/notificationPrefs';
+import { useToast } from '../common/ToastProvider';
 
 const GOLD = 'var(--gold-text)';
 
@@ -67,6 +68,7 @@ export function SettingsScreen() {
   const { resetTo, navigate } = useNavigation();
   const { theme, toggleTheme } = useTheme();
   const { currentUser, setCurrentUser } = useUser();
+  const toast = useToast();
   const user = currentUser ?? MOCK_USER;
 
   // Email notification preference (investors only)
@@ -105,7 +107,7 @@ export function SettingsScreen() {
     } catch (e) {
       // Revert on failure
       setEmailsEnabled(!next);
-      alert('שמירה נכשלה, נסה שוב');
+      toast.error('שמירה נכשלה, נסה שוב');
     } finally {
       setSavingEmails(false);
     }
@@ -120,7 +122,7 @@ export function SettingsScreen() {
       await setUtilityReminderOptOut(investorMondayId, !next);
     } catch (e) {
       setUtilRemEnabled(!next);
-      alert('שמירה נכשלה, נסה שוב');
+      toast.error('שמירה נכשלה, נסה שוב');
     } finally {
       setSavingUtilRem(false);
     }
@@ -135,7 +137,7 @@ export function SettingsScreen() {
       await setDealEmailOptOut(investorMondayId, !next);
     } catch (e) {
       setDealEmailsEnabled(!next);
-      alert('שמירה נכשלה, נסה שוב');
+      toast.error('שמירה נכשלה, נסה שוב');
     } finally {
       setSavingDealEmails(false);
     }

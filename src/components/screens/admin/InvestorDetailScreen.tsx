@@ -6,15 +6,10 @@ import { ProgressBar } from '../../common/ProgressBar';
 import { PropPhoto } from '../../common/PropPhoto';
 import { useCCThumbnail } from '../../../hooks/useCCThumbnail';
 import type { MondayProperty } from '../../../services/mondayApi';
+import { buildInviteUrl, buildInviteMessage, buildWhatsAppInviteUrl, buildMailtoInviteUrl } from '../../../utils/invite';
+import { fmtUSD } from '../../../utils/format';
 
 const GOLD = 'var(--gold-text)';
-
-function fmtUSD(n: number): string {
-  if (!n) return '—';
-  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
-  if (n >= 1_000)     return '$' + Math.round(n / 1000) + 'K';
-  return '$' + n.toLocaleString('en-US');
-}
 
 function PropCard({ p, i, onPress }: { p: MondayProperty; i: number; onPress: () => void }) {
   const thumb = useCCThumbnail(p.address);
@@ -90,22 +85,18 @@ export function InvestorDetailScreen({ investorId }: Props) {
   const equity = arv - allIn;
   const roi    = allIn > 0 ? ((equity / allIn) * 100).toFixed(1) + '%' : '—';
 
-  const portalOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://miller-group-portal.vercel.app';
-  const inviteUrl = `${portalOrigin}/?email=${encodeURIComponent(inv.email)}`;
+  const inviteUrl = buildInviteUrl(inv.email);
 
   const copyInvite = async () => {
-    const msg = `שלום ${inv.fullName},\n\nברוך הבא לפורטל המשקיעים של Miller Group.\nכנס לקישור: ${inviteUrl}\nסיסמה: ${inv.password || '(יוגדר ע״י המנהל)'}`;
     try {
-      await navigator.clipboard.writeText(msg);
+      await navigator.clipboard.writeText(buildInviteMessage(inv));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {}
   };
 
-  const whatsappMsg = encodeURIComponent(`שלום ${inv.fullName},\nברוך הבא לפורטל המשקיעים של Miller Group 👋\n\n🔗 ${inviteUrl}\n🔑 סיסמה: ${inv.password || '(צור קשר)'}`);
-  const phoneClean = inv.phone.replace(/[^0-9+]/g, '');
-  const waUrl = phoneClean ? `https://wa.me/${phoneClean.replace(/^\+/, '')}?text=${whatsappMsg}` : '';
-  const mailUrl = inv.email ? `mailto:${inv.email}?subject=${encodeURIComponent('פורטל המשקיעים - Miller Group')}&body=${whatsappMsg}` : '';
+  const waUrl = buildWhatsAppInviteUrl(inv);
+  const mailUrl = buildMailtoInviteUrl(inv);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>

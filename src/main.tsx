@@ -6,17 +6,20 @@ import { ThemeProvider } from './context/ThemeContext';
 import { NavigationProvider } from './context/NavigationContext';
 import { UserProvider } from './context/UserContext';
 import { MondayDataProvider } from './context/MondayDataContext';
+import { ToastProvider } from './components/common/ToastProvider';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <UserProvider>
-        <MondayDataProvider>
-          <NavigationProvider>
-            <App />
-          </NavigationProvider>
-        </MondayDataProvider>
-      </UserProvider>
+      <ToastProvider>
+        <UserProvider>
+          <MondayDataProvider>
+            <NavigationProvider>
+              <App />
+            </NavigationProvider>
+          </MondayDataProvider>
+        </UserProvider>
+      </ToastProvider>
     </ThemeProvider>
   </StrictMode>
 );
