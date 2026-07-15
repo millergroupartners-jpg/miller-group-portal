@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MGLogo } from '../../common/MGLogo';
 import { useToast } from '../../common/ToastProvider';
-import { useUser } from '../../../context/UserContext';
 import {
   fetchEmailLog, fetchScheduledEmails, createScheduledEmail, setScheduledEmailActive,
   sendAdminEmail, type EmailLogEntry, type ScheduledEmail, type Audience,
@@ -313,7 +312,6 @@ function AutoTab() {
 // ─── Tab: שליחה ─────────────────────────────────────────────────────────────
 
 function ComposeTab() {
-  const { currentUser } = useUser();
   const toast = useToast();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -325,23 +323,23 @@ function ComposeTab() {
   const [err, setErr] = useState('');
   const [confirming, setConfirming] = useState(false);
 
-  const adminEmail = currentUser?.email || '';
-
-  // Sends the composed email only to the admin so they can preview the real
-  // branded template in their inbox. Deliberately does NOT clear the fields.
+  // Sends the composed email only to the server-side admin inboxes so staff
+  // can preview the real branded template. Deliberately does NOT clear the fields.
   const sendTest = async () => {
     if (testSending || sending) return;
     if (!subject.trim() || !message.trim()) { setErr('יש למלא נושא והודעה'); return; }
-    if (!adminEmail) { setErr('לא נמצא אימייל אדמין'); return; }
     setTestSending(true); setErr('');
     try {
-      await sendAdminEmail({
+      const res = await sendAdminEmail({
         subject: `[בדיקה] ${subject.trim()}`,
         message: message.trim(),
-        audience: 'custom',
-        customEmails: [adminEmail],
+        audience: 'test',
       });
-      toast.success(`נשלח מייל בדיקה אל ${adminEmail}`);
+      if (res.failed > 0 && res.sent === 0) {
+        toast.error('שליחת הבדיקה נכשלה — בדוק את הגדרות המייל בשרת');
+      } else {
+        toast.success(`נשלח מייל בדיקה לתיבת האדמין (${res.sent} נמענים)`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'שליחת הבדיקה נכשלה');
     } finally {
@@ -428,14 +426,14 @@ function ComposeTab() {
         </button>
         <button
           onClick={sendTest}
-          disabled={testSending || sending || !subject.trim() || !message.trim() || !adminEmail}
-          title={adminEmail ? `שולח רק אל ${adminEmail}` : ''}
+          disabled={testSending || sending || !subject.trim() || !message.trim()}
+          title="שולח רק לתיבת המייל של ההנהלה"
           style={{
             padding: '13px 16px', borderRadius: 12,
             background: 'var(--bg-chip)', border: '1px solid var(--border)',
             color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
             cursor: testSending ? 'wait' : 'pointer', fontFamily: 'var(--font-ui)',
-            opacity: (!subject.trim() || !message.trim() || !adminEmail) ? 0.5 : 1,
+            opacity: (!subject.trim() || !message.trim()) ? 0.5 : 1,
             whiteSpace: 'nowrap',
           }}
         >

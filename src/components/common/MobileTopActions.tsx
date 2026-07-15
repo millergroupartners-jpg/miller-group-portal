@@ -13,14 +13,15 @@ const GOLD = 'var(--gold)';
 
 export function MobileTopActions({ active }: { active: Screen }) {
   const { navigate } = useNavigation();
-  const { currentUser } = useUser();
+  const { currentUser, impersonating } = useUser();
   const isAdmin = Boolean(currentUser?.isAdmin);
 
   const investorStyleScreens: Screen[] = ['property-detail', 'documents', 'media'];
   const showBackToAdmin = isAdmin && investorStyleScreens.includes(active);
 
   return (
-    <div className="mobile-top-actions">
+    // Nudged down while the impersonation banner occupies the top strip
+    <div className="mobile-top-actions" style={impersonating ? { marginTop: 38 } : undefined}>
       <div data-tour="bell" style={{ display: 'flex' }}>
         <NotificationsPanel />
       </div>

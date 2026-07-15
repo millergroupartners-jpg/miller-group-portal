@@ -116,8 +116,10 @@ export default function App() {
         {searchAvailable && (
           <CommandPalette open={searchOpen} onOpen={() => setSearchOpen(true)} onClose={() => setSearchOpen(false)} />
         )}
-        {/* First-login tour — renders only for investors who haven't seen it */}
-        {screen === 'dashboard' && <InvestorOnboarding />}
+        {/* First-login tour — renders only for investors who haven't seen it.
+            Suppressed during impersonation so admins don't trigger (or burn)
+            the investor's first-visit tour. */}
+        {screen === 'dashboard' && !impersonating && <InvestorOnboarding />}
       </div>
     );
   }

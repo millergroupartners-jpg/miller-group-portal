@@ -157,7 +157,8 @@ export async function setScheduledEmailActive(id: string, active: boolean): Prom
 
 // ─── Manual broadcast ────────────────────────────────────────────────────────
 
-export type Audience = 'all' | 'registered' | 'unregistered' | 'custom';
+/** 'test' delivers only to the server-side admin inboxes (send-a-test-to-myself). */
+export type Audience = 'all' | 'registered' | 'unregistered' | 'custom' | 'test';
 
 export async function sendAdminEmail(opts: {
   subject: string;

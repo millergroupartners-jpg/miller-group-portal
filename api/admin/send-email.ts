@@ -80,12 +80,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!subject?.trim() || !message?.trim()) {
       return res.status(400).json({ error: 'Missing subject or message' });
     }
-    if (!['all', 'registered', 'unregistered', 'custom'].includes(audience)) {
+    if (!['all', 'registered', 'unregistered', 'custom', 'test'].includes(audience)) {
       return res.status(400).json({ error: 'Invalid audience' });
     }
 
     let recipients: Recipient[];
-    if (audience === 'custom') {
+    if (audience === 'test') {
+      // "Send test to me" — deliver only to the server-side admin inboxes
+      // (GMAIL_USER + ADMIN_EMAILS), which are the mailboxes staff actually
+      // read. Being admin-only also skips the confirmation email below.
+      recipients = getAdminRecipients().map(email => ({ name: '', email: email.toLowerCase() }));
+    } else if (audience === 'custom') {
       const emails: string[] = Array.isArray(customEmails) ? customEmails : [];
       const cleaned = Array.from(new Set(
         emails.map(e => String(e).trim().toLowerCase()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)),
