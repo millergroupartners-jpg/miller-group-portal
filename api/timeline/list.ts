@@ -3,8 +3,9 @@
  *
  * Aggregates a unified chronological timeline for one property from 6 sources:
  *   1. CompanyCam photos captured for the matching project
- *   2. Renovation subitems (payments) — investors get a neutral "העברה לשיפוץ"
- *      (no recipient); admin sees the full transfer detail
+ *   2. Renovation subitems (payments) — investors see only their own transfers
+ *      to us (paidBy=הלקוח) as a neutral "העברה לשיפוץ" (no recipient); admin
+ *      sees every transfer with full detail
  *   3. Status changes on the property (from Monday activity_logs)
  *   4. Inquiries linked to the property (+ each inquiry update)
  *   5. Utility milestones (scheduled-in dates + activations)
@@ -219,8 +220,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 4. Renovation subitems (payments). Investors see a neutral "העברה
-    //    לשיפוץ" — the recipient (למי שולם) is internal and admin-only.
+    // 4. Renovation subitems (payments). Investors see ONLY their own transfers
+    //    to us (paidBy=הלקוח, same rule as api/renovations/list.ts) — our
+    //    internal payments to contractors are admin-only, as is the recipient
+    //    (למי שולם).
     {
       const renovQuery = `query {
         boards(ids: [${RENOVATIONS_BOARD_ID}]) {
@@ -233,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               }
               subitems {
                 id name created_at
-                column_values(ids: ["${RENOV_SUB_COL.amount}", "${RENOV_SUB_COL.date}", "${RENOV_SUB_COL.paidTo}", "${RENOV_SUB_COL.category}"]) {
+                column_values(ids: ["${RENOV_SUB_COL.amount}", "${RENOV_SUB_COL.date}", "${RENOV_SUB_COL.paidTo}", "${RENOV_SUB_COL.paidBy}", "${RENOV_SUB_COL.category}"]) {
                   id text
                 }
               }
@@ -249,6 +252,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (linked !== propertyId) continue;
         for (const sub of r.subitems || []) {
           const sc = Object.fromEntries(sub.column_values.map((c: any) => [c.id, c]));
+          const paidBy = sc[RENOV_SUB_COL.paidBy]?.text || '';
+          if (!isAdmin && paidBy !== 'הלקוח') continue;
           const amountText = sc[RENOV_SUB_COL.amount]?.text || '0';
           const date = sc[RENOV_SUB_COL.date]?.text || sub.created_at;
           const paidTo = sc[RENOV_SUB_COL.paidTo]?.text || '';

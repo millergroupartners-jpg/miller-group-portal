@@ -8,8 +8,9 @@
  *   1. Status changes on property items (Properties board activity_logs)
  *   2. New inquiries created
  *   3. Replies posted on inquiries
- *   4. Renovation payments (subitems) — investors get a neutral "העברה לשיפוץ"
- *      presentation (no recipient), admin sees the full transfer detail
+ *   4. Renovation payments (subitems) — investors see only their own transfers
+ *      to us (paidBy=הלקוח) as a neutral "העברה לשיפוץ" (no recipient); admin
+ *      sees every transfer with full detail
  *   5. Utility milestones
  *   6. Renovation-loan updates (loans board activity_logs)
  *
@@ -211,10 +212,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('admin-feed inquiries failed:', e);
     }
 
-    // 4. Renovation payments (transfers). Both roles see them, scoped to the
-    //    investor's properties when filtering. Investors get a neutral
-    //    "העברה לשיפוץ" without the recipient — למי שולם is internal detail
-    //    (contractor/commission split) that stays admin-only.
+    // 4. Renovation payments (transfers). Admin sees every transfer; investors
+    //    see ONLY their own transfers to us (paidBy=הלקוח, same rule as
+    //    api/renovations/list.ts) — our internal payments to contractors never
+    //    reach them, nor does the recipient (למי שולם).
     try {
       const renovQuery = `query {
         boards(ids: [${RENOVATIONS_BOARD_ID}]) {
@@ -227,7 +228,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               }
               subitems {
                 id name created_at
-                column_values(ids: ["${RENOV_SUB_COL.amount}", "${RENOV_SUB_COL.date}", "${RENOV_SUB_COL.paidTo}", "${RENOV_SUB_COL.category}"]) { id text }
+                column_values(ids: ["${RENOV_SUB_COL.amount}", "${RENOV_SUB_COL.date}", "${RENOV_SUB_COL.paidTo}", "${RENOV_SUB_COL.paidBy}", "${RENOV_SUB_COL.category}"]) { id text }
               }
             }
           }
@@ -243,6 +244,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (investorPropertyIds && (!propId || !investorPropertyIds.has(propId))) continue;
         for (const sub of r.subitems || []) {
           const sc = Object.fromEntries(sub.column_values.map((c: any) => [c.id, c]));
+          const paidBy = sc[RENOV_SUB_COL.paidBy]?.text || '';
+          if (!isAdmin && paidBy !== 'הלקוח') continue;
           const amount = sc[RENOV_SUB_COL.amount]?.text || '0';
           const paidTo = sc[RENOV_SUB_COL.paidTo]?.text || '';
           const category = sc[RENOV_SUB_COL.category]?.text || '';
