@@ -6,6 +6,8 @@ import { MGLogo } from '../common/MGLogo';
 import { GoldDivider } from '../common/GoldDivider';
 import { MOCK_USER } from '../../data/user';
 import { replayOnboarding } from '../onboarding/InvestorOnboarding';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
+import { InstallIOSModal } from '../common/InstallIOSModal';
 import { getEmailOptOut, setEmailOptOut, getUtilityReminderOptOut, setUtilityReminderOptOut, getDealEmailOptOut, setDealEmailOptOut } from '../../services/notificationPrefs';
 import { useToast } from '../common/ToastProvider';
 
@@ -154,6 +156,11 @@ export function SettingsScreen() {
     replayOnboarding(user);
     resetTo('dashboard');
   };
+
+  // PWA install row (Help section): native prompt on Android/Chrome,
+  // instructions modal on iOS, hidden once running as an installed app.
+  const { isStandalone, canPrompt, isIOS, promptInstall } = useInstallPrompt();
+  const [showIOSInstall, setShowIOSInstall] = useState(false);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', overflow: 'hidden' }}>
@@ -424,6 +431,17 @@ export function SettingsScreen() {
                 value="הפעלה מחדש של סיור ההיכרות"
                 onPress={handleReplayTour}
               />
+              {!isStandalone && (canPrompt || isIOS) && (
+                <>
+                  <Divider />
+                  <SettingRow
+                    icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>}
+                    label="התקנת האפליקציה על המסך"
+                    value="גישה מהירה מהמסך הראשי של הטלפון"
+                    onPress={() => { if (canPrompt) promptInstall(); else setShowIOSInstall(true); }}
+                  />
+                </>
+              )}
             </SectionCard>
           </>
         )}
@@ -458,6 +476,7 @@ export function SettingsScreen() {
 
       </div>
 
+      {showIOSInstall && <InstallIOSModal onClose={() => setShowIOSInstall(false)} />}
     </div>
   );
 }
