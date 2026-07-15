@@ -11,6 +11,8 @@ import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
 import { useCCThumbnail } from '../../hooks/useCCThumbnail';
 import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../services/timelineApi';
+import { timeGreetingHe } from '../../utils/greeting';
+import { StatValue } from '../common/StatValue';
 import type { MondayProperty } from '../../services/mondayApi';
 import type { Property } from '../../types';
 
@@ -127,7 +129,7 @@ export function DashboardScreen() {
       {/* Desktop title */}
       <div className="desktop-page-title">
         <div>
-          <div className="subtitle">שלום, {user.fullNameHe}</div>
+          <div className="subtitle">{timeGreetingHe()}, {user.fullNameHe}</div>
         </div>
         <h1>הנכסים שלי</h1>
       </div>
@@ -137,7 +139,7 @@ export function DashboardScreen() {
         <MGLogo size={36} showWordmark={false} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>שלום,</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>{timeGreetingHe()},</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{user.fullNameHe}</div>
           </div>
           <div style={{
@@ -167,7 +169,9 @@ export function DashboardScreen() {
               padding: '10px 6px', textAlign: 'center',
               border: (s.label === 'ROI' || s.label === 'Equity') ? '1px solid var(--success-border)' : '1px solid var(--border)',
             }}>
-              <div className="num" style={{ fontSize: 15, fontWeight: 700, color: s.color, marginBottom: 2 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 15, fontWeight: 700, color: s.color, marginBottom: 2 }}>
+                {investorPending ? '—' : <StatValue value={s.value} />}
+              </div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
@@ -201,7 +205,9 @@ export function DashboardScreen() {
               border: '1px solid var(--border)',
               padding: '10px 6px', flex: 1, textAlign: 'center',
             }}>
-              <div className="num" style={{ fontSize: 16, fontWeight: 700, color: GOLD, marginBottom: 2 }}>{s.value}</div>
+              <div className="num" style={{ fontSize: 16, fontWeight: 700, color: GOLD, marginBottom: 2 }}>
+                <StatValue value={s.value} />
+              </div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>{s.label}</div>
             </div>
           ))}
