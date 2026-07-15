@@ -234,7 +234,7 @@ const ADMIN_TABS = [
   },
 ];
 
-export function DesktopSidebar({ active }: { active: Screen }) {
+export function DesktopSidebar({ active, onOpenSearch }: { active: Screen; onOpenSearch?: () => void }) {
   const { navigate } = useNavigation();
   const { currentUser } = useUser();
   const { theme, toggleTheme } = useTheme();
@@ -262,6 +262,32 @@ export function DesktopSidebar({ active }: { active: Screen }) {
           <NotificationsPanel />
         </div>
       </div>
+
+      {/* Global quick-search trigger — admins only (parent decides) */}
+      {onOpenSearch && (
+        <div style={{ padding: '12px 12px 0' }}>
+          <button
+            onClick={onOpenSearch}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+              flexDirection: 'row-reverse', padding: '8px 12px',
+              borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+              background: 'var(--bg-chip)', border: '1px solid var(--border)',
+              color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'var(--font-ui)',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span style={{ flex: 1, textAlign: 'right' }}>חיפוש…</span>
+            <span className="num" style={{
+              fontSize: 9, padding: '2px 6px', borderRadius: 5,
+              background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)',
+            }}>Ctrl+K</span>
+          </button>
+        </div>
+      )}
 
       {/* "Back to admin menu" button — only when admin is in investor-style view */}
       {adminInInvestorView && (

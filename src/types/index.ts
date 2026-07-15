@@ -68,6 +68,8 @@ export interface NavState {
   highlightInvestorMode?: 'no-password';
   /** When navigating to admin-properties from an alert, highlight these properties */
   highlightPropertyMode?: 'no-manager';
+  /** When navigating to admin-properties from the dashboard pipeline, pre-apply this status filter */
+  propertyStatusFilter?: string;
 }
 
 export interface Investor {

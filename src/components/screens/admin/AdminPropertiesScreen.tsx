@@ -111,11 +111,15 @@ export function AdminPropertiesScreen() {
   const { navState } = useNavigation();
   const toast = useToast();
   const highlightMode = navState.highlightPropertyMode;
-  // Persisted between visits; arriving from a dashboard alert overrides it once.
+  // Pre-applied filter when arriving from the dashboard pipeline rows.
+  const navFilter = navState.propertyStatusFilter;
+  // Persisted between visits; arriving from a dashboard alert/pipeline overrides it once.
   const [persistedFilter, setPersistedFilter] = usePersistedState<string>('mg_ui_props_filter_v1', 'הכל', isStatusFilter);
-  const [statusFilter, setStatusFilterState] = useState<string>(() =>
-    highlightMode === 'no-manager' ? 'חסר מנהל' : persistedFilter,
-  );
+  const [statusFilter, setStatusFilterState] = useState<string>(() => {
+    if (highlightMode === 'no-manager') return 'חסר מנהל';
+    if (navFilter && isStatusFilter(navFilter)) return navFilter;
+    return persistedFilter;
+  });
   const setStatusFilter = (v: string) => { setStatusFilterState(v); setPersistedFilter(v); };
   const [search, setSearch] = useState('');
   const [source, setSource] = usePersistedState<PropertySource>('mg_ui_props_source_v1', 'investors',

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MGLogo } from '../../common/MGLogo';
+import { useToast } from '../../common/ToastProvider';
+import { useUser } from '../../../context/UserContext';
 import {
   fetchEmailLog, fetchScheduledEmails, createScheduledEmail, setScheduledEmailActive,
   sendAdminEmail, type EmailLogEntry, type ScheduledEmail, type Audience,
@@ -311,14 +313,41 @@ function AutoTab() {
 // ─── Tab: שליחה ─────────────────────────────────────────────────────────────
 
 function ComposeTab() {
+  const { currentUser } = useUser();
+  const toast = useToast();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [audience, setAudience] = useState<Audience>('all');
   const [customEmails, setCustomEmails] = useState('');
   const [sending, setSending] = useState(false);
+  const [testSending, setTestSending] = useState(false);
   const [result, setResult] = useState('');
   const [err, setErr] = useState('');
   const [confirming, setConfirming] = useState(false);
+
+  const adminEmail = currentUser?.email || '';
+
+  // Sends the composed email only to the admin so they can preview the real
+  // branded template in their inbox. Deliberately does NOT clear the fields.
+  const sendTest = async () => {
+    if (testSending || sending) return;
+    if (!subject.trim() || !message.trim()) { setErr('יש למלא נושא והודעה'); return; }
+    if (!adminEmail) { setErr('לא נמצא אימייל אדמין'); return; }
+    setTestSending(true); setErr('');
+    try {
+      await sendAdminEmail({
+        subject: `[בדיקה] ${subject.trim()}`,
+        message: message.trim(),
+        audience: 'custom',
+        customEmails: [adminEmail],
+      });
+      toast.success(`נשלח מייל בדיקה אל ${adminEmail}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'שליחת הבדיקה נכשלה');
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const AUDIENCES: { id: Audience; label: string }[] = [
     { id: 'all', label: 'כל המשקיעים' },
@@ -387,15 +416,32 @@ function ComposeTab() {
       {err && <div style={{ fontSize: 12, color: '#e2445c', textAlign: 'right' }}>{err}</div>}
       {result && <div style={{ fontSize: 13, color: '#4CAF50', fontWeight: 600, textAlign: 'right' }}>{result}</div>}
 
-      <button onClick={send} disabled={sending} style={{
-        padding: '13px 16px', borderRadius: 12, border: 'none',
-        background: confirming ? '#e2445c' : `linear-gradient(135deg, #C9A84C, #8a6a28)`,
-        color: confirming ? '#fff' : '#000',
-        fontSize: 14, fontWeight: 700, cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.7 : 1,
-        fontFamily: 'var(--font-ui)', transition: 'background 0.15s',
-      }}>
-        {sending ? 'שולח...' : confirming ? 'לחיצה נוספת לאישור השליחה ⚠️' : 'שליחת המייל'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, flexDirection: 'row-reverse' }}>
+        <button onClick={send} disabled={sending} style={{
+          flex: 1, padding: '13px 16px', borderRadius: 12, border: 'none',
+          background: confirming ? '#e2445c' : `linear-gradient(135deg, #C9A84C, #8a6a28)`,
+          color: confirming ? '#fff' : '#000',
+          fontSize: 14, fontWeight: 700, cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.7 : 1,
+          fontFamily: 'var(--font-ui)', transition: 'background 0.15s',
+        }}>
+          {sending ? 'שולח...' : confirming ? 'לחיצה נוספת לאישור השליחה ⚠️' : 'שליחת המייל'}
+        </button>
+        <button
+          onClick={sendTest}
+          disabled={testSending || sending || !subject.trim() || !message.trim() || !adminEmail}
+          title={adminEmail ? `שולח רק אל ${adminEmail}` : ''}
+          style={{
+            padding: '13px 16px', borderRadius: 12,
+            background: 'var(--bg-chip)', border: '1px solid var(--border)',
+            color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+            cursor: testSending ? 'wait' : 'pointer', fontFamily: 'var(--font-ui)',
+            opacity: (!subject.trim() || !message.trim() || !adminEmail) ? 0.5 : 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {testSending ? 'שולח...' : '✉ שלח בדיקה אליי'}
+        </button>
+      </div>
       <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>
         המייל יעוצב אוטומטית בתבנית הממותגת של Miller Group ויירשם ביומן. משקיעים שביטלו קבלת מיילים לא יקבלו אותו.
       </div>

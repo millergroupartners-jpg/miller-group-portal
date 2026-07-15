@@ -4,6 +4,7 @@ import { useUser } from '../../../context/UserContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
 import { fetchAdminFeed, relativeTimeHe, type AdminFeedEvent } from '../../../services/timelineApi';
+import { fmtUSDZero as fmtUSD } from '../../../utils/format';
 
 const GOLD = 'var(--gold-text)';
 
@@ -16,13 +17,6 @@ const PIPELINE_STAGES = [
   { label: 'מרקט',                  color: '#81C784' },
   { label: 'מושכר',                 color: 'var(--success)' },
 ] as const;
-
-function fmtUSD(n: number): string {
-  if (!n) return '$0';
-  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
-  if (n >= 1_000)     return '$' + Math.round(n / 1000) + 'K';
-  return '$' + n.toLocaleString('en-US');
-}
 
 export function AdminDashboardScreen() {
   const { navigate } = useNavigation();
@@ -130,16 +124,21 @@ export function AdminDashboardScreen() {
           </div>
         )}
 
-        {/* KPI row */}
+        {/* KPI row — each card jumps to the screen behind the number */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           {[
-            { label: 'AUM',           value: fmtUSD(totalArv),     color: GOLD },
-            { label: 'Equity כולל',   value: fmtUSD(totalEquity),  color: 'var(--success)' },
-            { label: 'ROI ממוצע',     value: roi,                  color: 'var(--success)' },
-            { label: 'משקיעים',       value: String(investors.length),    color: 'var(--text-primary)' },
-            { label: 'נכסים פעילים',  value: String(properties.length),   color: 'var(--text-primary)' },
+            { label: 'AUM',           value: fmtUSD(totalArv),     color: GOLD,                  target: 'admin-properties' as const },
+            { label: 'Equity כולל',   value: fmtUSD(totalEquity),  color: 'var(--success)',      target: 'admin-properties' as const },
+            { label: 'ROI ממוצע',     value: roi,                  color: 'var(--success)',      target: 'admin-properties' as const },
+            { label: 'משקיעים',       value: String(investors.length),    color: 'var(--text-primary)', target: 'admin-investors' as const },
+            { label: 'נכסים פעילים',  value: String(properties.length),   color: 'var(--text-primary)', target: 'admin-properties' as const },
           ].map(s => (
-            <div key={s.label} className="gold-card" style={{ padding: '16px 14px', textAlign: 'center' }}>
+            <div
+              key={s.label}
+              className="gold-card interactive"
+              onClick={() => navigate(s.target)}
+              style={{ padding: '16px 14px', textAlign: 'center', cursor: 'pointer' }}
+            >
               <div className="num" style={{ fontSize: 22, fontWeight: 700, color: s.color, marginBottom: 3 }}>{s.value}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: 0.5 }}>{s.label}</div>
             </div>
@@ -271,7 +270,12 @@ export function AdminDashboardScreen() {
             {stageCounts.map(s => {
               const pct = properties.length > 0 ? (s.count / properties.length) * 100 : 0;
               return (
-                <div key={s.label}>
+                <div
+                  key={s.label}
+                  className="interactive"
+                  onClick={() => navigate('admin-properties', { propertyStatusFilter: s.label })}
+                  style={{ cursor: 'pointer', borderRadius: 8, padding: '4px 6px', margin: '-4px -6px' }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, flexDirection: 'row-reverse' }}>
                     <span className="num" style={{ color: s.color, fontWeight: 700 }}>{s.count}</span>
                     <span style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
@@ -364,20 +368,20 @@ export function AdminDashboardScreen() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {feed.slice(0, 8).map(ev => {
-              const isClickable = Boolean(ev.propertyId || ev.inquiryId);
               const handleClick = () => {
                 if (ev.propertyId) navigate('property-detail', { propertyId: ev.propertyId });
                 else if (ev.inquiryId) navigate('admin-inquiries');
+                else navigate('admin-timeline');
               };
               return (
                 <div
                   key={ev.id}
-                  onClick={isClickable ? handleClick : undefined}
-                  className={isClickable ? 'interactive' : undefined}
+                  onClick={handleClick}
+                  className="interactive"
                   style={{
                     display: 'flex', flexDirection: 'row-reverse', alignItems: 'flex-start',
                     gap: 10, padding: 10, borderRadius: 'var(--radius-sm)', background: 'var(--bg-chip)',
-                    cursor: isClickable ? 'pointer' : 'default',
+                    cursor: 'pointer',
                   }}
                 >
                   <div style={{

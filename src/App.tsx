@@ -28,9 +28,10 @@ import { DesktopSidebar } from './components/common/DesktopSidebar';
 import { BottomTabBar } from './components/common/BottomTabBar';
 import { MobileTopActions } from './components/common/MobileTopActions';
 import { ImpersonationBanner } from './components/common/ImpersonationBanner';
+import { CommandPalette } from './components/common/CommandPalette';
 import { InvestorOnboarding } from './components/onboarding/InvestorOnboarding';
 import { useUser } from './context/UserContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Screens that show the sidebar on desktop
 const SIDEBAR_SCREENS = [
@@ -40,8 +41,12 @@ const SIDEBAR_SCREENS = [
 
 export default function App() {
   const { navState, resetTo } = useNavigation();
-  const { impersonating } = useUser();
+  const { currentUser, impersonating } = useUser();
   const { screen, selectedPropertyId, selectedInvestorId, investorName } = navState;
+  const [searchOpen, setSearchOpen] = useState(false);
+  // Admin-only, and never during impersonation — investors must not be able
+  // to enumerate other investors through the palette.
+  const searchAvailable = Boolean(currentUser?.isAdmin) && !impersonating && screen !== 'login';
 
   // Belt-and-suspenders: while impersonating, admin screens are unreachable —
   // any navigation that lands on one gets bounced to the investor dashboard.
@@ -100,13 +105,17 @@ export default function App() {
     return (
       <div className="app-layout" style={impersonating ? { paddingTop: 34 } : undefined}>
         <ImpersonationBanner />
-        <DesktopSidebar active={screen} />
+        <DesktopSidebar active={screen} onOpenSearch={searchAvailable ? () => setSearchOpen(true) : undefined} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           {content}
           <BottomTabBar active={screen} />
         </div>
         {/* Mobile-only floating action cluster: bell, settings, back-to-admin */}
         <MobileTopActions active={screen} />
+        {/* Global quick search — admins only */}
+        {searchAvailable && (
+          <CommandPalette open={searchOpen} onOpen={() => setSearchOpen(true)} onClose={() => setSearchOpen(false)} />
+        )}
         {/* First-login tour — renders only for investors who haven't seen it */}
         {screen === 'dashboard' && <InvestorOnboarding />}
       </div>
