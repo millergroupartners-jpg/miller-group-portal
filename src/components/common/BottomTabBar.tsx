@@ -1,6 +1,7 @@
 import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
 import { useOpenInquiryCount } from '../../hooks/useOpenInquiryCount';
+import { useNewDeals } from '../../hooks/useNewDeals';
 import type { Screen } from '../../types';
 
 const GOLD = 'var(--gold)';
@@ -225,6 +226,7 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
   const { currentUser } = useUser();
   const isAdmin = Boolean(currentUser?.isAdmin);
   const openInquiryCount = useOpenInquiryCount();
+  const hasNewDeals = useNewDeals();
 
   // When admin is viewing a property/documents/media, keep investor-style tabs so
   // docs/media are easy to reach (mirrors DesktopSidebar behavior).
@@ -252,6 +254,14 @@ export function BottomTabBar({ active }: BottomTabBarProps) {
             {tab.icon(isActive)}
             <span style={{ color: isActive ? GOLD : 'var(--tab-icon)' }}>{tab.label}</span>
             {isActive && <div className="tab-dot" />}
+            {/* Gold dot: an open deal this investor hasn't seen yet */}
+            {tab.id === 'deal-room' && hasNewDeals && (
+              <div style={{
+                position: 'absolute', top: 2, right: 8, width: 8, height: 8,
+                borderRadius: '50%', background: 'var(--gold)',
+                border: '1.5px solid var(--bg-tab)',
+              }} />
+            )}
             {showBadge && (
               <div style={{
                 position: 'absolute',

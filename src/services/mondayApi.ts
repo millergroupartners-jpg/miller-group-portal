@@ -174,6 +174,11 @@ function parseAddress(fullName: string): { address: string; city: string } {
  */
 export const OPEN_FOR_INVESTMENT_STATUS = 'פתוח להשקעה';
 
+/** A deal-room deal: published status and not yet claimed by an investor. */
+export function isOpenDeal(p: { status: string; investorMondayId?: string }): boolean {
+  return p.status === OPEN_FOR_INVESTMENT_STATUS && !p.investorMondayId;
+}
+
 function mapRentalStatus(text: string): { status: string; statusType: 'gold' | 'green' | 'blue' } {
   switch (text) {
     case OPEN_FOR_INVESTMENT_STATUS:

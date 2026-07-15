@@ -1,6 +1,7 @@
 import { useNavigation } from '../../context/NavigationContext';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNewDeals } from '../../hooks/useNewDeals';
 import { MGLogo } from './MGLogo';
 import { NotificationsPanel } from './NotificationsPanel';
 import type { Screen } from '../../types';
@@ -239,6 +240,7 @@ export function DesktopSidebar({ active }: { active: Screen }) {
   const { theme, toggleTheme } = useTheme();
 
   const isAdmin = Boolean(currentUser?.isAdmin);
+  const hasNewDeals = useNewDeals();
   // Admin viewing a property or investor-style screen — show the same tabs an investor sees,
   // so documents/media are one click away. Otherwise (admin on an admin-* screen, or a real
   // investor), use the role-appropriate tab set.
@@ -290,6 +292,13 @@ export function DesktopSidebar({ active }: { active: Screen }) {
             >
               {tab.icon(isActive)}
               <span>{tab.label}</span>
+              {/* Gold dot: an open deal this investor hasn't seen yet */}
+              {tab.id === 'deal-room' && hasNewDeals && (
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)',
+                  marginInlineStart: 'auto', flexShrink: 0,
+                }} />
+              )}
             </button>
           );
         })}

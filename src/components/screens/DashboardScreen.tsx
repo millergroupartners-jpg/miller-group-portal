@@ -13,6 +13,8 @@ import { useCCThumbnail } from '../../hooks/useCCThumbnail';
 import { fetchInvestorFeed, relativeTimeHe, type AdminFeedEvent } from '../../services/timelineApi';
 import { timeGreetingHe } from '../../utils/greeting';
 import { StatValue } from '../common/StatValue';
+import { getAndStampLastVisit } from '../../services/lastVisit';
+import { userStorageKey } from '../../services/userStorage';
 import type { MondayProperty } from '../../services/mondayApi';
 import type { Property } from '../../types';
 
@@ -111,6 +113,10 @@ export function DashboardScreen() {
   // transfers and loan updates included in an investor-safe presentation.
   const [feed, setFeed] = useState<AdminFeedEvent[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  // "New since last visit" banner — count feed events newer than the previous
+  // visit's timestamp (stamped once per session; see lastVisit.ts).
+  const [newSinceCount, setNewSinceCount] = useState(0);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => {
     if (!mondayInvestor?.mondayId) return;
     let cancelled = false;
@@ -118,7 +124,18 @@ export function DashboardScreen() {
     // Pull a larger window so we can show the 5 most recent regardless of recency —
     // the old cap hid the feed entirely for investors with no activity this week.
     fetchInvestorFeed(mondayInvestor.mondayId, 50)
-      .then(list => { if (!cancelled) setFeed(list); })
+      .then(list => {
+        if (cancelled) return;
+        setFeed(list);
+        if (!user.isAdmin) {
+          const prev = getAndStampLastVisit(userStorageKey(user));
+          // First-ever visit (no prev) → stamp only, nothing is "new" yet.
+          if (prev) {
+            const count = list.filter(ev => ev.at && ev.at > prev).length;
+            if (count > 0) setNewSinceCount(count);
+          }
+        }
+      })
       .catch(err => console.error('investor feed failed:', err))
       .finally(() => { if (!cancelled) setFeedLoading(false); });
     return () => { cancelled = true; };
@@ -227,6 +244,39 @@ export function DashboardScreen() {
 
       {/* Property cards + optional activity feed below */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px' }}>
+
+      {/* "New since last visit" banner */}
+      {newSinceCount > 0 && !bannerDismissed && (
+        <div className="fade-up" style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse',
+          background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
+          borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--gold-text)', fontWeight: 600, flex: 1, textAlign: 'right' }}>
+            מאז הביקור האחרון: {newSinceCount === 1 ? 'עדכון חדש אחד' : `${newSinceCount} עדכונים חדשים`}
+          </span>
+          <button
+            onClick={() => navigate('timeline')}
+            style={{
+              background: 'transparent', border: 'none', color: GOLD,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap',
+            }}
+          >
+            צפה בציר הזמן ←
+          </button>
+          <button
+            aria-label="סגירה"
+            onClick={() => setBannerDismissed(true)}
+            style={{
+              background: 'transparent', border: 'none', color: 'var(--text-muted)',
+              fontSize: 14, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div data-tour="properties" className="property-grid stagger" style={{ padding: 0 }}>
 
         {/* ── Monday investor properties ── */}

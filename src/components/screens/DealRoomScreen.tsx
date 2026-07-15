@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MGLogo } from '../common/MGLogo';
 import { SkeletonPropertyCard } from '../common/Skeletons';
 import { StatusBadge } from '../common/StatusBadge';
@@ -6,7 +6,9 @@ import { PropPhoto } from '../common/PropPhoto';
 import { useCCThumbnail } from '../../hooks/useCCThumbnail';
 import { useUser } from '../../context/UserContext';
 import { useMondayData } from '../../context/MondayDataContext';
-import { OPEN_FOR_INVESTMENT_STATUS, type MondayProperty } from '../../services/mondayApi';
+import { isOpenDeal, type MondayProperty } from '../../services/mondayApi';
+import { markDealsSeen } from '../../services/lastVisit';
+import { userStorageKey } from '../../services/userStorage';
 import { createInquiry } from '../../services/inquiriesApi';
 import { MOCK_USER } from '../../data/user';
 
@@ -84,7 +86,14 @@ export function DealRoomScreen() {
   // linked investor yet (available to claim) and is flagged with the status.
   // Requiring no linked investor guarantees we never expose a property that
   // already belongs to a real investor.
-  const deals = properties.filter(p => p.status === OPEN_FOR_INVESTMENT_STATUS && !p.investorMondayId);
+  const deals = properties.filter(isOpenDeal);
+
+  // Visiting the deal room marks every open deal as seen — clears the gold
+  // "new deal" dot on the nav (useNewDeals). Idempotent set union.
+  useEffect(() => {
+    if (!currentUser || currentUser.isAdmin || deals.length === 0) return;
+    markDealsSeen(userStorageKey(currentUser), deals.map(d => d.mondayId));
+  }, [currentUser, deals.length]);
 
   // Interest modal state
   const [selected, setSelected] = useState<MondayProperty | null>(null);
