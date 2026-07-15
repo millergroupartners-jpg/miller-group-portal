@@ -11,6 +11,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '../../../context/NavigationContext';
 import { useMondayData } from '../../../context/MondayDataContext';
 import { MGLogo } from '../../common/MGLogo';
+import { useToast } from '../../common/ToastProvider';
+import { usePersistedState } from '../../../hooks/usePersistedState';
+import { downloadCsv, csvFilename } from '../../../utils/csv';
 import { listUtilities, utilityIcon, statusColor, type Utility, type UtilityStatus } from '../../../services/utilitiesApi';
 
 type SourceKey = 'investors' | 'mg';
@@ -42,11 +45,14 @@ export function AdminUtilitiesScreen() {
   const { mgProperties } = useMondayData();
   const mgPropertyIds = useMemo(() => new Set(mgProperties.map(p => p.mondayId)), [mgProperties]);
 
+  const toast = useToast();
   const [items, setItems] = useState<Utility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('all');
-  const [source, setSource] = useState<SourceKey>('investors');
+  const [statusFilter, setStatusFilter] = usePersistedState<StatusFilterKey>('mg_ui_utils_filter_v1', 'all',
+    (v): v is StatusFilterKey => STATUS_CHIPS.some(c => c.key === v));
+  const [source, setSource] = usePersistedState<SourceKey>('mg_ui_utils_source_v1', 'investors',
+    (v): v is SourceKey => v === 'investors' || v === 'mg');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -136,14 +142,31 @@ export function AdminUtilitiesScreen() {
           ))}
         </div>
 
-        {/* Search */}
-        <input
-          className="mg-input"
-          placeholder="חיפוש לפי כתובת, משקיע, ספק או account…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ direction: 'rtl' }}
-        />
+        {/* Search + export */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'row-reverse' }}>
+          <input
+            className="mg-input"
+            placeholder="חיפוש לפי כתובת, משקיע, ספק או account…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ direction: 'rtl', flex: 1 }}
+          />
+          <button
+            className="chip-filter"
+            onClick={() => {
+              downloadCsv(
+                csvFilename('utilities'),
+                ['נכס', 'משקיע', 'ספק', 'מספר חשבון', 'סטטוס', 'נוצר'],
+                filtered.map(u => [u.propertyName, u.investorName, u.serviceCompany, u.accountNumber, u.statusHe, u.createdAt]),
+              );
+              toast.success(`יוצאו ${filtered.length} חשבונות`);
+            }}
+            disabled={filtered.length === 0}
+            style={{ flexShrink: 0, ...(filtered.length === 0 ? { opacity: 0.5, cursor: 'default' } : {}) }}
+          >
+            ⬇ ייצוא CSV
+          </button>
+        </div>
 
         {/* Status filter chips — flex-wrap so every chip is reachable on desktop */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: 'row-reverse', justifyContent: 'flex-start' }}>

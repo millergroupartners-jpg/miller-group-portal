@@ -5,7 +5,10 @@ import { MGLogo } from '../../common/MGLogo';
 import { StatusBadge } from '../../common/StatusBadge';
 import { ProgressBar } from '../../common/ProgressBar';
 import { PropPhoto } from '../../common/PropPhoto';
+import { useToast } from '../../common/ToastProvider';
 import { useCCThumbnail } from '../../../hooks/useCCThumbnail';
+import { usePersistedState } from '../../../hooks/usePersistedState';
+import { downloadCsv, csvFilename } from '../../../utils/csv';
 import type { MondayProperty } from '../../../services/mondayApi';
 
 const NEEDS_MANAGER_STATUSES = ['מעבר לניהול', 'מרקט', 'מושכר'];
@@ -17,6 +20,24 @@ function needsManager(p: MondayProperty): boolean {
 const GOLD = 'var(--gold-text)';
 
 const STATUS_FILTERS = ['הכל', 'חסר מנהל', 'על חוזה', 'בשלבי הלוואה וחתימות', 'בשיפוץ', 'מעבר לניהול', 'מרקט', 'מושכר'];
+
+type PropSortKey = 'status' | 'closing' | 'address';
+
+const PROP_SORT_OPTIONS: { key: PropSortKey; label: string }[] = [
+  { key: 'status',  label: 'סטטוס' },
+  { key: 'closing', label: 'תאריך סגירה' },
+  { key: 'address', label: 'כתובת' },
+];
+
+const isPropSortKey = (v: unknown): v is PropSortKey => v === 'status' || v === 'closing' || v === 'address';
+const isStatusFilter = (v: unknown): v is string => typeof v === 'string' && STATUS_FILTERS.includes(v);
+
+/** Pipeline position for status-sort — earlier stage first, unknown statuses last. */
+const PIPELINE_ORDER = ['על חוזה', 'בשלבי הלוואה וחתימות', 'בשיפוץ', 'מעבר לניהול', 'מרקט', 'מושכר'];
+const pipelineRank = (status: string) => {
+  const i = PIPELINE_ORDER.indexOf(status);
+  return i === -1 ? PIPELINE_ORDER.length : i;
+};
 
 function Card({ p, i, flash }: { p: MondayProperty; i: number; flash?: boolean }) {
   const thumb = useCCThumbnail(p.address);
@@ -88,18 +109,21 @@ type PropertySource = 'investors' | 'mg';
 export function AdminPropertiesScreen() {
   const { properties, mgProperties, loading } = useMondayData();
   const { navState } = useNavigation();
+  const toast = useToast();
   const highlightMode = navState.highlightPropertyMode;
-  const [statusFilter, setStatusFilter] = useState<string>(() =>
-    highlightMode === 'no-manager' ? 'חסר מנהל' : 'הכל',
+  // Persisted between visits; arriving from a dashboard alert overrides it once.
+  const [persistedFilter, setPersistedFilter] = usePersistedState<string>('mg_ui_props_filter_v1', 'הכל', isStatusFilter);
+  const [statusFilter, setStatusFilterState] = useState<string>(() =>
+    highlightMode === 'no-manager' ? 'חסר מנהל' : persistedFilter,
   );
+  const setStatusFilter = (v: string) => { setStatusFilterState(v); setPersistedFilter(v); };
   const [search, setSearch] = useState('');
-  const [source, setSource] = useState<PropertySource>('investors');
-  /** Cards = visual grid (default), list = compact rows. Persisted to localStorage. */
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>(() => {
-    if (typeof window === 'undefined') return 'cards';
-    return (localStorage.getItem('mg_admin_props_view') as 'cards' | 'list') || 'cards';
-  });
-  useEffect(() => { localStorage.setItem('mg_admin_props_view', viewMode); }, [viewMode]);
+  const [source, setSource] = usePersistedState<PropertySource>('mg_ui_props_source_v1', 'investors',
+    (v): v is PropertySource => v === 'investors' || v === 'mg');
+  const [sortKey, setSortKey] = usePersistedState<PropSortKey>('mg_ui_props_sort_v1', 'status', isPropSortKey);
+  /** Cards = visual grid (default), list = compact rows. Persisted to localStorage (legacy key kept). */
+  const [viewMode, setViewMode] = usePersistedState<'cards' | 'list'>('mg_admin_props_view', 'cards',
+    (v): v is 'cards' | 'list' => v === 'cards' || v === 'list');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // When admin came in from the "missing manager" alert, also include MG properties
@@ -123,7 +147,32 @@ export function AdminPropertiesScreen() {
              (p.investorName ?? '').toLowerCase().includes(s);
     }
     return true;
+  }).sort((a, b) => {
+    switch (sortKey) {
+      case 'address': return a.address.localeCompare(b.address, 'he');
+      case 'closing': {
+        // Soonest closing first; properties without a date go last.
+        if (!a.closingDate && !b.closingDate) return 0;
+        if (!a.closingDate) return 1;
+        if (!b.closingDate) return -1;
+        return a.closingDate.localeCompare(b.closingDate);
+      }
+      default: return pipelineRank(a.status) - pipelineRank(b.status);
+    }
   });
+
+  const exportCsv = () => {
+    downloadCsv(
+      csvFilename('properties'),
+      ['כתובת', 'עיר', 'סטטוס', 'משקיע', 'מחיר קנייה', 'ARV', 'Equity', 'תאריך סגירה', 'התקדמות %'],
+      filtered.map(p => [
+        p.address, p.city, p.status, p.investorName,
+        p.purchasePrice, p.arvRaw || '', (p.arvRaw > 0 && p.allIn > 0) ? p.arvRaw - p.allIn : '',
+        p.closingDate, p.progress,
+      ]),
+    );
+    toast.success(`יוצאו ${filtered.length} נכסים`);
+  };
 
   // Set of property IDs to flash when we arrive from the alert
   const flashIds = useMemo(() => {
@@ -235,14 +284,35 @@ export function AdminPropertiesScreen() {
         })}
       </div>
 
-      {/* View mode toggle (cards / list) + result count */}
+      {/* Sort + view mode toggle (cards / list) + result count + export */}
       <div style={{
-        padding: '10px 20px 0', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', flexDirection: 'row-reverse', flexShrink: 0,
+        padding: '10px 20px 0', display: 'flex', alignItems: 'center', gap: 8,
+        flexDirection: 'row-reverse', flexWrap: 'wrap', flexShrink: 0,
       }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: 'row-reverse' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>מיון:</span>
+          {PROP_SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSortKey(opt.key)}
+              className={'chip-filter' + (sortKey === opt.key ? ' active' : '')}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
         <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
           מציג {filtered.length} נכסים
         </div>
+        <button
+          className="chip-filter"
+          onClick={exportCsv}
+          disabled={filtered.length === 0}
+          style={filtered.length === 0 ? { opacity: 0.5, cursor: 'default' } : undefined}
+        >
+          ⬇ ייצוא CSV
+        </button>
         <div style={{
           display: 'inline-flex', gap: 2, padding: 3, borderRadius: 100,
           background: 'var(--bg-chip)', border: '1px solid var(--border)',

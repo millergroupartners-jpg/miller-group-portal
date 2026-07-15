@@ -14,11 +14,16 @@ export function usePersistedState<T>(
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) return initial;
-      const parsed = JSON.parse(raw);
-      if (validate ? validate(parsed) : parsed !== null && parsed !== undefined) {
-        return parsed as T;
+      try {
+        const parsed = JSON.parse(raw);
+        if (validate ? validate(parsed) : parsed !== null && parsed !== undefined) {
+          return parsed as T;
+        }
+      } catch {
+        // Legacy keys stored raw (un-JSON-encoded) strings — accept if valid.
+        if (validate?.(raw)) return raw;
       }
-    } catch { /* parse failure / private mode — fall through */ }
+    } catch { /* private mode — fall through */ }
     return initial;
   });
 
